@@ -1,0 +1,1 @@
+Coinbase automated trading bot
