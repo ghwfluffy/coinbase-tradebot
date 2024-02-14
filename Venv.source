@@ -8,5 +8,5 @@ fi
 SCRIPT_DIR="$(readlink -f "$(dirname "${BASH_SOURCE[0]}")")"
 python3 -m venv "${SCRIPT_DIR}/.venv"
 source "${SCRIPT_DIR}/.venv/bin/activate"
-pip3 install --upgrade pip
-python3 -m pip install -r "${SCRIPT_DIR}/requirements.txt"
+pip3 install --upgrade pip &> /dev/null
+python3 -m pip install -r "${SCRIPT_DIR}/requirements.txt" &> /dev/null

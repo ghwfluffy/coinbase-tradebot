@@ -1,60 +1,88 @@
-import json
+import time
+from datetime import datetime, timedelta, timezone
 
 from coinbase.rest import rest_base, accounts, products, orders
 
-CREDENTIAL="secrets/coinbase_cloud_api_key.json"
+from utils.wallet import get_wallet, wallets_equal
+from utils.pricebook import get_market_price
+from utils.debug import print_json, get_now_string
+from utils.transactions import buy_btc, sell_btc
 
-def print_json(data):
-    print(json.dumps(data, indent=4))
+# How big of a spread to play with
+SPREAD_SIZE = 100
+
+CREDENTIAL="secrets/coinbase_cloud_api_key.json"
 
 # REST API instance
 ctx = rest_base.RESTBase(key_file=CREDENTIAL)
 
-# Get accounts
-info = accounts.get_accounts(ctx)
-print_json(info)
+market_prices = []
+last_wallet = {}
+while True:
+    # Get wallet
+    wallet = get_wallet(ctx)
+    reload = False
 
-# BTC-USD: Base BTC, Quote USD
-data = products.get_best_bid_ask(ctx, product_ids=["BTC-USD"])
-print_json(data)
+    # Current BTC price
+    market_price = get_market_price(ctx)['bid']
 
-# Buy BTC
-if False:
-    order_info = orders.stop_limit_order_gtc_buy(
-        ctx,
-        client_order_id='FirstBuy',
-        product_id='BTC-USD',
-        base_size='0.0016', # Amount of BTC to buy
-        stop_price='49500.00', # Price to trigger at (USD)
-        limit_price='49766.00', # Don't buy anything more expensive than this (USD) (Higher than stop price)
-        stop_direction='STOP_DIRECTION_STOP_DOWN', # Trigger when below stop_price
-    )
+    # Get the average price over the last two hours
+    market_prices.append(market_price)
+    average_price = sum(market_prices) / len(market_prices)
 
-    print_json(order_info)
+    # Keep 2 hours worth of data
+    while len(market_prices) > 120:
+        market_prices.pop(0)
 
-    order_id = order_info['order_id']
+    # We have money to spend
+    if wallet['USD']['available'] > 10:
+        # Buy below average value and current market value
+        buy_price = average_price - SPREAD_SIZE
+        if buy_price > market_price - SPREAD_SIZE:
+            buy_price = market_price - SPREAD_SIZE
+        buy_btc(ctx, wallet['USD']['available'] - 5, buy_price)
+        reload = True
 
-# Sell BTC
-if False:
-    order_info = orders.stop_limit_order_gtc_sell(
-        ctx,
-        client_order_id='SecondSell',
-        product_id='BTC-USD',
-        base_size='0.0016', # Amount of BTC to sell
-        stop_price='50200.00', # Price to trigger at (USD)
-        limit_price='50100.00', # Don't sell anything cheaper than this (USD) (Lower than stop price)
-        stop_direction='STOP_DIRECTION_STOP_UP', # Trigger when above stop_price
-    )
+    # We have bitcoin to sell
+    if wallet['BTC']['available'] > 0.0001:
+        # Sell above average value and current market value
+        sell_price = average_price + SPREAD_SIZE
+        if sell_price < market_price + SPREAD_SIZE:
+            sell_price = market_price + SPREAD_SIZE
+        sell_btc(ctx, wallet['BTC']['available'], sell_price)
+        reload = True
 
-    print_json(order_info)
+    # Cancel bids to buy bitcoin that are older than 2 hours
+    cur_orders = orders.list_orders(ctx, order_status=['OPEN'])
+    for order in cur_orders['orders']:
+        if order['side'] != "BUY":
+            continue
+        created = datetime.strptime(order['created_time'], "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=timezone.utc)
+        now = datetime.now(timezone.utc)
+        time_difference = now - created
+        if time_difference > timedelta(hours=2):
+            result = orders.cancel_orders(ctx, order_ids=[order['order_id']])
+            success = False
+            try:
+                success = result['results'][0]['success']
+            except:
+                pass
+            print("[{}] [CANCEL] ".format(get_now_string()), end='')
+            if not success:
+                print("[ERROR] ", end='')
+            print("Order {} of {:.5f} BTC at ${:.2f}.".format(
+                order['client_order_id'],
+                float(order['order_configuration']['limit_limit_gtc']['base_size']),
+                float(order['order_configuration']['limit_limit_gtc']['limit_price'])))
+            reload = True
 
-    order_id = order_info['order_id']
+    # Show updated wallet info
+    if reload:
+        wallet = get_wallet(ctx)
+    if not wallets_equal(last_wallet, wallet):
+        print("[{}] Wallet:".format(get_now_string()))
+        print_json(wallet)
+        last_wallet = wallet
 
-# Cancel order
-if False:
-    finish = orders.cancel_orders(
-        ctx,
-        order_ids=[order_id],
-    )
-
-    print_json(finish)
+    # Sleep 1 minute
+    time.sleep(60)
