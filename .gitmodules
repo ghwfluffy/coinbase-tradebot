@@ -1,3 +1,0 @@
-[submodule "coinbase"]
-	path = coinbase
-	url = https://github.com/coinbase/coinbase-advanced-py.git
