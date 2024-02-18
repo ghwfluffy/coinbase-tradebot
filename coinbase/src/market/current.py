@@ -6,13 +6,13 @@ class CurrentMarket():
     ask: float
     split: float
 
-    @staticmethod
-    def get(ctx) -> 'CurrentMarket':
+    @classmethod
+    def get(cls, ctx) -> 'CurrentMarket':
         try:
             # BTC-USD: Base BTC, Quote USD
             data = products.get_best_bid_ask(ctx, product_ids=["BTC-USD"])
 
-            ret = CurrentMarket()
+            ret = cls()
             # Buy price
             ret.bid = float(data['pricebooks'][0]['bids'][0]['price'])
             # Sell price

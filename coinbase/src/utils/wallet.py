@@ -1,7 +1,7 @@
 import copy
 
 from coinbase.rest import accounts, products
-from utils.pricebook import get_market_price
+from market.current import CurrentMarket
 
 def get_wallet(ctx):
     # Get my account info
@@ -25,7 +25,7 @@ def get_wallet(ctx):
         w['total'] += w['hold'] + w['available']
 
     # Current price
-    bid = get_market_price(ctx)['bid']
+    bid = CurrentMarket.get(ctx).bid
 
     # Get totals in USD
     for x in ['hold', 'available', 'total']:

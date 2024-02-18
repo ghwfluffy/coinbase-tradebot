@@ -160,7 +160,7 @@ while True:
                 next_price_down = pair_next_price_down
 
         price_changed_enough = False
-        if has_active and (market.split < next_price_down or market.split > next_price_up):
+        if has_active and market.split < next_price_down:
             price_changed_enough = True
 
         # We have no reason to place a new trade yet
