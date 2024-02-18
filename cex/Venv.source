@@ -5,8 +5,17 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     exit 1
 fi
 
+PYTHON=$(which python3.12 || which python3.10)
+
 SCRIPT_DIR="$(readlink -f "$(dirname "${BASH_SOURCE[0]}")")"
-python3 -m venv "${SCRIPT_DIR}/.venv"
-source "${SCRIPT_DIR}/.venv/bin/activate"
-pip3 install --upgrade pip &> /dev/null
-python3 -m pip install -r "${SCRIPT_DIR}/requirements.txt" &> /dev/null
+if [ ! -d "${SCRIPT_DIR}/.venv" ]; then
+    echo "Initializing python virtual environment."
+    "${PYTHON}" -m venv "${SCRIPT_DIR}/.venv"
+    source "${SCRIPT_DIR}/.venv/bin/activate"
+    pip3 install --upgrade pip
+    python3 -m pip install -r "${SCRIPT_DIR}/requirements.txt"
+else
+    source "${SCRIPT_DIR}/.venv/bin/activate"
+    pip3 install --upgrade pip &> /dev/null
+    python3 -m pip install -r "${SCRIPT_DIR}/requirements.txt" &> /dev/null
+fi
