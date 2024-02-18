@@ -19,10 +19,10 @@ Version 1
     [x] serialize
     [x] deserialize
 [x] create_order
-[\] Test
+[x] Test
     [x] Insert testing code
-[ ] stage
-    [ ] Remove old code
+[x] stage
+    [S] Remove old code
 
 Version 2
 [ ] Run against historical data
