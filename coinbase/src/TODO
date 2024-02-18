@@ -1,0 +1,28 @@
+Version 1
+[x] main.py
+[x] Context
+[x] Logger
+[x] CurrentMarket
+[x] MarketWindow
+[x] TargetState
+[x] OrderBook
+    [x] serialize file
+    [x] cleanup
+[x] OrderPair
+    [x] churn
+    [x] serialize
+    [x] deserialize
+[x] Order
+    [x] churn
+        [x] place_order
+        [x] check_order
+    [x] serialize
+    [x] deserialize
+[x] create_order
+[\] Test
+    [x] Insert testing code
+[ ] stage
+    [ ] Remove old code
+
+Version 2
+[ ] Dynamic wagers and qty as account balance changes

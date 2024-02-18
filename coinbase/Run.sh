@@ -1,6 +1,7 @@
 #!/bin/bash
 
-source Venv.source
-#export PYTHONPATH=coinbase
-python3.10 test.py
+PYTHON=$(which python3.12 || which python3.10)
 
+source Venv.source
+export PYTHONPATH=src
+"${PYTHON}" test.py

@@ -31,7 +31,7 @@ buy_order = None
 while True:
     # Current BTC price
     try:
-        market_price = get_market_price(ctx)['bid']
+        market_price = get_market_price(ctx)['split']
     except:
         print("[{}] Failed to get market price.".format(get_now_string()))
         time.sleep(60)

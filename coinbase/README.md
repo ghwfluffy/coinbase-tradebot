@@ -1,3 +1,9 @@
 Coinbase automated trading bot
 
-Coinbase One: $30/month -> Zero trading fees
+Coinbase Advanced
+    - 0.4% maker fee
+    - 0.6% taker fee
+    - lower fee if you bid below lowest ask / ask above highest bid
+
+Coinbase API
+    https://docs.cloud.coinbase.com/advanced-trade-api/reference
