@@ -26,5 +26,5 @@ class TargetState():
         self.calc_id()
 
     def calc_id(self) -> None:
-        self._id = "{}.{}.{}.{}".format(self.qty, self.spread, self.wager, self.longevity)
+        self._id = "{}_{}_{}_{}".format(self.qty, self.spread, self.wager, self.longevity)
         return None

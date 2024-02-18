@@ -25,4 +25,7 @@ Version 1
     [ ] Remove old code
 
 Version 2
+[ ] Run against historical data
+    [ ] Find historical data
+    [ ] Abstract out code
 [ ] Dynamic wagers and qty as account balance changes

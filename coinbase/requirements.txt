@@ -1,3 +1,4 @@
 coinbase-advanced-py
 sphinx-rtd-theme
 sphinx
+python-dateutil

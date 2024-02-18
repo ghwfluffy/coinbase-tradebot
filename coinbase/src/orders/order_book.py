@@ -1,4 +1,5 @@
 import os
+import json
 
 from context import Context
 from orders.order_pair import OrderPair
@@ -15,7 +16,7 @@ class OrderBook():
         self.iter_index = 0
 
     @staticmethod
-    def read_fs() -> OrderBook:
+    def read_fs() -> 'OrderBook':
         book = OrderBook()
         # No saved state
         if not os.path.exists(OrderBook.PERSISTENT_STORAGE):
@@ -61,25 +62,28 @@ class OrderBook():
         self.iter_index = 0
         return self
     
-    def __next__(self) -> Order:
+    def __next__(self) -> OrderPair:
         if self.iter_index < len(self.orders):
             order: Order = self.orders[self.iter_index]
-            self.index += 1
+            self.iter_index += 1
             return order
-        return None
+        raise StopIteration
 
-    def churn(ctx: Context) -> bool
+    def churn(self, ctx: Context) -> bool:
         ret = True
-        for order in orders:
+        for order in self.orders:
             ret &= order.churn(ctx)
         return ret
 
-    def cleanup(self) -> None:
+    def cleanup(self, ctx: Context) -> None:
         i = 0
         while i < len(self.orders):
             pair: OrderPair = self.orders[i]
-            if pair.status in [OrderPair.Status.Complete, OrderPair.Status.Canceled]:
-                Log.debug("Cleanup completed order pair from {}.".format(self._id))
+            if pair.status == OrderPair.Status.Complete:
+                Log.debug("Cleanup completed order pair from {}.".format(pair.target_id))
+                self.orders.pop(i)
+            elif pair.status == OrderPair.Status.Canceled and pair.cancel(ctx):
+                Log.debug("Cleanup canceled order pair from {}.".format(pair.target_id))
                 self.orders.pop(i)
             else:
                 i += 1
