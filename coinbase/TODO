@@ -29,3 +29,5 @@ Version 2
     [ ] Find historical data
     [ ] Abstract out code
 [ ] Dynamic wagers and qty as account balance changes
+[ ] Don't put in buy/sell bids until closer to target price
+    - Stop limit should work
