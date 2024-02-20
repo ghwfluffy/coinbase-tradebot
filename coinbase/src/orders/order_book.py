@@ -1,8 +1,10 @@
 import os
 import json
+import shutil
 
 from context import Context
 from orders.order_pair import OrderPair
+from market.current import CurrentMarket
 from utils.logging import Log
 
 class OrderBook():
@@ -70,9 +72,14 @@ class OrderBook():
         raise StopIteration
 
     def churn(self, ctx: Context) -> bool:
+        # Get the current market spread
+        market: CurrentMarket = CurrentMarket.get(ctx)
+        if market == None:
+            return False
+
         ret = True
         for order in self.orders:
-            ret &= order.churn(ctx)
+            ret &= order.churn(ctx, market)
         return ret
 
     def cleanup(self, ctx: Context) -> None:
@@ -82,8 +89,32 @@ class OrderBook():
             if pair.status == OrderPair.Status.Complete:
                 Log.debug("Cleanup completed order pair from {}.".format(pair.target_id))
                 self.orders.pop(i)
+                self.write_historical(pair)
             elif pair.status == OrderPair.Status.Canceled and pair.cancel(ctx):
                 Log.debug("Cleanup canceled order pair from {}.".format(pair.target_id))
                 self.orders.pop(i)
+                self.write_historical(pair)
             else:
                 i += 1
+
+    def write_historical(self, pair: OrderPair) -> None:
+        try:
+            # Read in file
+            with open("historical.json", "r") as fp:
+                data = fp.read()
+
+            # Deserialize JSON string
+            data = json.loads(data)
+
+            # Append
+            data.append(pair.to_dict())
+
+            # Write
+            with open("historical-updated.json", "w") as fp:
+                fp.write(json.dumps(data))
+
+            # Careful not to lose any data
+            shutil.move("historical.json", "historical-bak.json")
+            shutil.move("historical-updated.json", "historical.json")
+        except Exception as e:
+            Log.error("Failed to save historical data: {}".format(str(e)))

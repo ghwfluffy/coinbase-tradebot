@@ -1,30 +1,16 @@
-Version 1
-[x] main.py
-[x] Context
-[x] Logger
-[x] CurrentMarket
-[x] MarketWindow
-[x] TargetState
-[x] OrderBook
-    [x] serialize file
-    [x] cleanup
-[x] OrderPair
-    [x] churn
-    [x] serialize
-    [x] deserialize
-[x] Order
-    [x] churn
-        [x] place_order
-        [x] check_order
-    [x] serialize
-    [x] deserialize
-[x] create_order
-[x] Test
-    [x] Insert testing code
-[x] stage
-    [S] Remove old code
+Version 1.5
+[x] Record frequency of completed trades
+    - Spread amount
+    - How long trade was queued (how long was money locked)
+    - Net profit
+    - If trade completed or canceled
+[x] Make script only execute trade when it is close to target price to hide your positions from the market
+[ ] Script to post a manual buy/sell that will happen right around market price
+[ ] Name targets
+[ ] spread/time relative delta variable in target
 
 Version 2
+[ ] Futures trading
 [ ] Run against historical data
     [ ] Find historical data
     [ ] Abstract out code

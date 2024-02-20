@@ -23,6 +23,9 @@ def buy(*args, **kwargs):
             'order_id': str(int(datetime.now().timestamp())),
         }
     return api_orders.limit_order_gtc_buy(*args, **kwargs)
+    #kwargs['stop_direction'] = 'STOP_DIRECTION_STOP_DOWN'
+    #kwargs['stop_price'] = str(float(kwargs['limit_price']) - 1)
+    #return api_orders.stop_limit_order_gtc_buy(*args, **kwargs)
 
 def sell(*args, **kwargs):
     if TESTING:
@@ -33,6 +36,9 @@ def sell(*args, **kwargs):
             'order_id': str(int(datetime.now().timestamp())),
         }
     return api_orders.limit_order_gtc_sell(*args, **kwargs)
+    #kwargs['stop_direction'] = 'STOP_DIRECTION_STOP_UP'
+    #kwargs['stop_price'] = str(float(kwargs['limit_price']) + 1)
+    #return api_orders.stop_limit_order_gtc_sell(*args, **kwargs)
 
 def get_order(*args, **kwargs):
     if TESTING:
@@ -74,17 +80,19 @@ class Order():
     usd: float
     order_id: str
     order_time: datetime
+    final_time: datetime
 
-    def __init__(self, order_type: Type, btc: float, usd: float, client_order_id: str = None, order_id: str = None, order_time: datetime=None, status: 'Order.Status' = None):
+    def __init__(self, order_type: Type, btc: float, usd: float, client_order_id: str = None, order_id: str = None, order_time: datetime=None, final_time: datetime=None, status: 'Order.Status' = None):
         self.order_type = order_type
         self.status = status if status else Order.Status.Pending
         self.btc = btc
         self.usd = usd
         self.order_id = order_id
-        self.order_time = order_time if order_time else datetime.now()
-        self.client_order_id = client_order_id if client_order_id else self.order_time.strftime("%Y-%m-%d-%H-%M-%S-") + str(random.randint(0, 1000)).zfill(4)
+        self.order_time = order_time
+        self.client_order_id = client_order_id if client_order_id else datetime.now().strftime("%Y-%m-%d-%H-%M-%S-") + str(random.randint(0, 1000)).zfill(4)
+        self.final_time = None
 
-    def churn(self, ctx: Context) -> bool:
+    def churn(self, ctx: Context, current_price: float) -> bool:
         # XXX: Cancel test
         if TESTING and self.status == Order.Status.Canceled:
             return True
@@ -92,7 +100,13 @@ class Order():
         # No order ID: Create new order
         if not self.order_id:
             self.status = Order.Status.Pending
-            return self.place_order(ctx)
+            # Too expensive to list our buy
+            if self.order_type == Order.Type.Buy and current_price > self.get_limit_price():
+                return False
+            # Too expensive to list our sale
+            if self.order_type == Order.Type.Sell and current_price < self.get_limit_price():
+                return False
+            return self.place_order(ctx, current_price)
 
         # Check order status
         try:
@@ -110,8 +124,12 @@ class Order():
                 if self.status != Order.Status.Complete:
                     Log.info("{} filled: {}".format("Buy" if self.order_type == Order.Type.Buy else "Sell", self.get_info()))
                 self.status = Order.Status.Complete
+                if not self.final_time:
+                    self.final_time = datetime.now()
             else:
                 self.status = Order.Status.Canceled
+                if not self.final_time:
+                    self.final_time = datetime.now()
                 Log.info("{} canceled: {}".format("Buy" if self.order_type == Order.Type.Buy else "Sell", self.get_info()))
         except Exception as e:
             Log.error("Failed to check status of Order {}: {}".format(self.order_id, str(e)))
@@ -119,24 +137,33 @@ class Order():
 
         return True
 
-    def place_order(self, ctx: Context) -> bool:
+    def get_limit_price(self) -> float:
+        return floor_usd(self.usd / self.btc)
+
+    def place_order(self, ctx: Context, current_price: float) -> bool:
         # How many BTC to buy/sell
         base_size: str = str(floor_btc(self.btc))
+
         # What the target price is (per whole bitcoin)
-        limit_price: str = str(floor_usd(self.usd / self.btc))
+        limit_price: float = None
+        # We will just bid $5 different than what the market wants
+        if self.order_type == Order.Type.Sell:
+            limit_price = current_price + 5
+        elif self.order_type == Order.Type.Buy:
+            limit_price = current_price - 5
 
         if self.order_type == Order.Type.Buy:
-            print(limit_price)
             try:
                 order_info = buy(
                     ctx,
                     client_order_id=self.client_order_id + "-buy",
                     product_id='BTC-USD',
                     base_size=base_size,
-                    limit_price=limit_price,
+                    limit_price=str(limit_price),
                 )
                 ok: bool = 'success' in order_info and order_info['success']
                 if ok:
+                    self.order_time = datetime.now()
                     self.status = Order.Status.Active
                     self.order_id = order_info['order_id']
                     Log.info("Created buy order {}: {}".format(self.order_id, self.get_info()))
@@ -153,10 +180,11 @@ class Order():
                     client_order_id=self.client_order_id + "-sell",
                     product_id='BTC-USD',
                     base_size=base_size,
-                    limit_price=limit_price,
+                    limit_price=str(limit_price),
                 )
                 ok: bool = 'success' in order_info and order_info['success']
                 if ok:
+                    self.order_time = datetime.now()
                     self.status = Order.Status.Active
                     self.order_id = order_info['order_id']
                     Log.info("Created sell order {}: {}".format(self.order_id, self.get_info()))
@@ -189,6 +217,7 @@ class Order():
                         "buy" if self.order_type == Order.Type.Buy else "sell",
                         self.order_id,
                         self.get_info()))
+                    self.final_time = datetime.now()
                 else:
                     Log.error("Failed to cancel {} {} {}".format(
                         "buy" if self.order_type == Order.Type.Buy else "sell",
@@ -212,7 +241,8 @@ class Order():
             'usd': str(self.usd),
             'market': str(floor_usd(self.usd / self.btc)),
             'order_id': self.order_id,
-            'order_time': self.order_time.strftime("%Y-%m-%d %H:%M:%S"),
+            'order_time': self.order_time.strftime("%Y-%m-%d %H:%M:%S") if self.order_time else None,
+            'final_time': self.final_time.strftime("%Y-%m-%d %H:%M:%S") if self.final_time else None,
         }
 
     @classmethod
@@ -223,13 +253,26 @@ class Order():
             btc = float(data['btc'])
             usd = float(data['usd'])
             order_id = data['order_id']
-            order_time = datetime.strptime(data['order_time'], "%Y-%m-%d %H:%M:%S")
+
+            order_time = None
+            try:
+                order_time = datetime.strptime(data['order_time'], "%Y-%m-%d %H:%M:%S")
+            except:
+                pass
+
+            final_time = None
+            try:
+                final_time = datetime.strptime(data['final_time'], "%Y-%m-%d %H:%M:%S")
+            except:
+                pass
+
             order = cls(
                 order_type=order_type,
                 btc=btc,
                 usd=usd,
                 order_id=order_id,
                 order_time=order_time,
+                final_time=final_time,
                 status=status,
             )
             return order

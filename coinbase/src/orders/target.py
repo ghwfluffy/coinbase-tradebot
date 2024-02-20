@@ -18,12 +18,15 @@ class TargetState():
     # Hash of state
     _id: str
 
-    def __init__(self, qty: int, spread: float, wager: float, longevity: int):
+    def __init__(self, qty: int, spread: float, wager: float, longevity: int, name=None):
         self.qty = qty
         self.spread = spread
         self.wager = wager
         self.longevity = longevity
-        self.calc_id()
+        if name:
+            self._id = name
+        else:
+            self.calc_id()
 
     def calc_id(self) -> None:
         self._id = "{}_{}_{}_{}".format(self.qty, self.spread, self.wager, self.longevity)

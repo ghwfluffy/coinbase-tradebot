@@ -6,6 +6,8 @@ from enum import Enum
 
 from context import Context
 from orders.order import Order
+from orders.target import TargetState
+from market.current import CurrentMarket
 from utils.logging import Log
 
 class OrderPair():
@@ -28,24 +30,26 @@ class OrderPair():
     event_time: datetime
     # Price of BTC at time of order pair creation
     event_price: float
-    # Matches a TargetState
+    # TargetState we are fulfilling
     target_id: str
+    target: TargetState
 
-    def __init__(self, target_id: str, event_price: float, buy: Order, sell: Order, event_time = None):
+    def __init__(self, target: TargetState, event_price: float, buy: Order, sell: Order, event_time = None):
         self.buy = buy
         self.sell = sell
         self.status = OrderPair.Status.Pending
         self.event_time = event_time if event_time else datetime.now()
         self.event_price = event_price
-        self.target_id = target_id
+        self.target = target
+        self.target_id = target._id
 
-    def churn(self, ctx: Context) -> bool:
+    def churn(self, ctx: Context, market: CurrentMarket) -> bool:
         # Place buy
-        ret = self.buy.churn(ctx)
+        ret = self.buy.churn(ctx, market.ask)
 
         # Successful buy, place/check sale
         if self.buy.status == Order.Status.Complete:
-            ret &= self.sell.churn(ctx)
+            ret &= self.sell.churn(ctx, market.bid)
 
         # Update pair status
         if ret:
@@ -74,7 +78,11 @@ class OrderPair():
             'status': self.status.name,
             'event_time': self.event_time.strftime("%Y-%m-%d %H:%M:%S"),
             'event_price': str(self.event_price),
-            'target_id': self.target_id,
+            'target_id': self.target._id,
+            'target_spread': self.target.spread,
+            'target_wager': self.target.wager,
+            'target_longevity': self.target.longevity,
+            'target_qty': self.target.qty,
         }
 
     @classmethod
@@ -90,8 +98,22 @@ class OrderPair():
                 return None
             event_time = datetime.strptime(data['event_time'], "%Y-%m-%d %H:%M:%S")
             event_price = float(data['event_price'])
-            target_id = data['target_id']
-            pair = cls(target_id, event_price, buy, sell, event_time)
+
+            target_id = None
+            target_spread = None
+            target_wager = None
+            target_longevity = None
+            target_qty = None
+            try:
+                target_id = data['target_id']
+                target_spread = data['target_spread']
+                target_wager = data['target_wager']
+                target_longevity = data['target_longevity']
+                target_qty = data['target_qty']
+            except:
+                pass
+            target: TargetState = TargetState(target_qty, target_spread, target_wager, target_longevity, target_id)
+            pair = cls(target, event_price, buy, sell, event_time)
             pair.status = OrderPair.Status[data['status']]
             return pair
         except Exception as e:

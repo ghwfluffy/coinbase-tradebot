@@ -16,11 +16,30 @@ from utils.math import floor_usd
 
 # Configuration
 desired_states: list[TargetState] = [
+    # Get to 100k faster
+    TargetState(
+        qty=10,
+        spread=0.001,
+        wager=100.0,
+        longevity=1),
+    TargetState(
+        qty=10,
+        spread=0.0005,
+        wager=100.0,
+        longevity=1),
+
+    TargetState(
+        qty=10,
+        spread=0.0005,
+        wager=50.0,
+        longevity=1),
+
+
     # Profit: Break even: Initial testing
     # Spread: $105
     # Investment: $100
     TargetState(
-        qty=4,
+        qty=0,
         spread=0.002,
         wager=50.0,
         longevity=1),
@@ -38,7 +57,7 @@ desired_states: list[TargetState] = [
     # Spread: $131
     # Investment: $100
     TargetState(
-        qty=1,
+        qty=0,
         spread=0.0025,
         wager=100.0,
         longevity=5),
@@ -47,7 +66,7 @@ desired_states: list[TargetState] = [
     # Spread: $157
     # Investment: $100
     TargetState(
-        qty=1,
+        qty=0,
         spread=0.003,
         wager=100.0,
         longevity=6),
@@ -56,7 +75,7 @@ desired_states: list[TargetState] = [
     # Spread: $183
     # Investment: $100
     TargetState(
-        qty=1,
+        qty=0,
         spread=0.0035,
         wager=100.0,
         longevity=6),
@@ -65,7 +84,7 @@ desired_states: list[TargetState] = [
     # Spread: $209
     # Investment: $400
     TargetState(
-        qty=4,
+        qty=0,
         spread=0.004,
         wager=100.0,
         longevity=24),
@@ -121,12 +140,18 @@ def is_buy_active(pair: OrderPair) -> bool:
                 OrderPair.Status.Active,
             ]
 
+churn_retries = 0
+
 # Processing loop
 while True:
     # Update status of active orders
     if not orderbook.churn(ctx):
-        time.sleep(RETRY_SLEEP)
-        continue
+        churn_retries += 1
+        if churn_retries >= 10:
+            time.sleep(RETRY_SLEEP)
+            continue
+
+    churn_retries = 0
 
     # Remove completed trade pairs
     orderbook.cleanup(ctx)
@@ -180,10 +205,13 @@ while True:
     # Let's try to place new orders to fill our desired state
     # For each target state
     for target in desired_states:
+        if target.qty <= 0:
+            continue
+
         active_state = active_orders[target._id] if target._id in active_orders else []
         # We have the desired amount already
         if len(active_state) >= target.qty:
-            Log.debug("Sufficient quantity of {}.".format(target._id))
+            #Log.debug("Sufficient quantity of {}.".format(target._id))
             continue
 
         next_time = None
@@ -228,7 +256,7 @@ while True:
         # Try to create an order pair for this target state
         pair: OrderPair = create_order(market, target)
         if pair:
-            pair.churn(ctx)
+            pair.churn(ctx, market)
             orderbook.orders.append(pair)
 
     # Save to persistent storage

@@ -21,4 +21,4 @@ def create_order(market: CurrentMarket, target: TargetState) -> OrderPair:
     sell = Order(Order.Type.Sell, num_bitcoins, sell_price)
     Log.debug("Market price ${:.2f} triggering pair order ({} BTC: ${:.2f} -> ${:.2f}).".format(
         market.split, num_bitcoins, target.wager, sell_price))
-    return OrderPair(target._id, market.split, buy, sell)
+    return OrderPair(target, market.split, buy, sell)
