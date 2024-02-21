@@ -14,7 +14,14 @@ from coinbase.rest import orders as api_orders
 TESTING=False
 #TESTING=True
 
+# XXX: Never buy bitcoin for more than this
+MAX_PRICE=58000
+
 def buy(*args, **kwargs):
+    if float(kwargs['limit_price']) > MAX_PRICE:
+        Log.error("MAX PRICE EXCEEDED: {}".format(kwargs['limit_price']))
+        return False
+
     if TESTING:
         print("BUY")
         print(json.dumps(kwargs, indent=4))
@@ -93,8 +100,8 @@ class Order():
         self.final_time = None
 
     def churn(self, ctx: Context, current_price: float) -> bool:
-        # XXX: Cancel test
-        if TESTING and self.status == Order.Status.Canceled:
+        # Already in canceled state
+        if self.status == Order.Status.Canceled:
             return True
 
         # No order ID: Create new order
@@ -204,7 +211,11 @@ class Order():
         return "{:.5f} BTC for ${:.2f} (${:.2f} market price).".format(self.btc, self.usd, self.usd / self.btc)
 
     def cancel(self, ctx: Context) -> bool:
-        if self.order_id and not self.status in [Order.Status.Canceled, Order.Status.Complete]:
+        # Cancel before ever executed
+        if not self.order_id or self.status == Order.Status.Pending:
+            self.status = Order.Status.Canceled
+        # Cancel active order
+        elif self.order_id and not self.status in [Order.Status.Canceled, Order.Status.Complete]:
             try:
                 finish = cancel(
                     ctx,

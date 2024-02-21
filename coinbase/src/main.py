@@ -16,23 +16,36 @@ from utils.math import floor_usd
 
 # Configuration
 desired_states: list[TargetState] = [
-    # Get to 100k faster
     TargetState(
         qty=10,
-        spread=0.001,
-        wager=100.0,
-        longevity=1),
-    TargetState(
-        qty=10,
-        spread=0.0005,
-        wager=100.0,
-        longevity=1),
-
-    TargetState(
-        qty=10,
-        spread=0.0005,
+        spread=0.0025,
         wager=50.0,
         longevity=1),
+    TargetState(
+        qty=10,
+        spread=0.003,
+        wager=50.0,
+        longevity=1),
+    TargetState(
+        qty=10,
+        spread=0.0035,
+        wager=50.0,
+        longevity=1.5),
+    TargetState(
+        qty=4,
+        spread=0.004,
+        wager=50.0,
+        longevity=2),
+    TargetState(
+        qty=4,
+        spread=0.005,
+        wager=100.0,
+        longevity=3),
+    TargetState(
+        qty=4,
+        spread=0.006,
+        wager=100.0,
+        longevity=4),
 
 
     # Profit: Break even: Initial testing
@@ -142,6 +155,9 @@ def is_buy_active(pair: OrderPair) -> bool:
 
 churn_retries = 0
 
+# Clear pending orders from a previous run
+orderbook.clear_pending(ctx)
+
 # Processing loop
 while True:
     # Update status of active orders
@@ -191,7 +207,7 @@ while True:
             current_longevity_start: datetime = datetime.now() - relativedelta(hours=desired_state.longevity)
             longevity_market: MarketWindow = MarketWindow.get(ctx, current_longevity_start, datetime.now())
             # Event is no longer inside the sliding window of valid prices
-            if pair.event_price > longevity_market.high or pair.event_price < longevity_market.low:
+            if longevity_market and (pair.event_price > longevity_market.high or pair.event_price < longevity_market.low):
                 Log.info("Pair no longer in longevity window for {}.".format(desired_state._id))
                 Log.debug("Low: {}, High: {}, Event: {}".format(longevity_market.low, longevity_market.high, pair.event_price))
                 pair.cancel(ctx)

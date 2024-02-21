@@ -1,13 +1,12 @@
 Version 1.5
-[x] Record frequency of completed trades
-    - Spread amount
-    - How long trade was queued (how long was money locked)
-    - Net profit
-    - If trade completed or canceled
-[x] Make script only execute trade when it is close to target price to hide your positions from the market
+[x] global max price
+[ ] dynamic min/max based on last week's trading amounts
+[ ] link/cascade/dependency link targets so all holdings arent stuck in sell above market
+[ ] always post highest sell / lowest buy position so they can be canceled via web
 [ ] Script to post a manual buy/sell that will happen right around market price
 [ ] Name targets
 [ ] spread/time relative delta variable in target
+[ ] output volume per 15/30/hour - buy/sell
 
 Version 2
 [ ] Futures trading

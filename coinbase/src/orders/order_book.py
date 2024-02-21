@@ -97,6 +97,16 @@ class OrderBook():
             else:
                 i += 1
 
+    def clear_pending(self, ctx: Context) -> None:
+        i = 0
+        while i < len(self.orders):
+            pair: OrderPair = self.orders[i]
+            if pair.status == OrderPair.Status.Pending:
+                Log.debug("Cleanup pending order pair from {}.".format(pair.target_id))
+                self.orders.pop(i)
+            else:
+                i += 1
+
     def write_historical(self, pair: OrderPair) -> None:
         try:
             # Read in file
