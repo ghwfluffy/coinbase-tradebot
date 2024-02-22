@@ -115,10 +115,10 @@ class Order():
             self.status = Order.Status.Pending
             # Too expensive to list our buy
             if self.order_type == Order.Type.Buy and current_price > self.get_limit_price():
-                return False
+                return True
             # Too expensive to list our sale
             if self.order_type == Order.Type.Sell and current_price < self.get_limit_price():
-                return False
+                return True
             return self.place_order(ctx, current_price)
 
         # Check order status
