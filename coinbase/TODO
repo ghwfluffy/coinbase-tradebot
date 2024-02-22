@@ -1,4 +1,5 @@
 Version 1.5
+[ ] if the market hits the sell price, cancel the buy
 [x] global max price
 [ ] dynamic min/max based on last week's trading amounts
 [ ] link/cascade/dependency link targets so all holdings arent stuck in sell above market

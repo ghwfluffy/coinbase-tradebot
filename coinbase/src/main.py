@@ -158,6 +158,8 @@ churn_retries = 0
 # Clear pending orders from a previous run
 orderbook.clear_pending(ctx)
 
+print_modulo = 0
+
 # Processing loop
 while True:
     # Update status of active orders
@@ -178,7 +180,10 @@ while True:
         time.sleep(RETRY_SLEEP)
         continue
 
-    Log.debug("Market: ${:.2f} (${:.2f}) ${:.2f}".format(market.bid, market.split, market.ask))
+    print_modulo += 1
+    if print_modulo >= 30:
+        Log.debug("Market: ${:.2f} (${:.2f}) ${:.2f}".format(market.bid, market.split, market.ask))
+        print_modulo = 0
 
     # Map each order to its target state
     active_orders: dict[str, list[OrderPair]] = {}
@@ -260,13 +265,15 @@ while True:
             price_changed_enough = True
 
         # We have no reason to place a new trade yet
-        if has_active and not time_new_enough and not price_changed_enough:
-            Log.debug("Market not good yet for new trade of {} (Next time: {}, Next Price: ${:.2f} - ${:.2f}).".format(
-                target._id,
-                next_time.strftime("%Y-%m-%d %H:%M:%S"),
-                floor_usd(next_price_down),
-                floor_usd(next_price_up),
-            ))
+        if has_active and not price_changed_enough:
+        #if has_active and not time_new_enough and not price_changed_enough:
+            if False:
+                Log.debug("Market not good yet for new trade of {} (Next time: {}, Next Price: ${:.2f} - ${:.2f}).".format(
+                    target._id,
+                    next_time.strftime("%Y-%m-%d %H:%M:%S"),
+                    floor_usd(next_price_down),
+                    floor_usd(next_price_up),
+                ))
             continue
 
         # Try to create an order pair for this target state

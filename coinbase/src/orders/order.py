@@ -88,8 +88,11 @@ class Order():
     order_id: str
     order_time: datetime
     final_time: datetime
+    final_market: float
+    final_fees: float
+    final_usd: float
 
-    def __init__(self, order_type: Type, btc: float, usd: float, client_order_id: str = None, order_id: str = None, order_time: datetime=None, final_time: datetime=None, status: 'Order.Status' = None):
+    def __init__(self, order_type: Type, btc: float, usd: float, client_order_id: str = None, order_id: str = None, order_time: datetime=None, final_time: datetime=None, status: 'Order.Status' = None, final_market=None, final_fees=None, final_usd=None):
         self.order_type = order_type
         self.status = status if status else Order.Status.Pending
         self.btc = btc
@@ -98,6 +101,9 @@ class Order():
         self.order_time = order_time
         self.client_order_id = client_order_id if client_order_id else datetime.now().strftime("%Y-%m-%d-%H-%M-%S-") + str(random.randint(0, 1000)).zfill(4)
         self.final_time = None
+        self.final_market = final_market
+        self.final_fees = final_fees
+        self.final_usd = final_usd
 
     def churn(self, ctx: Context, current_price: float) -> bool:
         # Already in canceled state
@@ -133,6 +139,9 @@ class Order():
                 self.status = Order.Status.Complete
                 if not self.final_time:
                     self.final_time = datetime.now()
+                self.final_market = float(data['order']['average_filled_price'])
+                self.final_fees = float(data['order']['total_fees'])
+                self.final_usd = float(data['order']['filled_value'])
             else:
                 self.status = Order.Status.Canceled
                 if not self.final_time:
@@ -173,6 +182,7 @@ class Order():
                     self.order_time = datetime.now()
                     self.status = Order.Status.Active
                     self.order_id = order_info['order_id']
+                    self.final_market = limit_price
                     Log.info("Created buy order {}: {}".format(self.order_id, self.get_info()))
                 else:
                     Log.error("Failed to create buy order: {}: {}".format(self.get_info(), order_info['error_response']['error']))
@@ -194,6 +204,7 @@ class Order():
                     self.order_time = datetime.now()
                     self.status = Order.Status.Active
                     self.order_id = order_info['order_id']
+                    self.final_market = limit_price
                     Log.info("Created sell order {}: {}".format(self.order_id, self.get_info()))
                 else:
                     Log.error("Failed to create sell order: {}: {}".format(self.get_info(), order_info['error_response']['error']))
@@ -254,6 +265,9 @@ class Order():
             'order_id': self.order_id,
             'order_time': self.order_time.strftime("%Y-%m-%d %H:%M:%S") if self.order_time else None,
             'final_time': self.final_time.strftime("%Y-%m-%d %H:%M:%S") if self.final_time else None,
+            'final_market': self.final_market,
+            'final_usd': self.final_usd,
+            'final_fees': self.final_fees,
         }
 
     @classmethod
@@ -277,6 +291,16 @@ class Order():
             except:
                 pass
 
+            final_market = None
+            final_fees = None
+            final_usd = None
+            try:
+                final_market = float(data['final_market'])
+                final_fees = float(data['final_fees'])
+                final_usd = float(data['final_usd'])
+            except:
+                pass
+
             order = cls(
                 order_type=order_type,
                 btc=btc,
@@ -285,6 +309,9 @@ class Order():
                 order_time=order_time,
                 final_time=final_time,
                 status=status,
+                final_market=final_market,
+                final_fees=final_fees,
+                final_usd=final_usd,
             )
             return order
         except Exception as e:
