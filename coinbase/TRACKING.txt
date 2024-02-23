@@ -1,6 +1,17 @@
 2024-02-21 06:00:00 CST:
     BTC Price: $51,170
-    USD: 2232.97
+    USD: $2232.97
     BTC: 0.0
     30 days Fees: $260.19
     30 days Trade Volume: $105,071.64
+
+2024-02-22 06:47:00 CST:
+    BTC Price: $51,491
+    USD: $694.1677033832194
+    BTC: 0.0302644531100278
+    30 days Fees: $281.01
+    30 days Trade Volume: $122,890.94
+    Value: $2252.8145792019814
+    PNL: $5.79
+    Trading hours: 12
+    reset at 07:02:00

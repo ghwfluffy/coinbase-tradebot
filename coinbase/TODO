@@ -1,5 +1,16 @@
-Version 1.5
-[ ] why does the bitcoin amount keep skewing positive
+Version 1.6
+[x] grab the current market price directly before putting in the order
+[x] if my order has been live for more than 20 minutes, kill it
+[x] add min sell price
+[x] add wallet total check (exit program if wallet gets below a threshold)
+[x] buy statuses didnt update from 16:30 till 18:18
+    - reading in data at 18:18 overwrote data due to bug
+[x] graph showing one of the sells backwards
+    - same as above
+
+Version 1.7
+[ ] Add version identifier
+[ ] guess if the market is going up or down (weekly high/low, interpolate?) and make buy/sell spread skew up/down
 [ ] if the market hits the sell price, cancel the buy
 [ ] dynamic min/max based on last week's trading amounts
 [ ] link/cascade/dependency link targets so all holdings arent stuck in sell above market

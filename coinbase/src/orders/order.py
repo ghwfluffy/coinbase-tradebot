@@ -6,16 +6,19 @@ from datetime import datetime
 from enum import Enum
 
 from context import Context
+from market.current import CurrentMarket
 from utils.logging import Log
 from utils.math import floor_btc, floor_usd
 
 from coinbase.rest import orders as api_orders
 
+# XXX: This is broken / does not mix with real orderbook
 TESTING=False
 #TESTING=True
 
-# XXX: Never buy bitcoin for more than this
+# XXX: Safety precautions
 MAX_PRICE=58000
+MIN_PRICE=48000
 
 def buy(*args, **kwargs):
     if float(kwargs['limit_price']) > MAX_PRICE:
@@ -35,6 +38,10 @@ def buy(*args, **kwargs):
     #return api_orders.stop_limit_order_gtc_buy(*args, **kwargs)
 
 def sell(*args, **kwargs):
+    if float(kwargs['limit_price']) < MIN_PRICE:
+        Log.error("MIN PRICE EXCEEDED: {}".format(kwargs['limit_price']))
+        return False
+
     if TESTING:
         print("SELL")
         print(json.dumps(kwargs, indent=4))
@@ -100,10 +107,24 @@ class Order():
         self.order_id = order_id
         self.order_time = order_time
         self.client_order_id = client_order_id if client_order_id else datetime.now().strftime("%Y-%m-%d-%H-%M-%S-") + str(random.randint(0, 1000)).zfill(4)
-        self.final_time = None
+        self.final_time = final_time
         self.final_market = final_market
         self.final_fees = final_fees
         self.final_usd = final_usd
+
+    def is_good_market_value(self, current_price: float) -> bool:
+        # Too expensive to list our buy
+        if self.order_type == Order.Type.Buy:
+            return current_price <= self.get_limit_price()
+        # Too expensive to list our sale
+        if self.order_type == Order.Type.Sell:
+            return current_price >= self.get_limit_price()
+        return False
+
+    def is_good_market_conditions(self, current_price: float) -> bool:
+        # There is at least a dollar gap between sell and buy bids
+        # Really want to make sure we don't take the 'takers' fee
+        return current_price.ask - current_price.bid >= 1.0
 
     def churn(self, ctx: Context, current_price: float) -> bool:
         # Already in canceled state
@@ -113,13 +134,15 @@ class Order():
         # No order ID: Create new order
         if not self.order_id:
             self.status = Order.Status.Pending
-            # Too expensive to list our buy
-            if self.order_type == Order.Type.Buy and current_price > self.get_limit_price():
+            # Check cached current price
+            if not self.is_good_market_value(current_price):
                 return True
-            # Too expensive to list our sale
-            if self.order_type == Order.Type.Sell and current_price < self.get_limit_price():
+            # Check again with live current price
+            current_market: CurrentMarket = CurrentMarket.get(ctx)
+            if not current_market or not current_market.split or not self.is_good_market_value(current_market.split) or not self.is_good_market_conditions(current_market):
                 return True
-            return self.place_order(ctx, current_price)
+            # We are ready to place an order
+            return self.place_order(ctx, current_market.split)
 
         # Check order status
         try:
@@ -133,9 +156,11 @@ class Order():
             # Set status
             elif data['order']['status'] == 'OPEN':
                 self.status = Order.Status.Active
+                # Make sure we're not holding onto trades that no longer reflect the market
+                self.check_longevity(ctx, current_price)
             elif data['order']['status'] == 'FILLED':
                 if self.status != Order.Status.Complete:
-                    Log.info("{} filled: {}".format("Buy" if self.order_type == Order.Type.Buy else "Sell", self.get_info()))
+                    Log.info("{} filled: {} (${} fee)".format("Buy" if self.order_type == Order.Type.Buy else "Sell", self.get_info(), data['order']['total_fees']))
                 self.status = Order.Status.Complete
                 if not self.final_time:
                     self.final_time = datetime.now()
@@ -153,21 +178,38 @@ class Order():
 
         return True
 
+    def check_longevity(self, ctx: Context, current_price: float) -> None:
+        # Less than 20 minutes old, we'll always keep the trade open
+        if (datetime.now() - self.order_time).total_seconds() < (60 * 20):
+            return None
+        # We're pretty close to the price we asked, we'll keep the trade open
+        if abs(current_price - self.final_market) < 5.0:
+            return None
+        # Cancel trade
+        Log.debug("Sale longevity reached.")
+        if self.cancel(ctx):
+            # Go back to pending
+            self.status = Order.Status.Pending
+
     def get_limit_price(self) -> float:
         return floor_usd(self.usd / self.btc)
+
+    def get_order_price(self, current_price: float) -> float:
+        # We will just bid $5 different than what the market wants
+        if self.order_type == Order.Type.Sell:
+            return floor_usd(current_price + 5)
+        elif self.order_type == Order.Type.Buy:
+            return floor_usd(current_price - 5)
+        return current_price
 
     def place_order(self, ctx: Context, current_price: float) -> bool:
         # How many BTC to buy/sell
         base_size: str = str(floor_btc(self.btc))
 
         # What the target price is (per whole bitcoin)
-        limit_price: float = None
-        # We will just bid $5 different than what the market wants
-        if self.order_type == Order.Type.Sell:
-            limit_price = current_price + 5
-        elif self.order_type == Order.Type.Buy:
-            limit_price = current_price - 5
+        limit_price: float = self.get_order_price(current_price)
 
+        # New buy order
         if self.order_type == Order.Type.Buy:
             try:
                 order_info = buy(
@@ -190,6 +232,7 @@ class Order():
             except Exception as e:
                 Log.error("Failed to create buy order: {}: {}".format(self.get_info(), str(e)))
                 return False
+        # New sell order
         elif self.order_type == Order.Type.Sell:
             try:
                 order_info = sell(
@@ -240,6 +283,7 @@ class Order():
                         self.order_id,
                         self.get_info()))
                     self.final_time = datetime.now()
+                    self.order_id = None
                 else:
                     Log.error("Failed to cancel {} {} {}".format(
                         "buy" if self.order_type == Order.Type.Buy else "sell",

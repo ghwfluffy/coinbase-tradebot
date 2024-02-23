@@ -45,11 +45,11 @@ class OrderPair():
 
     def churn(self, ctx: Context, market: CurrentMarket) -> bool:
         # Place buy
-        ret = self.buy.churn(ctx, market.ask)
+        ret = self.buy.churn(ctx, market.split)
 
         # Successful buy, place/check sale
         if self.buy.status == Order.Status.Complete:
-            ret &= self.sell.churn(ctx, market.bid)
+            ret &= self.sell.churn(ctx, market.split)
 
         # Update pair status
         if ret:

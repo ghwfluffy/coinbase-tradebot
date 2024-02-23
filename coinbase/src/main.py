@@ -2,9 +2,9 @@ import time
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 
+from context import Context
 from market.current import CurrentMarket
 from market.history import MarketWindow
-from context import Context
 
 from orders.order_book import OrderBook
 from orders.order_pair import OrderPair
@@ -13,9 +13,15 @@ from orders.factory import create_order
 
 from utils.logging import Log
 from utils.math import floor_usd
+from utils.wallet import get_wallet
 
 # Configuration
 desired_states: list[TargetState] = [
+    TargetState(
+        qty=4,
+        spread=0.0025,
+        wager=50.0,
+        longevity=0.5),
     TargetState(
         qty=10,
         spread=0.0025,
@@ -25,6 +31,16 @@ desired_states: list[TargetState] = [
         qty=10,
         spread=0.003,
         wager=50.0,
+        longevity=1),
+    TargetState(
+        qty=4,
+        spread=0.0025,
+        wager=25.0,
+        longevity=1),
+    TargetState(
+        qty=20,
+        spread=0.003,
+        wager=25.0,
         longevity=1),
     TargetState(
         qty=10,
@@ -134,6 +150,13 @@ desired_states: list[TargetState] = [
 # Idle sleep between tries
 RETRY_SLEEP: int = 2
 
+# Fail safe wallet amount
+MIN_WALLET: float = 1000.0
+
+# Always maintain at least one order for a spread <= this size
+FILL_SMALL_EMPTY_ORDERS: float = 0.0025
+#FILL_SMALL_EMPTY_ORDERS: float = 0.0
+
 # New Coinbase connection context
 ctx: Context = Context()
 
@@ -168,6 +191,12 @@ while True:
         if churn_retries >= 10:
             time.sleep(RETRY_SLEEP)
             continue
+
+    # Fail safe that wallet isn't getting drained due to a bug
+    wallet: dict = get_wallet(ctx)
+    if wallet and wallet['all']['total'] < MIN_WALLET:
+        Log.error("Minimum wallet requirements not met: {}/{}.".format(wallet['all']['total'], MIN_WALLET))
+        exit(0)
 
     churn_retries = 0
 
@@ -277,7 +306,7 @@ while True:
             continue
 
         # Try to create an order pair for this target state
-        pair: OrderPair = create_order(market, target)
+        pair: OrderPair = create_order(market, target, len(active_state) == 0 and target.spread <= FILL_SMALL_EMPTY_ORDERS)
         if pair:
             pair.churn(ctx, market)
             orderbook.orders.append(pair)

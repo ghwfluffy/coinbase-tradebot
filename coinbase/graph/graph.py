@@ -14,16 +14,25 @@ from scipy.interpolate import make_interp_spline
 
 # XXX: Config
 START_AT = None
-START_AT = "2024-02-21 14:00:00"
+START_AT = "2024-02-22 19:30:00"
+
 SHOW_ONLY_COMPLETE = False
+#SHOW_ONLY_COMPLETE = True
+
+SHOW_PENDING=True
+#SHOW_PENDING=False
+
+ORDERBOOK_ONLY=True
+#ORDERBOOK_ONLY=False
 
 # Get data
 data = []
 with open("orderbook.json", "r") as fp:
     data = json.loads(fp.read())
     data = data['orders']
-#with open("historical.json", "r") as fp:
-#    data += json.loads(fp.read())
+if not ORDERBOOK_ONLY:
+    with open("historical.json", "r") as fp:
+        data += json.loads(fp.read())
 data.sort(key=lambda x:datetime.strptime(x['event_time'], "%Y-%m-%d %H:%M:%S"))
 
 # Utils
@@ -44,11 +53,15 @@ def minmax(MINMAX, value):
 
 market=[]
 
-START_AT = parse_date(START_AT)
+if START_AT:
+    START_AT = parse_date(START_AT)
 plt.figure(figsize=(10, 6))
 
 for order in data:
     if order['status'] == "Canceled" and not order['buy']['order_time'] and not order['sell']['order_time']:
+        continue
+
+    if not SHOW_PENDING and order['status'] == "Pending" and not order['buy']['order_time']:
         continue
 
     event_time = parse_date(order['event_time'])
@@ -83,7 +96,7 @@ for order in data:
         plt.plot([event_time, buy_order_time], [event_price, buy_order_price], color='black', linestyle=':', linewidth=1)
 
         minmax(MINMAX, buy_order_price)
-    else:
+    elif SHOW_PENDING:
         buy_order_time = event_time
         buy_order_price = floor(order['buy']['market'])
 
@@ -112,7 +125,7 @@ for order in data:
         plt.plot([buy_final_time, sell_order_time], [buy_final_price, sell_order_price], color='green')
 
         minmax(MINMAX, sell_order_price)
-    else:
+    elif SHOW_PENDING:
         sell_order_time = event_time
         sell_order_price = floor(order['sell']['market'])
 
@@ -131,6 +144,10 @@ for order in data:
 
         minmax(MINMAX, sell_final_price)
         market.append((sell_final_time, sell_final_price))
+
+if len(market) == 0:
+    print("No matching data.")
+    exit(0)
 
 # Setup y axis
 plt.ylim(bottom=MINMAX[0] - 10, top=MINMAX[1] + 10)

@@ -6,11 +6,16 @@ from market.current import CurrentMarket
 from utils.logging import Log
 from utils.math import floor_btc, floor_usd
 
-def create_order(market: CurrentMarket, target: TargetState) -> OrderPair:
+def create_order(market: CurrentMarket, target: TargetState, buy_now = False) -> OrderPair:
     # Difference from market price for buy/sell
-    delta: float = (market.split * target.spread) / 2
-    buy_at: float = floor_usd(market.split - delta)
-    sell_at: float = floor_usd(market.split + delta)
+    if buy_now:
+        delta: float = market.split * target.spread
+        buy_at: float = floor_usd(market.split)
+        sell_at: float = floor_usd(market.split + delta)
+    else:
+        delta: float = (market.split * target.spread) / 2
+        buy_at: float = floor_usd(market.split - delta)
+        sell_at: float = floor_usd(market.split + delta)
 
     # What is the buy-price equivalent of our wager
     num_bitcoins = floor_btc(target.wager / buy_at)
