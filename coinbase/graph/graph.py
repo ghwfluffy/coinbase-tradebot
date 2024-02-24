@@ -14,7 +14,7 @@ from scipy.interpolate import make_interp_spline
 
 # XXX: Config
 START_AT = None
-START_AT = "2024-02-22 19:30:00"
+START_AT = "2024-02-22 06:47:00"
 
 SHOW_ONLY_COMPLETE = False
 #SHOW_ONLY_COMPLETE = True
@@ -23,7 +23,7 @@ SHOW_PENDING=True
 #SHOW_PENDING=False
 
 ORDERBOOK_ONLY=True
-#ORDERBOOK_ONLY=False
+ORDERBOOK_ONLY=False
 
 # Get data
 data = []

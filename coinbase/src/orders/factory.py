@@ -8,7 +8,7 @@ from utils.math import floor_btc, floor_usd
 
 def create_order(market: CurrentMarket, target: TargetState, buy_now = False) -> OrderPair:
     # Difference from market price for buy/sell
-    if buy_now:
+    if buy_now or target.autofill:
         delta: float = market.split * target.spread
         buy_at: float = floor_usd(market.split)
         sell_at: float = floor_usd(market.split + delta)

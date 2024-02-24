@@ -62,6 +62,13 @@ desired_states: list[TargetState] = [
         spread=0.006,
         wager=100.0,
         longevity=4),
+    TargetState(
+        qty=2,
+        spread=0.003,
+        wager=200.0,
+        longevity=4,
+        name="200@.3%",
+        autofill=True),
 
 
     # Profit: Break even: Initial testing

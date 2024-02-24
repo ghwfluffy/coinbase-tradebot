@@ -15,3 +15,23 @@
     PNL: $5.79
     Trading hours: 12
     reset at 07:02:00
+
+2024-02-22 07:15:00 CST:
+    BTC Price: $50,914
+    USD: $1.34667602124015
+    BTC: 0.0439278031100278
+    30 days Fees: $295.98
+    30 days Trade Volume: $135,556.29
+    Value: $2237.8903577894444
+    PNL: $3.98
+    Trading hours: 24
+
+2024-02-23 21:23:00 CST:
+    BTC Price: $50,757.22
+    USD: $1.88
+    BTC: 0.043929433110027796
+    30 days Fees: $296.50
+    30 days Trade Volume: $136,057.03
+    Value: $2231.6078938441574
+    PNL: $0.24
+    Trading hours: 14

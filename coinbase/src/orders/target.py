@@ -14,15 +14,18 @@ class TargetState():
     wager: float
     # Number of hours before trade can be considered invalidated
     longevity: int
+    # If we buy immediately or wait till it goes down to buy
+    autofill: bool
 
     # Hash of state
     _id: str
 
-    def __init__(self, qty: int, spread: float, wager: float, longevity: int, name=None):
+    def __init__(self, qty: int, spread: float, wager: float, longevity: int, name=None, autofill=False):
         self.qty = qty
         self.spread = spread
         self.wager = wager
         self.longevity = longevity
+        self.autofill = autofill
         if name:
             self._id = name
         else:
