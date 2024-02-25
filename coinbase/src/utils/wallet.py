@@ -61,3 +61,11 @@ def wallets_equal(lhs, rhs):
         except:
             pass
     return LHS == RHS
+
+# Do we have amount USD to trade
+# None=Error
+def has_liquidity(ctx: Context, amount: float) -> bool:
+    wallet = get_wallet(ctx)
+    if not wallet:
+        return None
+    return wallet['USD']['available'] >= amount

@@ -14,7 +14,7 @@ class OrderPair():
     class Status(Enum):
         # Buy not filed
         Pending = 0
-        # Buy and sell orders pending
+        # Buy order open
         Active = 1
         # Bought bitcoin but sale pending
         PendingSell = 3

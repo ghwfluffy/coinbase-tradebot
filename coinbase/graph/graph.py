@@ -14,7 +14,7 @@ from scipy.interpolate import make_interp_spline
 
 # XXX: Config
 START_AT = None
-START_AT = "2024-02-22 06:47:00"
+START_AT = "2024-02-23 23:41:00"
 
 SHOW_ONLY_COMPLETE = False
 #SHOW_ONLY_COMPLETE = True
@@ -27,7 +27,7 @@ ORDERBOOK_ONLY=False
 
 # Get data
 data = []
-with open("orderbook.json", "r") as fp:
+with open("orderbook-v2.json", "r") as fp:
     data = json.loads(fp.read())
     data = data['orders']
 if not ORDERBOOK_ONLY:
@@ -117,14 +117,33 @@ for order in data:
         market.append((buy_final_time, buy_final_price))
 
     # Plot the sell order placed
-    if order['sell']['order_time']:
-        sell_order_time = parse_date(order['sell']['order_time'])
-        sell_order_price = floor(order['sell']['market'])
+    #if order['sell']['order_time']:
+    #    sell_order_time = parse_date(order['sell']['order_time'])
+    #    sell_order_price = floor(order['sell']['market'])
 
-        plt.scatter(sell_order_time, sell_order_price, color='green')
-        plt.plot([buy_final_time, sell_order_time], [buy_final_price, sell_order_price], color='green')
+    #    plt.scatter(sell_order_time, sell_order_price, color='green')
+    #    plt.plot([buy_final_time, sell_order_time], [buy_final_price, sell_order_price], color='green')
 
-        minmax(MINMAX, sell_order_price)
+    #    minmax(MINMAX, sell_order_price)
+    #elif SHOW_PENDING:
+    #    sell_order_time = event_time
+    #    sell_order_price = floor(order['sell']['market'])
+
+    #    plt.scatter(sell_order_time, sell_order_price, color='green')
+    #    plt.plot([event_time, sell_order_time], [event_price, sell_order_price], color='gray', linestyle='--', linewidth=1)
+
+    #    minmax(MINMAX, sell_order_price)
+
+    # Plot the sell order filled
+    if order['sell']['status'] == "Complete" and order['sell']['final_time']:
+        sell_final_time = parse_date(order['sell']['final_time'])
+        sell_final_price = floor(order['sell']['final_market'])
+
+        plt.scatter(sell_final_time, sell_final_price, color='green')
+        plt.plot([buy_final_time, sell_final_time], [buy_final_price, sell_final_price], color='green')
+
+        minmax(MINMAX, sell_final_price)
+        market.append((sell_final_time, sell_final_price))
     elif SHOW_PENDING:
         sell_order_time = event_time
         sell_order_price = floor(order['sell']['market'])
@@ -133,17 +152,6 @@ for order in data:
         plt.plot([event_time, sell_order_time], [event_price, sell_order_price], color='gray', linestyle='--', linewidth=1)
 
         minmax(MINMAX, sell_order_price)
-
-    # Plot the sell order filled
-    if order['sell']['status'] == "Complete" and order['sell']['final_time']:
-        sell_final_time = parse_date(order['sell']['final_time'])
-        sell_final_price = floor(order['sell']['final_market'])
-
-        plt.scatter(sell_final_time, sell_final_price, color='green')
-        plt.plot([sell_order_time, sell_final_time], [sell_order_price, sell_final_price], color='green')
-
-        minmax(MINMAX, sell_final_price)
-        market.append((sell_final_time, sell_final_price))
 
 if len(market) == 0:
     print("No matching data.")

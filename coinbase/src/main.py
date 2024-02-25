@@ -20,137 +20,23 @@ desired_states: list[TargetState] = [
     TargetState(
         qty=4,
         spread=0.0025,
-        wager=50.0,
-        longevity=0.5),
+        wager=200.0,
+        longevity=1),
     TargetState(
-        qty=10,
+        qty=1,
         spread=0.0025,
-        wager=50.0,
-        longevity=1),
-    TargetState(
-        qty=10,
-        spread=0.003,
-        wager=50.0,
+        wager=800.0,
         longevity=1),
     TargetState(
         qty=4,
-        spread=0.0025,
-        wager=25.0,
-        longevity=1),
-    TargetState(
-        qty=20,
-        spread=0.003,
-        wager=25.0,
-        longevity=1),
-    TargetState(
-        qty=10,
-        spread=0.0035,
-        wager=50.0,
-        longevity=1.5),
-    TargetState(
-        qty=4,
-        spread=0.004,
-        wager=50.0,
-        longevity=2),
-    TargetState(
-        qty=4,
-        spread=0.005,
-        wager=100.0,
-        longevity=3),
-    TargetState(
-        qty=4,
-        spread=0.006,
-        wager=100.0,
-        longevity=4),
-    TargetState(
-        qty=2,
         spread=0.003,
         wager=200.0,
-        longevity=4,
-        name="200@.3%",
-        autofill=True),
-
-
-    # Profit: Break even: Initial testing
-    # Spread: $105
-    # Investment: $100
-    TargetState(
-        qty=0,
-        spread=0.002,
-        wager=50.0,
         longevity=1),
-
-    # Profit: Break even
-    # Spread: $105
-    # Investment: $0
     TargetState(
-        qty=0,
-        spread=0.002,
-        wager=100.0,
-        longevity=4),
-
-    # Profit: 10 cents
-    # Spread: $131
-    # Investment: $100
-    TargetState(
-        qty=0,
-        spread=0.0025,
-        wager=100.0,
-        longevity=5),
-
-    # Profit: 20 cents
-    # Spread: $157
-    # Investment: $100
-    TargetState(
-        qty=0,
-        spread=0.003,
-        wager=100.0,
-        longevity=6),
-
-    # Profit: 30 cents
-    # Spread: $183
-    # Investment: $100
-    TargetState(
-        qty=0,
-        spread=0.0035,
-        wager=100.0,
-        longevity=6),
-
-    # Profit: 40 cents
-    # Spread: $209
-    # Investment: $400
-    TargetState(
-        qty=0,
+        qty=4,
         spread=0.004,
-        wager=100.0,
-        longevity=24),
-
-    # Profit: 60 cents
-    # Spread: $262
-    # Investment: $0
-    TargetState(
-        qty=0,
-        spread=0.005,
-        wager=100.0,
-        longevity=24),
-
-    # Profit: 80 cents
-    # Spread: $314
-    # Investment: $0
-    TargetState(
-        qty=0,
-        spread=0.006,
-        wager=100.0,
-        longevity=48),
-
-    # Profit: $1.20
-    # Spread: $419
-    # Investment: $0
-    TargetState(
-        qty=0,
-        spread=0.008,
-        wager=100.0,
-        longevity=48),
+        wager=200.0,
+        longevity=1),
 ]
 
 # Const expressions

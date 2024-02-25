@@ -105,7 +105,7 @@ class Order():
         self.btc = btc
         self.usd = usd
         self.order_id = order_id
-        self.order_time = order_time
+        self.order_time = order_time if order_time else datetime.now()
         self.client_order_id = client_order_id if client_order_id else datetime.now().strftime("%Y-%m-%d-%H-%M-%S-") + str(random.randint(0, 1000)).zfill(4)
         self.final_time = final_time
         self.final_market = final_market
@@ -113,12 +113,12 @@ class Order():
         self.final_usd = final_usd
 
     def is_good_market_value(self, current_price: float) -> bool:
-        # Too expensive to list our buy
+        # Within $5 of target - Cheap enough to list our buy
         if self.order_type == Order.Type.Buy:
-            return current_price <= self.get_limit_price()
-        # Too expensive to list our sale
+            return (current_price - 5.0) <= self.get_limit_price()
+        # Within $5 of target - Expensive enough to list our sale
         if self.order_type == Order.Type.Sell:
-            return current_price >= self.get_limit_price()
+            return (current_price + 5.0) >= self.get_limit_price()
         return False
 
     def is_good_market_conditions(self, current_price: float) -> bool:
@@ -157,7 +157,8 @@ class Order():
             elif data['order']['status'] == 'OPEN':
                 self.status = Order.Status.Active
                 # Make sure we're not holding onto trades that no longer reflect the market
-                self.check_longevity(ctx, current_price)
+                # XXX: Let newmain algorithm worry about this
+                #self.check_longevity(ctx, current_price)
             elif data['order']['status'] == 'FILLED':
                 if self.status != Order.Status.Complete:
                     Log.info("{} filled: {} (${} fee)".format("Buy" if self.order_type == Order.Type.Buy else "Sell", self.get_info(), data['order']['total_fees']))
@@ -193,6 +194,11 @@ class Order():
 
     def get_limit_price(self) -> float:
         return floor_usd(self.usd / self.btc)
+
+    def get_price(self) -> float:
+        if self.final_market:
+            return self.final_market
+        return self.get_limit_price()
 
     def get_order_price(self, current_price: float) -> float:
         # We will just bid $5 different than what the market wants

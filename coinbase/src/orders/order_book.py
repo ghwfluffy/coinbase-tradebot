@@ -11,21 +11,19 @@ class OrderBook():
     orders: list[OrderPair]
     iter_index: int = 0
 
-    PERSISTENT_STORAGE = "./orderbook.json"
-
     def __init__(self):
         self.orders = []
         self.iter_index = 0
 
     @staticmethod
-    def read_fs() -> 'OrderBook':
+    def read_fs(file: str = "orderbook.json") -> 'OrderBook':
         book = OrderBook()
         # No saved state
-        if not os.path.exists(OrderBook.PERSISTENT_STORAGE):
+        if not os.path.exists(file):
             return book
 
         # Read in file
-        with open("orderbook.json", "r") as fp:
+        with open(file, "r") as fp:
             data = fp.read()
 
         # Deserialize JSON string
@@ -43,7 +41,7 @@ class OrderBook():
 
         return book
 
-    def write_fs(self) -> None:
+    def write_fs(self, file: str = "orderbook.json") -> None:
         # Serialize
         orders = []
         for order in self.orders:
@@ -55,7 +53,7 @@ class OrderBook():
 
         # Write to file
         try:
-            with open("orderbook.json", "w") as fp:
+            with open(file, "w") as fp:
                 fp.write(json.dumps(data))
         except Exception as e:
             Log.error("Failed to write orderbook state: {}.".format(str(e)))
