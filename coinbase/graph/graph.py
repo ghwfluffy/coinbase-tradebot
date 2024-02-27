@@ -14,7 +14,7 @@ from scipy.interpolate import make_interp_spline
 
 # XXX: Config
 START_AT = None
-START_AT = "2024-02-23 23:41:00"
+START_AT = "2024-02-26 00:00:00"
 
 SHOW_ONLY_COMPLETE = False
 #SHOW_ONLY_COMPLETE = True

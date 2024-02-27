@@ -27,20 +27,20 @@ from utils.wallet import get_wallet, has_liquidity
 RETRY_SLEEP: int = 1
 
 # How much to bet
-WAGER_SIZE: float = 250.0
+WAGER_SIZE: float = 300.0
 # How often (minutes) to try and place a new trade
 TRADE_FREQUENCY: float = 5.0 #XXX
 
 # Fail safe don't ever have a wallet value less than this
 MIN_WALLET: float = 2000.0
 
-# 0.3% difference is a good spread
-GOOD_SPREAD: float = 0.003
+# 0.6% difference is a good spread
+GOOD_SPREAD: float = 0.006
 
-# 1.0% above market value is a bad sale
-BAD_SALE_DELTA: float = 0.01
-# 6 hours is a long time for a sale
-SELL_EXPIRATION: float = 6.0
+# 1.5% above market value is a bad sale
+BAD_SALE_DELTA: float = 0.015
+# 12 hours is a long time for a sale
+SELL_EXPIRATION: float = 12.0
 # 0.1% above market is our price for sales we want to sell at a discount
 DISCOUNTED_SELL: float = 0.001
 LONGEVITY: float = SELL_EXPIRATION

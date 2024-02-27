@@ -113,12 +113,12 @@ class Order():
         self.final_usd = final_usd
 
     def is_good_market_value(self, current_price: float) -> bool:
-        # Within $5 of target - Cheap enough to list our buy
+        # Within $20 of target - Cheap enough to list our buy
         if self.order_type == Order.Type.Buy:
-            return (current_price - 5.0) <= self.get_limit_price()
-        # Within $5 of target - Expensive enough to list our sale
+            return (current_price - 20.0) <= self.get_limit_price()
+        # Within $20 of target - Expensive enough to list our sale
         if self.order_type == Order.Type.Sell:
-            return (current_price + 5.0) >= self.get_limit_price()
+            return (current_price + 20.0) >= self.get_limit_price()
         return False
 
     def is_good_market_conditions(self, current_price: float) -> bool:
@@ -184,7 +184,7 @@ class Order():
         if (datetime.now() - self.order_time).total_seconds() < (60 * 20):
             return None
         # We're pretty close to the price we asked, we'll keep the trade open
-        if abs(current_price - self.final_market) < 5.0:
+        if abs(current_price - self.final_market) < 20.0:
             return None
         # Cancel trade
         Log.debug("Sale longevity reached.")
@@ -201,11 +201,11 @@ class Order():
         return self.get_limit_price()
 
     def get_order_price(self, current_price: float) -> float:
-        # We will just bid $5 different than what the market wants
+        # We will bid $20 different than what the market wants
         if self.order_type == Order.Type.Sell:
-            return floor_usd(current_price + 5)
+            return floor_usd(current_price + 20)
         elif self.order_type == Order.Type.Buy:
-            return floor_usd(current_price - 5)
+            return floor_usd(current_price - 20)
         return current_price
 
     def place_order(self, ctx: Context, current_price: float) -> bool:

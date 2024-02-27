@@ -2,6 +2,7 @@ from orders.target import TargetState
 from orders.order import Order
 from orders.order_pair import OrderPair
 from market.current import CurrentMarket
+from algorithm.tranche import Tranche
 
 from utils.logging import Log
 from utils.math import floor_btc, floor_usd
@@ -27,3 +28,19 @@ def create_order(market: CurrentMarket, target: TargetState, buy_now = False) ->
     Log.debug("Market price ${:.2f} triggering pair order ({:.8f} BTC: ${:.2f} -> ${:.2f}).".format(
         market.split, num_bitcoins, target.wager, sell_price))
     return OrderPair(target, market.split, buy, sell)
+
+def create_tranched_pair(market: CurrentMarket, tranche: Tranche) -> OrderPair:
+    delta: float = (market.split * tranche.spread) / 2
+    buy_at: float = floor_usd(market.split - delta)
+    sell_at: float = floor_usd(market.split + delta)
+
+    # What is the buy-price equivalent of our wager
+    num_bitcoins = floor_btc(tranche.usd / buy_at)
+    # What is the sell-price for that many bitcoins at our sell_at
+    sell_price = floor_usd(num_bitcoins * sell_at)
+
+    buy = Order(Order.Type.Buy, num_bitcoins, tranche.usd)
+    sell = Order(Order.Type.Sell, num_bitcoins, sell_price)
+    Log.debug("Market price ${:.2f} triggering pair order ({:.8f} BTC: ${:.2f} -> ${:.2f}).".format(
+        market.split, num_bitcoins, tranche.usd, sell_price))
+    return OrderPair(tranche.name, market.split, buy, sell)

@@ -75,9 +75,15 @@ class OrderBook():
         if market == None:
             return False
 
+        # Churn each order pair
         ret = True
         for order in self.orders:
             ret &= order.churn(ctx, market)
+
+        # Cleanup completed order pairs
+        if ret:
+            self.cleanup(ctx)
+
         return ret
 
     def cleanup(self, ctx: Context) -> None:
@@ -85,11 +91,11 @@ class OrderBook():
         while i < len(self.orders):
             pair: OrderPair = self.orders[i]
             if pair.status == OrderPair.Status.Complete:
-                Log.debug("Cleanup completed order pair from {}.".format(pair.target_id))
+                Log.debug("Cleanup completed order pair from {}.".format(pair.tranche))
                 self.orders.pop(i)
                 self.write_historical(pair)
             elif pair.status == OrderPair.Status.Canceled and pair.cancel(ctx):
-                Log.debug("Cleanup canceled order pair from {}.".format(pair.target_id))
+                Log.debug("Cleanup canceled order pair from {}.".format(pair.tranche))
                 self.orders.pop(i)
                 self.write_historical(pair)
             else:
@@ -100,7 +106,7 @@ class OrderBook():
         while i < len(self.orders):
             pair: OrderPair = self.orders[i]
             if pair.status == OrderPair.Status.Pending:
-                Log.debug("Cleanup pending order pair from {}.".format(pair.target_id))
+                Log.debug("Cleanup pending order pair from {}.".format(pair.tranche))
                 self.orders.pop(i)
             else:
                 i += 1

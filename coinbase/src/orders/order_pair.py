@@ -1,12 +1,10 @@
 import json
 
-from datetime import datetime
-
 from enum import Enum
+from datetime import datetime
 
 from context import Context
 from orders.order import Order
-from orders.target import TargetState
 from market.current import CurrentMarket
 from utils.logging import Log
 
@@ -30,18 +28,16 @@ class OrderPair():
     event_time: datetime
     # Price of BTC at time of order pair creation
     event_price: float
-    # TargetState we are fulfilling
-    target_id: str
-    target: TargetState
+    # Tranche we are fulfilling
+    tranche: str
 
-    def __init__(self, target: TargetState, event_price: float, buy: Order, sell: Order, event_time = None):
+    def __init__(self, tranche: str, event_price: float, buy: Order, sell: Order, event_time: datetime = None):
         self.buy = buy
         self.sell = sell
         self.status = OrderPair.Status.Pending
         self.event_time = event_time if event_time else datetime.now()
         self.event_price = event_price
-        self.target = target
-        self.target_id = target._id
+        self.tranche = tranche
 
     def churn(self, ctx: Context, market: CurrentMarket) -> bool:
         # Place buy
@@ -78,11 +74,7 @@ class OrderPair():
             'status': self.status.name,
             'event_time': self.event_time.strftime("%Y-%m-%d %H:%M:%S"),
             'event_price': str(self.event_price),
-            'target_id': self.target._id,
-            'target_spread': self.target.spread,
-            'target_wager': self.target.wager,
-            'target_longevity': self.target.longevity,
-            'target_qty': self.target.qty,
+            'tranche': self.tranche,
         }
 
     @classmethod
@@ -99,21 +91,8 @@ class OrderPair():
             event_time = datetime.strptime(data['event_time'], "%Y-%m-%d %H:%M:%S")
             event_price = float(data['event_price'])
 
-            target_id = None
-            target_spread = None
-            target_wager = None
-            target_longevity = None
-            target_qty = None
-            try:
-                target_id = data['target_id']
-                target_spread = data['target_spread']
-                target_wager = data['target_wager']
-                target_longevity = data['target_longevity']
-                target_qty = data['target_qty']
-            except:
-                pass
-            target: TargetState = TargetState(target_qty, target_spread, target_wager, target_longevity, target_id)
-            pair = cls(target, event_price, buy, sell, event_time)
+            tranche: str = data.get('tranche')
+            pair = cls(tranche, event_price, buy, sell, event_time)
             pair.status = OrderPair.Status[data['status']]
             return pair
         except Exception as e:

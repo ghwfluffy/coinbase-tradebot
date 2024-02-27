@@ -42,3 +42,16 @@ New Algorithm:
     USD: 2157.9567476800903
     BTC: 0.0014373731100278
     Value: 2231.27533893249
+    PNL: 3.21
+
+New Algorithm consts:
+2024-02-24 20:15:00 CST:
+    BTC Price: $51,759
+    USD: $2122.84
+    BTC: 0.0022290731100278
+    Value: 2238.1589664761177
+
+New Algorithm v3:
+2024-02-26 20:40:00 CST:
+    BTC Price: $56,127
+    Value: $2182.79
