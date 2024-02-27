@@ -7,6 +7,9 @@ from market.current import CurrentMarket
 from utils.logging import Log
 from utils.math import floor_btc
 
+# 0.1% above market is our price for sales we want to sell at a discount
+DISCOUNTED_SELL: float = 0.001
+
 def check_tranche(ctx: Context, orderbook: OrderBook, tranche: Tranche) -> None:
     # Get wagers associated with this tranche
     wagers = []
@@ -48,9 +51,25 @@ def check_tranche(ctx: Context, orderbook: OrderBook, tranche: Tranche) -> None:
             Log.debug("No valid orders to cancel for tranch {}.".format(tranche.name))
             return None
 
-        # Cancel this wager
-        Log.info("Cancel pair for tranche {}.".format(tranche.name))
-        furthest_pair.cancel(ctx)
+        # Cancel buy
+        if pair.status in [OrderPair.Status.Active, OrderPair.Status.Pending]:
+            Log.info("Cancel buy for tranche {}.".format(tranche.name))
+            furthest_pair.cancel(ctx)
+        # Discount sell
+        elif pair.status == OrderPair.Status.PendingSell:
+            Log.info("Cancel sell for tranche {}.".format(tranche.name))
+            sell: Order = pair.sell
+            # Cancel current sell
+            if sell.cancel(ctx):
+                # Requeue at DISCOUNTED_SALE rate
+                before = sell.usd
+                after = (market.bid + (market.bid * DISCOUNTED_SELL)) * sell.btc
+                Log.info("Requeu discounted sale (${:.2f} -> ${:.2f}).".format(before, after))
+                sell.usd = after
+                sell.status = Order.Status.Pending
+                sell.order_time = datetime.now()
+
+            return None
 
     # Place a new order
     Log.info("Making new pair for tranche {}.".format(tranche.name))
