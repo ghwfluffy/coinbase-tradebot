@@ -37,9 +37,9 @@ def check_tranche(ctx: Context, orderbook: OrderBook, tranche: Tranche) -> None:
         furthest_pair: OrderPair = None
         for pair in wagers:
             diff_spread: float = abs((market.bid - pair.event_price) / market.bid)
-            # Pending sells can be twice as far
+            # Pending sells can be 4x as far
             if pair.status == OrderPair.Status.PendingSell:
-                diff_spread = diff_spread / 2
+                diff_spread = diff_spread / 4
             if not max_spread or diff_spread > max_spread:
                 max_spread = diff_spread
                 furthest_pair = pair

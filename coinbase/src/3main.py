@@ -7,6 +7,7 @@ from orders.order_book import OrderBook
 from market.current import CurrentMarket
 from algorithm.tranche import Tranche
 from algorithm.version3 import check_tranche
+from utils.wallet import get_wallet
 from utils.logging import Log
 
 tranches = [
@@ -35,6 +36,9 @@ tranches = [
         qty=4,
     ),
 ]
+
+# Fail safe wallet amount
+MIN_WALLET: float = 1000.0
 
 # Process every 1 second
 RETRY_SLEEP_SECONDS: float = 1.0
@@ -69,6 +73,12 @@ while True:
 
         Log.debug("Market: ${:.2f} (${:.2f}) ${:.2f}".format(market.bid, market.split, market.ask))
         next_print = datetime.now() + PRINT_FREQUENCY
+
+    # Fail safe that wallet isn't getting drained due to a bug
+    wallet: dict = get_wallet(ctx)
+    if wallet and wallet['all']['total'] < MIN_WALLET:
+        Log.error("Minimum wallet requirements not met: {}/{}.".format(wallet['all']['total'], MIN_WALLET))
+        exit(0)
 
     # Make sure our tranches look how we want
     for tranche in tranches:
