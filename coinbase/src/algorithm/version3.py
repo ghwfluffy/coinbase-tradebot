@@ -1,4 +1,5 @@
 from context import Context
+from orders.order import Order
 from orders.order_book import OrderBook
 from orders.order_pair import OrderPair
 from orders.factory import create_tranched_pair
@@ -64,7 +65,7 @@ def check_tranche(ctx: Context, orderbook: OrderBook, tranche: Tranche) -> None:
                 # Requeue at DISCOUNTED_SALE rate
                 before = sell.usd
                 after = (market.bid + (market.bid * DISCOUNTED_SELL)) * sell.btc
-                Log.info("Requeu discounted sale (${:.2f} -> ${:.2f}).".format(before, after))
+                Log.info("Requeue discounted sale (${:.2f} -> ${:.2f}).".format(before, after))
                 sell.usd = after
                 sell.status = Order.Status.Pending
                 sell.order_time = datetime.now()
