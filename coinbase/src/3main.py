@@ -21,7 +21,7 @@ tranches = [
         "Low",
         usd=50,
         spread=0.003,
-        qty=4,
+        qty=8,
     ),
     Tranche(
         "Mid",
