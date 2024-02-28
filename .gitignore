@@ -2,6 +2,7 @@
 .venv
 __pycache__
 secrets/
+logs/
 orderbook.json
 historical.json
 historical-bak.json

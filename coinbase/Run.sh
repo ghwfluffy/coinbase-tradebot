@@ -1,7 +1,8 @@
 #!/bin/bash
 
-source Venv.source
+#source Venv.source
+source .venv/bin/activate
 export PYTHONPATH=src
 #python3 src/newmain.py
 #python3 src/main.py
-python3 src/3main.py | tee -a /var/tradebot/logs/log.txt
+exec python3 -u src/3main.py

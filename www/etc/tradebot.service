@@ -5,9 +5,10 @@ After=network.target
 [Service]
 User=ghw
 Group=ghw
-SupplementaryGroups=botlogs
 WorkingDirectory=/var/tradebot/coinbase
 ExecStart=/var/tradebot/coinbase/Run.sh
+StandardOutput=append:/var/tradebot/logs/log.txt
+StandardError=inherit
 
 [Install]
 WantedBy=multi-user.target

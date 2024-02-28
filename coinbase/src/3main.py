@@ -10,6 +10,8 @@ from algorithm.version3 import check_tranche
 from utils.wallet import get_wallet
 from utils.logging import Log
 
+Log.debug("Started")
+
 tranches = [
     #Tranche(
     #    "UberLow",
@@ -41,7 +43,7 @@ tranches = [
 MIN_WALLET: float = 1000.0
 
 # Process every 1 second
-RETRY_SLEEP_SECONDS: float = 1.0
+RETRY_SLEEP_SECONDS: float = 0.1
 
 # Print market to console very minute
 PRINT_FREQUENCY: relativedelta = relativedelta(minutes=1)
