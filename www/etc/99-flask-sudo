@@ -1,0 +1,2 @@
+www-data ALL=(ghw) NOPASSWD: \
+    /var/tradebot/www/flask/bin/wallet.sh

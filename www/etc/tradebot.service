@@ -1,0 +1,13 @@
+[Unit]
+Description=Coinbase Bot
+After=network.target
+
+[Service]
+User=ghw
+Group=ghw
+SupplementaryGroups=botlogs
+WorkingDirectory=/var/tradebot/coinbase
+ExecStart=/var/tradebot/coinbase/Run.sh
+
+[Install]
+WantedBy=multi-user.target

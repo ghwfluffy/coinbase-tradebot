@@ -1,0 +1,7 @@
+Flask
+gunicorn
+python-dateutil
+matplotlib
+pyqt5
+numpy
+scipy

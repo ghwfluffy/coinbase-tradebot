@@ -1,0 +1,94 @@
+<style>
+.plaintext {
+    white-space: pre-wrap; /* Preserves whitespace and allows text wrapping */
+    border: 1px solid #000; /* Optional: adds a border to make the div visible */
+    margin: 20px; /* Optional: adds some margin around the div */
+    padding: 10px; /* Optional: adds some padding inside the div */
+}
+</style>
+<div id="error"></div><BR/>
+<TABLE>
+  <TR>
+    <TD colspan=2 width=100%>
+      <div id="graph" class="plaintext"></div>
+    </TD>
+  </TR>
+  <TR>
+    <TD width=50%>
+      <div id="wallet" class="plaintext"></div>
+    </TD>
+    <TD width=50%>
+      <div id="pnl" class="plaintext"></div>
+    </TD>
+  </TR>
+  <TR>
+    <TD colspan=2 width=100%>
+      <div id="logs" class="plaintext"></div>
+    </TD>
+  </TR>
+</TABLE>
+
+<script type="text/javascript">
+fetch('/api/graph')
+  .then(response => {
+    // Check if the request was successful
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
+    return response.json(); // Parse the response body as JSON
+  })
+  .then(data => {
+    const img = document.createElement('img');
+    img.src = "data:image/png;base64," + data.data;
+    img.style.width = "100%";
+    document.getElementById("graph").appendChild(img);
+  })
+  .catch(error => {
+    document.getElementById("error").textContent = "Network error";
+  });
+
+fetch('/api/wallet')
+  .then(response => {
+    // Check if the request was successful
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
+    return response.json(); // Parse the response body as JSON
+  })
+  .then(data => {
+    document.getElementById('wallet').textContent = data.wallet;
+  })
+  .catch(error => {
+    document.getElementById("error").textContent = "Network error";
+  });
+
+fetch('/api/pnl')
+  .then(response => {
+    // Check if the request was successful
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
+    return response.json(); // Parse the response body as JSON
+  })
+  .then(data => {
+    document.getElementById('pnl').textContent = data.pnl;
+  })
+  .catch(error => {
+    document.getElementById("error").textContent = "Network error";
+  });
+
+fetch('/api/logs')
+  .then(response => {
+    // Check if the request was successful
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
+    return response.json(); // Parse the response body as JSON
+  })
+  .then(data => {
+    document.getElementById('logs').textContent = data.logs;
+  })
+  .catch(error => {
+    document.getElementById("error").textContent = "Network error";
+  });
+</script>

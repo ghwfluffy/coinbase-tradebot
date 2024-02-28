@@ -1,0 +1,13 @@
+[Unit]
+Description=Flask
+After=network.target
+
+[Service]
+User=www-data
+Group=www-data
+SupplementaryGroups=botlogs
+WorkingDirectory=/var/tradebot/coinbase-tradebot/www/flask
+ExecStart=/var/tradebot/coinbase-tradebot/www/flask/Run.sh
+
+[Install]
+WantedBy=multi-user.target
