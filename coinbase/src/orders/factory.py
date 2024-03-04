@@ -41,6 +41,6 @@ def create_tranched_pair(market: CurrentMarket, tranche: Tranche) -> OrderPair:
 
     buy = Order(Order.Type.Buy, num_bitcoins, tranche.usd)
     sell = Order(Order.Type.Sell, num_bitcoins, sell_price)
-    Log.debug("Market price ${:.2f} triggering pair order ({:.8f} BTC: ${:.2f} -> ${:.2f}).".format(
-        market.split, num_bitcoins, tranche.usd, sell_price))
+    Log.debug("Market price ${:.2f} triggering {} order ({:.8f} BTC: ${:.2f} -> ${:.2f}).".format(
+        market.split, tranche.name, num_bitcoins, tranche.usd, sell_price))
     return OrderPair(tranche.name, market.split, buy, sell)

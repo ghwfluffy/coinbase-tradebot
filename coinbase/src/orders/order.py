@@ -17,7 +17,7 @@ TESTING=False
 #TESTING=True
 
 # XXX: Safety precautions
-MAX_PRICE=58000
+MAX_PRICE=78000
 MIN_PRICE=48000
 
 def buy(*args, **kwargs):
@@ -98,8 +98,10 @@ class Order():
     final_market: float
     final_fees: float
     final_usd: float
+    cancel_time: datetime
+    cancel_reason: str
 
-    def __init__(self, order_type: Type, btc: float, usd: float, client_order_id: str = None, order_id: str = None, order_time: datetime=None, final_time: datetime=None, status: 'Order.Status' = None, final_market=None, final_fees=None, final_usd=None):
+    def __init__(self, order_type: Type, btc: float, usd: float, client_order_id: str = None, order_id: str = None, order_time: datetime=None, final_time: datetime=None, status: 'Order.Status' = None, final_market=None, final_fees=None, final_usd=None, cancel_time: datetime=None, cancel_reason: str = None):
         self.order_type = order_type
         self.status = status if status else Order.Status.Pending
         self.btc = btc
@@ -111,6 +113,9 @@ class Order():
         self.final_market = final_market
         self.final_fees = final_fees
         self.final_usd = final_usd
+        self.insufficient_funds = False
+        self.cancel_time = cancel_time
+        self.cancel_reason = cancel_reason
 
     def is_good_market_value(self, current_price: float) -> bool:
         # Within $20 of target - Cheap enough to list our buy
@@ -188,7 +193,7 @@ class Order():
             return None
         # Cancel trade
         Log.debug("Sale longevity reached.")
-        if self.cancel(ctx):
+        if self.cancel(ctx, "longevity"):
             # Go back to pending
             self.status = Order.Status.Pending
 
@@ -233,6 +238,10 @@ class Order():
                     self.final_market = limit_price
                     Log.info("Created buy order {}: {}".format(self.order_id, self.get_info()))
                 else:
+                    if order_info['error_response']['error'] == 'INSUFFICIENT_FUND':
+                        if self.insufficient_funds:
+                            return False
+                        self.insufficient_funds = True
                     Log.error("Failed to create buy order: {}: {}".format(self.get_info(), order_info['error_response']['error']))
                 return ok
             except Exception as e:
@@ -270,10 +279,12 @@ class Order():
     def get_info(self) -> str:
         return "{:.5f} BTC for ${:.2f} (${:.2f} market price).".format(self.btc, self.usd, self.usd / self.btc)
 
-    def cancel(self, ctx: Context) -> bool:
+    def cancel(self, ctx: Context, reason: str) -> bool:
         # Cancel before ever executed
         if not self.order_id or self.status == Order.Status.Pending:
             self.status = Order.Status.Canceled
+            self.cancel_reason = reason
+            self.cancel_time = datetime.now()
         # Cancel active order
         elif self.order_id and not self.status in [Order.Status.Canceled, Order.Status.Complete]:
             try:
@@ -290,6 +301,8 @@ class Order():
                         self.get_info()))
                     self.final_time = datetime.now()
                     self.order_id = None
+                    self.cancel_reason = reason
+                    self.cancel_time = datetime.now()
                 else:
                     Log.error("Failed to cancel {} {} {}".format(
                         "buy" if self.order_type == Order.Type.Buy else "sell",
@@ -318,6 +331,8 @@ class Order():
             'final_market': self.final_market,
             'final_usd': self.final_usd,
             'final_fees': self.final_fees,
+            'cancel_time': self.cancel_time.strftime("%Y-%m-%d %H:%M:%S") if self.cancel_time else None,
+            'cancel_reason': self.cancel_reason,
         }
 
     @classmethod
@@ -351,6 +366,13 @@ class Order():
             except:
                 pass
 
+            cancel_time = None
+            try:
+                cancel_time = datetime.strptime(data['cancel_time'], "%Y-%m-%d %H:%M:%S")
+            except:
+                pass
+            cancel_reason = data.get('cancel_reason')
+
             order = cls(
                 order_type=order_type,
                 btc=btc,
@@ -362,6 +384,8 @@ class Order():
                 final_market=final_market,
                 final_fees=final_fees,
                 final_usd=final_usd,
+                cancel_time=cancel_time,
+                cancel_reason=cancel_reason,
             )
             return order
         except Exception as e:

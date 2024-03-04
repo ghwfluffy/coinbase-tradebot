@@ -20,22 +20,49 @@ tranches = [
     #    qty=2,
     #),
     Tranche(
-        "Low",
+        "Low-50",
         usd=50,
         spread=0.003,
         qty=8,
     ),
     Tranche(
-        "Mid",
+        "Low-100",
+        usd=100,
+        spread=0.004,
+        qty=4,
+    ),
+    Tranche(
+        "Mid-100",
         usd=100,
         spread=0.005,
         qty=4,
     ),
     Tranche(
-        "High",
+        "High-500",
         usd=500,
         spread=0.006,
         qty=4,
+    ),
+]
+
+tranches = [
+    Tranche(
+        "Low",
+        usd=800,
+        spread=0.003,
+        qty=3,
+    ),
+    Tranche(
+        "Mid",
+        usd=50,
+        spread=0.0035,
+        qty=4,
+    ),
+    Tranche(
+        "High",
+        usd=40,
+        spread=0.004,
+        qty=3,
     ),
 ]
 
@@ -46,7 +73,7 @@ MIN_WALLET: float = 1000.0
 RETRY_SLEEP_SECONDS: float = 0.1
 
 # Print market to console very minute
-PRINT_FREQUENCY: relativedelta = relativedelta(minutes=1)
+PRINT_FREQUENCY: relativedelta = relativedelta(minutes=5)
 
 # New Coinbase connection context
 ctx: Context = Context()
@@ -57,6 +84,8 @@ orderbook: OrderBook = OrderBook.read_fs("orderbook.json")
 # Loop variables
 churn_retries = 0
 next_print: datetime = datetime.now()
+
+#orderbook.clear_pending(ctx)
 
 # Main loop
 while True:

@@ -13,6 +13,9 @@ from utils.math import floor_btc
 # 0.1% above market is our price for sales we want to sell at a discount
 DISCOUNTED_SELL: float = 0.001
 
+# How much more we value sells (less likely to cancel)
+SELL_WEIGHT: float = 4
+
 def check_tranche(ctx: Context, orderbook: OrderBook, tranche: Tranche) -> None:
     # Get wagers associated with this tranche
     wagers = []
@@ -45,25 +48,25 @@ def check_tranche(ctx: Context, orderbook: OrderBook, tranche: Tranche) -> None:
             diff_spread: float = abs((market.bid - pair.event_price) / market.bid)
             # Pending sells can be 4x as far
             if pair.status == OrderPair.Status.PendingSell:
-                diff_spread = diff_spread / 4
+                diff_spread = diff_spread / SELL_WEIGHT
             if not max_spread or diff_spread > max_spread:
                 max_spread = diff_spread
                 furthest_pair = pair
 
         if max_spread <= tranche.spread:
-            Log.debug("No valid orders to cancel for tranch {}.".format(tranche.name))
+            #Log.debug("No valid orders to cancel for tranch {}.".format(tranche.name))
             return None
 
         # Cancel buy
-        if pair.status in [OrderPair.Status.Active, OrderPair.Status.Pending]:
+        if furthest_pair.status in [OrderPair.Status.Active, OrderPair.Status.Pending]:
             Log.info("Cancel buy for tranche {}.".format(tranche.name))
-            furthest_pair.cancel(ctx)
+            furthest_pair.cancel(ctx, "buy low")
         # Discount sell
-        elif pair.status == OrderPair.Status.PendingSell:
+        elif furthest_pair.status == OrderPair.Status.PendingSell:
             Log.info("Cancel sell for tranche {}.".format(tranche.name))
-            sell: Order = pair.sell
+            sell: Order = furthest_pair.sell
             # Cancel current sell
-            if sell.cancel(ctx):
+            if sell.cancel(ctx, "sell high"):
                 # Requeue at DISCOUNTED_SALE rate
                 before = sell.usd
                 after = (market.bid + (market.bid * DISCOUNTED_SELL)) * sell.btc
@@ -72,6 +75,9 @@ def check_tranche(ctx: Context, orderbook: OrderBook, tranche: Tranche) -> None:
                 sell.status = Order.Status.Pending
                 sell.order_time = datetime.now()
 
+            return None
+        else:
+            #Log.debug("Furthest pair for tranche {} is in active state and can't cancel.".format(tranche.name))
             return None
 
     # Place a new order

@@ -18,6 +18,7 @@ with open("historical.json", "r") as fp:
 if START_TIME:
     START_TIME=parse_date(START_TIME)
 
+results = []
 total_profit = 0
 for order in data:
     if order['status'] != "Complete":
@@ -40,7 +41,7 @@ for order in data:
     sub_total = sell_usd - buy_usd
     total = sub_total - fee
 
-    print("{}: ${} - {} min - ${:.2f} profit".format(
+    results.append("{}: ${} - {} min - ${:.2f} profit".format(
         end_time,
         buy_usd,
         int(delta_time),
@@ -51,4 +52,12 @@ for order in data:
 
     total_profit += total
 
+# Show most recent 10
+while len(results) > 10:
+    results.pop(0)
+
 print("Total profit: {:.2f}".format(total_profit))
+print("")
+results.reverse()
+for r in results:
+    print(r)

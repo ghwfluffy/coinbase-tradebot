@@ -12,7 +12,7 @@ import matplotlib
 from scipy.interpolate import make_interp_spline
 
 def create_plot(
-    START_AT="2024-02-26 00:00:00",
+    START_AT="2024-02-29 00:00:00",
     SHOW_ONLY_COMPLETE=False,
     SHOW_PENDING=True,
     ORDERBOOK_ONLY=False,
@@ -136,7 +136,8 @@ def create_plot(
             sell_final_price = floor(order['sell']['final_market'])
 
             plt.scatter(sell_final_time, sell_final_price, color='green')
-            plt.plot([buy_final_time, sell_final_time], [buy_final_price, sell_final_price], color='green')
+            color = 'green' if sell_final_price >= buy_final_price else 'red'
+            plt.plot([buy_final_time, sell_final_time], [buy_final_price, sell_final_price], color=color)
 
             minmax(MINMAX, sell_final_price)
             market.append((sell_final_time, sell_final_price))

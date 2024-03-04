@@ -7,22 +7,39 @@
 }
 </style>
 <div id="error"></div><BR/>
+<div id="time"></div><BR/>
+<div id="count"></div><BR/>
 <TABLE>
   <TR>
     <TD width=100%>
-      <div id="graph" class="plaintext"></div>
+      <div id="orders"></div>
     </TD>
   </TR>
-  </TR>
+  <TR>
     <TD width=100%>
       <div id="pnl" class="plaintext"></div>
     </TD>
   </TR>
   <TR>
     <TD width=100%>
+      <div id="graph" class="plaintext"></div>
+    </TD>
+  </TR>
+  <TR>
+    <TD width=100%>
       <div id="wallet" class="plaintext"></div>
     </TD>
+  </TR>
   <TR>
+    <TD width=100%>
+      <div id="alloc" class="plaintext"></div>
+    </TD>
+  </TR>
+  <TR>
+    <TD width=100%>
+      <div id="history"></div>
+    </TD>
+  </TR>
   <TR>
     <TD width=100%>
       <div id="logs" class="plaintext"></div>
@@ -31,6 +48,20 @@
 </TABLE>
 
 <script type="text/javascript">
+
+const currentDate = new Date();
+
+const year = currentDate.getUTCFullYear();
+const month = ('0' + (currentDate.getUTCMonth() + 1)).slice(-2);
+const day = ('0' + currentDate.getUTCDate()).slice(-2);
+const hours = ('0' + currentDate.getUTCHours()).slice(-2);
+const minutes = ('0' + currentDate.getUTCMinutes()).slice(-2);
+const seconds = ('0' + currentDate.getUTCSeconds()).slice(-2);
+
+const currentUTCTime = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+
+document.getElementById("time").textContent = currentUTCTime;
+
 fetch('/api/graph')
   .then(response => {
     // Check if the request was successful
@@ -89,6 +120,65 @@ fetch('/api/logs')
   })
   .then(data => {
     document.getElementById('logs').textContent = data.logs;
+  })
+  .catch(error => {
+    document.getElementById("error").textContent = "Network error";
+  });
+
+fetch('/api/orders')
+  .then(response => {
+    // Check if the request was successful
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
+    return response.json(); // Parse the response body as JSON
+  })
+  .then(data => {
+    document.getElementById('orders').innerHTML = data.orders;
+  })
+  .catch(error => {
+    document.getElementById("error").textContent = "Network error";
+  });
+fetch('/api/history')
+  .then(response => {
+    // Check if the request was successful
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
+    return response.json(); // Parse the response body as JSON
+  })
+  .then(data => {
+    document.getElementById('history').innerHTML = data.history;
+  })
+  .catch(error => {
+    document.getElementById("error").textContent = "Network error";
+  });
+
+fetch('/api/alloc')
+  .then(response => {
+    // Check if the request was successful
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
+    return response.json(); // Parse the response body as JSON
+  })
+  .then(data => {
+    document.getElementById('alloc').textContent = data.alloc;
+  })
+  .catch(error => {
+    document.getElementById("error").textContent = "Network error";
+  });
+
+fetch('/api/count')
+  .then(response => {
+    // Check if the request was successful
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
+    return response.json(); // Parse the response body as JSON
+  })
+  .then(data => {
+    document.getElementById('count').textContent = "Page views: " + data.count;
   })
   .catch(error => {
     document.getElementById("error").textContent = "Network error";

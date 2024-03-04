@@ -62,9 +62,9 @@ class OrderPair():
 
         return ret
 
-    def cancel(self, ctx: Context) -> None:
-        ret = self.buy.cancel(ctx)
-        ret &= self.sell.cancel(ctx)
+    def cancel(self, ctx: Context, reason: str) -> None:
+        ret = self.buy.cancel(ctx, reason)
+        ret &= self.sell.cancel(ctx, reason)
         return ret
 
     def to_dict(self) -> dict:

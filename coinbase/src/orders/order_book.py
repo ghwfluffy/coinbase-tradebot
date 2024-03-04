@@ -91,11 +91,11 @@ class OrderBook():
         while i < len(self.orders):
             pair: OrderPair = self.orders[i]
             if pair.status == OrderPair.Status.Complete:
-                Log.debug("Cleanup completed order pair from {}.".format(pair.tranche))
+                Log.debug("Cleanup completed order pair for {}.".format(pair.tranche))
                 self.orders.pop(i)
                 self.write_historical(pair)
-            elif pair.status == OrderPair.Status.Canceled and pair.cancel(ctx):
-                Log.debug("Cleanup canceled order pair from {}.".format(pair.tranche))
+            elif pair.status == OrderPair.Status.Canceled and pair.cancel(ctx, "orderbook cleanup"):
+                Log.debug("Cleanup canceled order pair for {}.".format(pair.tranche))
                 self.orders.pop(i)
                 self.write_historical(pair)
             else:
@@ -106,7 +106,7 @@ class OrderBook():
         while i < len(self.orders):
             pair: OrderPair = self.orders[i]
             if pair.status == OrderPair.Status.Pending:
-                Log.debug("Cleanup pending order pair from {}.".format(pair.tranche))
+                Log.debug("Cleanup pending order pair for {}.".format(pair.tranche))
                 self.orders.pop(i)
             else:
                 i += 1

@@ -46,6 +46,46 @@ def get_pnl():
     }
     return jsonify(data)
 
+@app.route('/orders', methods=['GET'])
+def get_orders():
+    cmd = ['sudo', '-u', 'ghw', './bin/orders.sh']
+    process = subprocess.run(cmd, text=True, capture_output=True)
+    stdout = process.stdout
+    data = {
+        "orders": stdout,
+    }
+    return jsonify(data)
+
+@app.route('/history', methods=['GET'])
+def get_history():
+    cmd = ['./bin/history.sh']
+    process = subprocess.run(cmd, text=True, capture_output=True)
+    stdout = process.stdout
+    data = {
+        "history": stdout,
+    }
+    return jsonify(data)
+
+@app.route('/alloc', methods=['GET'])
+def get_alloc():
+    cmd = ['sudo', '-u', 'ghw', './bin/allocations.sh']
+    process = subprocess.run(cmd, text=True, capture_output=True)
+    stdout = process.stdout
+    data = {
+        "alloc": stdout,
+    }
+    return jsonify(data)
+
+@app.route('/count', methods=['GET'])
+def get_count():
+    cmd = ['sudo', '-u', 'ghw', './bin/counter.sh']
+    process = subprocess.run(cmd, text=True, capture_output=True)
+    stdout = process.stdout
+    data = {
+        "count": stdout,
+    }
+    return jsonify(data)
+
 @app.route('/graph', methods=['GET'])
 def get_graph():
     orig_dir = os.getcwd()
