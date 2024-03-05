@@ -29,10 +29,15 @@ def create_order(market: CurrentMarket, target: TargetState, buy_now = False) ->
         market.split, num_bitcoins, target.wager, sell_price))
     return OrderPair(target, market.split, buy, sell)
 
-def create_tranched_pair(market: CurrentMarket, tranche: Tranche) -> OrderPair:
-    delta: float = (market.split * tranche.spread) / 2
-    buy_at: float = floor_usd(market.split - delta)
-    sell_at: float = floor_usd(market.split + delta)
+def create_tranched_pair(market: CurrentMarket, tranche: Tranche, lowball: bool = True) -> OrderPair:
+    if lowball:
+        delta: float = market.split * tranche.spread
+        buy_at: float = floor_usd(market.split - delta)
+        sell_at: float = floor_usd(market.split)
+    else:
+        delta: float = (market.split * tranche.spread) / 2
+        buy_at: float = floor_usd(market.split - delta)
+        sell_at: float = floor_usd(market.split + delta)
 
     # What is the buy-price equivalent of our wager
     num_bitcoins = floor_btc(tranche.usd / buy_at)

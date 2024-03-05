@@ -54,15 +54,15 @@ tranches = [
     ),
     Tranche(
         "Mid",
-        usd=50,
-        spread=0.0035,
-        qty=4,
+        usd=800,
+        spread=0.0045,
+        qty=3,
     ),
     Tranche(
         "High",
-        usd=40,
-        spread=0.004,
-        qty=3,
+        usd=800,
+        spread=0.006,
+        qty=2,
     ),
 ]
 

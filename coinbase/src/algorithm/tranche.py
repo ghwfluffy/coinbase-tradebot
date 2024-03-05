@@ -1,8 +1,11 @@
+from datetime import datetime
+
 class Tranche:
     name: str
     usd: float
     spread: float
     qty: int
+    last_discount: datetime
 
     def __init__(self,
         name: str,
@@ -14,6 +17,7 @@ class Tranche:
         self.usd = usd
         self.spread = spread
         self.qty = qty
+        self.last_discount = None
 
     def to_dict(self) -> None:
         return {
@@ -21,6 +25,7 @@ class Tranche:
             'usd': self.usd,
             'spread': self.spread,
             'qty': self.qty,
+            #'last_discount': self.last_discount,
         }
 
     def from_dict(self, data: dict) -> None:
@@ -28,3 +33,4 @@ class Tranche:
         self.usd = data.get('usd')
         self.spread = data.get('spread')
         self.qty = data.get('qty')
+        #self.last_discount = data.get('last_discount')

@@ -1,4 +1,5 @@
 from datetime import datetime
+from dateutil.relativedelta import relativedelta
 
 from context import Context
 from orders.order import Order
@@ -14,7 +15,10 @@ from utils.math import floor_btc
 DISCOUNTED_SELL: float = 0.001
 
 # How much more we value sells (less likely to cancel)
-SELL_WEIGHT: float = 4
+SELL_WEIGHT: float = 10
+
+# How long a discount will make us pause making new buys
+DISCOUNT_PAUSE = relativedelta(minutes=10)
 
 def check_tranche(ctx: Context, orderbook: OrderBook, tranche: Tranche) -> None:
     # Get wagers associated with this tranche
@@ -36,7 +40,7 @@ def check_tranche(ctx: Context, orderbook: OrderBook, tranche: Tranche) -> None:
             min_spread = diff_spread
 
     # Are we far enough away to make a new bet?
-    if min_spread and min_spread < (tranche.spread / 2):
+    if min_spread and min_spread < tranche.spread:
         #Log.debug("Min spread {:.8f} for tranche {} too low.".format(floor_btc(min_spread), tranche.name))
         return None
 
@@ -74,11 +78,17 @@ def check_tranche(ctx: Context, orderbook: OrderBook, tranche: Tranche) -> None:
                 sell.usd = after
                 sell.status = Order.Status.Pending
                 sell.order_time = datetime.now()
+                tranche.last_discount = datetime.now()
 
             return None
         else:
             #Log.debug("Furthest pair for tranche {} is in active state and can't cancel.".format(tranche.name))
             return None
+
+    # If market is going down, pause buying for a few minutes
+    if tranche.last_discount and tranche.last_discount + DISCOUNT_PAUSE > datetime.now():
+        #Log.debug("New buys paused due to discounted sell state.")
+        return None
 
     # Place a new order
     Log.info("Making new pair for tranche {}.".format(tranche.name))
