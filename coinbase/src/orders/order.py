@@ -9,6 +9,7 @@ from context import Context
 from market.current import CurrentMarket
 from utils.logging import Log
 from utils.math import floor_btc, floor_usd
+from algorithm.limits import check_tranche_funds
 
 from coinbase.rest import orders as api_orders
 
@@ -139,6 +140,15 @@ class Order():
         # No order ID: Create new order
         if not self.order_id:
             self.status = Order.Status.Pending
+
+            # Check if we have enough funds to create an order
+            if self.order_type == Type.Buy and not check_tranche_funds(ctx, self.usd):
+                if self.insufficient_funds:
+                    return True
+                self.insufficient_funds = True
+                Log.error("No tranche allocated funds to create buy order: {}".format(self.get_info()))
+                return True
+
             # Check cached current price
             if not self.is_good_market_value(current_price):
                 return True

@@ -6,6 +6,7 @@ class Tranche:
     spread: float
     qty: int
     last_discount: datetime
+    discount_price: float
 
     def __init__(self,
         name: str,
@@ -18,6 +19,7 @@ class Tranche:
         self.spread = spread
         self.qty = qty
         self.last_discount = None
+        self.discount_price = None
 
     def to_dict(self) -> None:
         return {

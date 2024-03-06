@@ -15,10 +15,10 @@ from utils.math import floor_btc
 DISCOUNTED_SELL: float = 0.001
 
 # How much more we value sells (less likely to cancel)
-SELL_WEIGHT: float = 10
+SELL_WEIGHT: float = 8
 
 # How long a discount will make us pause making new buys
-DISCOUNT_PAUSE = relativedelta(minutes=10)
+DISCOUNT_PAUSE = relativedelta(minutes=20)
 
 def check_tranche(ctx: Context, orderbook: OrderBook, tranche: Tranche) -> None:
     # Get wagers associated with this tranche
@@ -32,10 +32,14 @@ def check_tranche(ctx: Context, orderbook: OrderBook, tranche: Tranche) -> None:
     if market == None:
         return None
 
+    # Update smooth market calculation
+    # We don't want to make buying and selling decisions based on rapid sudden unsustained market movements
+    ctx.smooth.update_market(market)
+
     # Find the closest wager to the current market price
     min_spread: float = None
     for pair in wagers:
-        diff_spread: float = abs((market.bid - pair.event_price) / market.bid)
+        diff_spread: float = abs((ctx.smooth.bid - pair.event_price) / ctx.smooth.bid)
         if not min_spread or diff_spread < min_spread:
             min_spread = diff_spread
 
@@ -44,12 +48,16 @@ def check_tranche(ctx: Context, orderbook: OrderBook, tranche: Tranche) -> None:
         #Log.debug("Min spread {:.8f} for tranche {} too low.".format(floor_btc(min_spread), tranche.name))
         return None
 
+    # If market is going down, we will pause trading for a while
+    discount_mode: bool = tranche.last_discount and tranche.last_discount + DISCOUNT_PAUSE > datetime.now() and market.ask < tranche.discount_price
+
     # We need to cancel something to make a new bet
-    if len(wagers) >= tranche.qty:
+    # Or if the market is going down we will see if we should cut our losses on a sale
+    if discount_mode or len(wagers) >= tranche.qty:
         max_spread: float = None
         furthest_pair: OrderPair = None
         for pair in wagers:
-            diff_spread: float = abs((market.bid - pair.event_price) / market.bid)
+            diff_spread: float = abs((ctx.smooth.bid - pair.event_price) / ctx.smooth.bid)
             # Pending sells can be 4x as far
             if pair.status == OrderPair.Status.PendingSell:
                 diff_spread = diff_spread / SELL_WEIGHT
@@ -62,7 +70,8 @@ def check_tranche(ctx: Context, orderbook: OrderBook, tranche: Tranche) -> None:
             return None
 
         # Cancel buy
-        if furthest_pair.status in [OrderPair.Status.Active, OrderPair.Status.Pending]:
+        # If market is going down though we will keep our buys
+        if not discount_mode and furthest_pair.status in [OrderPair.Status.Active, OrderPair.Status.Pending]:
             Log.info("Cancel buy for tranche {}.".format(tranche.name))
             furthest_pair.cancel(ctx, "buy low")
         # Discount sell
@@ -73,12 +82,14 @@ def check_tranche(ctx: Context, orderbook: OrderBook, tranche: Tranche) -> None:
             if sell.cancel(ctx, "sell high"):
                 # Requeue at DISCOUNTED_SALE rate
                 before = sell.usd
-                after = (market.bid + (market.bid * DISCOUNTED_SELL)) * sell.btc
+                after = (ctx.smooth.bid + (ctx.smooth.bid * DISCOUNTED_SELL)) * sell.btc
                 Log.info("Requeue discounted sale (${:.2f} -> ${:.2f}).".format(before, after))
                 sell.usd = after
                 sell.status = Order.Status.Pending
                 sell.order_time = datetime.now()
                 tranche.last_discount = datetime.now()
+                tranche.discount_price = before
+                Log.info("Tranche {} entering discount sale mode for {} minutes.".format(tranche.name, DISCOUNT_PAUSE.minutes))
 
             return None
         else:
@@ -86,13 +97,13 @@ def check_tranche(ctx: Context, orderbook: OrderBook, tranche: Tranche) -> None:
             return None
 
     # If market is going down, pause buying for a few minutes
-    if tranche.last_discount and tranche.last_discount + DISCOUNT_PAUSE > datetime.now():
+    if discount_mode:
         #Log.debug("New buys paused due to discounted sell state.")
         return None
 
     # Place a new order
     Log.info("Making new pair for tranche {}.".format(tranche.name))
-    pair = create_tranched_pair(market, tranche)
+    pair = create_tranched_pair(ctx.smooth, tranche)
     if pair:
         pair.churn(ctx, market)
         orderbook.orders.append(pair)

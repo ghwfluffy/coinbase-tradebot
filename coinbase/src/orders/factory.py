@@ -2,6 +2,7 @@ from orders.target import TargetState
 from orders.order import Order
 from orders.order_pair import OrderPair
 from market.current import CurrentMarket
+from market.smooth import SmoothMarket
 from algorithm.tranche import Tranche
 
 from utils.logging import Log
@@ -29,7 +30,7 @@ def create_order(market: CurrentMarket, target: TargetState, buy_now = False) ->
         market.split, num_bitcoins, target.wager, sell_price))
     return OrderPair(target, market.split, buy, sell)
 
-def create_tranched_pair(market: CurrentMarket, tranche: Tranche, lowball: bool = True) -> OrderPair:
+def create_tranched_pair(market: SmoothMarket, tranche: Tranche, lowball: bool = True) -> OrderPair:
     if lowball:
         delta: float = market.split * tranche.spread
         buy_at: float = floor_usd(market.split - delta)
