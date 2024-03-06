@@ -3,6 +3,7 @@
 __pycache__
 secrets/
 logs/
+bak/
 orderbook.json
 historical.json
 historical-bak.json
