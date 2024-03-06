@@ -50,3 +50,18 @@ def create_tranched_pair(market: SmoothMarket, tranche: Tranche, lowball: bool =
     Log.debug("Market price ${:.2f} triggering {} order ({:.8f} BTC: ${:.2f} -> ${:.2f}).".format(
         market.split, tranche.name, num_bitcoins, tranche.usd, sell_price))
     return OrderPair(tranche.name, market.split, buy, sell)
+
+def create_phased_pair(market: CurrentMarket, usd: float) -> OrderPair:
+    buy_at: float = floor_usd(market.ask)
+
+    # What is the buy-price equivalent of our wager
+    num_bitcoins = floor_btc(usd / buy_at)
+    # What is the sell-price for that many bitcoins at our sell_at
+
+    buy = Order(Order.Type.Buy, num_bitcoins, usd)
+    buy.tranched = False
+    buy.maker_buffer = 5.0
+    sell = None
+    Log.debug("Market phase at price ${:.2f} triggering phased order ({:.8f} BTC: ${:.2f}).".format(
+        market.ask, num_bitcoins, usd))
+    return OrderPair("Phased", market.ask, buy, sell)

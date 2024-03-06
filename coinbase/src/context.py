@@ -6,8 +6,9 @@ class Context(rest_base.RESTBase):
         CREDENTIAL="../secrets/coinbase_cloud_api_key.json"
         super().__init__(key_file=CREDENTIAL)
 
+        # Version 3 algorithm: Tranched
         self.smooth = SmoothMarket()
         self.tranches = []
 
+        # Version 4 algorithm: Phasic
         self.phases = []
-        self.faster_smooth = SmoothMarket(max_change_per_minute=0.001)

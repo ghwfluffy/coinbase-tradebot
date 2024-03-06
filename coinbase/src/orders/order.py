@@ -101,6 +101,7 @@ class Order():
     final_usd: float
     cancel_time: datetime
     cancel_reason: str
+    tranched: bool
 
     def __init__(self, order_type: Type, btc: float, usd: float, client_order_id: str = None, order_id: str = None, order_time: datetime=None, final_time: datetime=None, status: 'Order.Status' = None, final_market=None, final_fees=None, final_usd=None, cancel_time: datetime=None, cancel_reason: str = None):
         self.order_type = order_type
@@ -117,14 +118,16 @@ class Order():
         self.insufficient_funds = False
         self.cancel_time = cancel_time
         self.cancel_reason = cancel_reason
+        self.tranched = True
+        self.maker_buffer = 20.0
 
     def is_good_market_value(self, current_price: float) -> bool:
         # Within $20 of target - Cheap enough to list our buy
         if self.order_type == Order.Type.Buy:
-            return (current_price - 20.0) <= self.get_limit_price()
+            return (current_price - self.maker_buffer) <= self.get_limit_price()
         # Within $20 of target - Expensive enough to list our sale
         if self.order_type == Order.Type.Sell:
-            return (current_price + 20.0) >= self.get_limit_price()
+            return (current_price + self.maker_buffer) >= self.get_limit_price()
         return False
 
     def is_good_market_conditions(self, current_price: float) -> bool:
@@ -142,7 +145,7 @@ class Order():
             self.status = Order.Status.Pending
 
             # Check if we have enough funds to create an order
-            if self.order_type == Type.Buy and not check_tranche_funds(ctx, self.usd):
+            if self.order_type == Order.Type.Buy and self.tranched and not check_tranche_funds(ctx, self.usd):
                 if self.insufficient_funds:
                     return True
                 self.insufficient_funds = True
@@ -199,7 +202,7 @@ class Order():
         if (datetime.now() - self.order_time).total_seconds() < (60 * 20):
             return None
         # We're pretty close to the price we asked, we'll keep the trade open
-        if abs(current_price - self.final_market) < 20.0:
+        if abs(current_price - self.final_market) < self.maker_buffer:
             return None
         # Cancel trade
         Log.debug("Sale longevity reached.")
@@ -218,9 +221,9 @@ class Order():
     def get_order_price(self, current_price: float) -> float:
         # We will bid $20 different than what the market wants
         if self.order_type == Order.Type.Sell:
-            return floor_usd(current_price + 20)
+            return floor_usd(current_price + self.maker_buffer)
         elif self.order_type == Order.Type.Buy:
-            return floor_usd(current_price - 20)
+            return floor_usd(current_price - self.maker_buffer)
         return current_price
 
     def place_order(self, ctx: Context, current_price: float) -> bool:

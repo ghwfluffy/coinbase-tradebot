@@ -6,7 +6,7 @@ logs/
 bak/
 orderbook.json
 historical.json
-historical-bak.json
+phases.json
 
 outfile.tmp
 commit-message.txt

@@ -1,4 +1,8 @@
 coinbase-advanced-py
-sphinx-rtd-theme
-sphinx
+matplotlib
+numpy
+pyqt5
 python-dateutil
+scipy
+sphinx
+sphinx-rtd-theme

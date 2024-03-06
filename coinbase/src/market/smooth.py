@@ -53,7 +53,7 @@ class SmoothMarket():
 
         # Maximum change is 0.02% per minute
         seconds: float = (datetime.now() - self.last_update).total_seconds()
-        max_delta = max_change_per_minute * (seconds / 60)
+        max_delta = self.max_change_per_minute * (seconds / 60)
         if delta > max_delta:
             delta = max_delta
 

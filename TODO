@@ -1,8 +1,8 @@
 Version 4
-[ ] Serialize phases to file
-[ ] Add phases calculations
+[x] Serialize phases to file
+[x] Add phases calculations
 [ ] Add phases to graph
-[ ] Make phases create buys/sells
+[x] Make phases create buys/sells
 
 Version 3
 [ ] discount sale should be immediate (keep re-queueing directly above market price)
@@ -13,6 +13,7 @@ Version 3
     [ ] Move magic numbers/strings to Settings
     [ ] Consolidate graph dir / requirements
     [ ] Move stuff out of src topdir
+    [ ] Remove old main files
 [ ] PendingSell split to ActiveSell
 [ ] sale longevity code?
 [ ] failed cancel can orphan bitcoin

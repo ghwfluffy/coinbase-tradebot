@@ -44,14 +44,14 @@ class OrderPair():
         ret = self.buy.churn(ctx, market.split)
 
         # Successful buy, place/check sale
-        if self.buy.status == Order.Status.Complete:
+        if self.sell and self.buy.status == Order.Status.Complete:
             ret &= self.sell.churn(ctx, market.split)
 
         # Update pair status
         if ret:
-            if self.buy.status == Order.Status.Canceled or self.sell.status == Order.Status.Canceled:
+            if self.buy.status == Order.Status.Canceled or (self.sell and self.sell.status == Order.Status.Canceled):
                 self.status = OrderPair.Status.Canceled
-            elif self.buy.status == Order.Status.Complete and self.sell.status == Order.Status.Complete:
+            elif self.buy.status == Order.Status.Complete and self.sell and self.sell.status == Order.Status.Complete:
                 self.status = OrderPair.Status.Complete
             elif self.buy.status == Order.Status.Pending:
                 self.status = OrderPair.Status.Pending
@@ -64,13 +64,14 @@ class OrderPair():
 
     def cancel(self, ctx: Context, reason: str) -> None:
         ret = self.buy.cancel(ctx, reason)
-        ret &= self.sell.cancel(ctx, reason)
+        if self.sell:
+            ret &= self.sell.cancel(ctx, reason)
         return ret
 
     def to_dict(self) -> dict:
         return {
             'buy': self.buy.to_dict(),
-            'sell': self.sell.to_dict(),
+            'sell': self.sell.to_dict() if self.sell else None,
             'status': self.status.name,
             'event_time': self.event_time.strftime("%Y-%m-%d %H:%M:%S"),
             'event_price': str(self.event_price),
@@ -84,10 +85,12 @@ class OrderPair():
             if not buy:
                 Log.error("Failed to deserialize buy Order.")
                 return None
-            sell = Order.from_dict(data['sell'])
-            if not sell:
-                Log.error("Failed to deserialize sell Order.")
-                return None
+            sell = None
+            if data['sell']:
+                sell = Order.from_dict(data['sell'])
+                if not sell:
+                    Log.error("Failed to deserialize sell Order.")
+                    return None
             event_time = datetime.strptime(data['event_time'], "%Y-%m-%d %H:%M:%S")
             event_price = float(data['event_price'])
 

@@ -2,6 +2,7 @@ import datetime
 import numpy as np
 import matplotlib.pyplot as plt
 
+from scipy.integrate import trapezoid
 from scipy.interpolate import CubicSpline
 
 def analyze_shape(points):
@@ -47,15 +48,30 @@ def analyze_shape(points):
 
     # Optionally, plot the curve and its derivative for visualization
     plt.figure(figsize=(12, 6))
-    plt.subplot(2, 1, 1)
+    plt.subplot(3, 1, 1)
     plt.plot(dense_times, dense_values, label="Interpolated Curve")
     plt.title("Interpolated Curve and Derivatives")
 
-    plt.subplot(2, 1, 2)
+    plt.subplot(3, 1, 2)
     plt.plot(dense_times, first_derivative, label="First Derivative")
+    plt.legend()
+
+
+
+    plt.subplot(3, 1, 3)
+    #plt.plot(dense_times, first_derivative, label="First Derivative")
     plt.plot(dense_times, second_derivative, label="Second Derivative")
     plt.legend()
+
+
+    # Calculate the area under the curve for the first derivative in the last 20% of the x-axis
+    start_index = int(len(dense_times) * 0.8)  # Start from 80% of the x-axis to cover the last 20%
+    area_under_curve = trapezoid(first_derivative[start_index:], dense_times[start_index:])
+    print(area_under_curve)
+
+
     plt.show()
+
 
     return shape
 
