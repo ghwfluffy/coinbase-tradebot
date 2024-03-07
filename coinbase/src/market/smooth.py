@@ -11,9 +11,9 @@ class SmoothMarket():
     max_change_per_minute: float
 
     def __init__(self, max_change_per_minute: float = 0.0002):
-        self.bid = 999999
-        self.ask = 999999
-        self.split = 999999
+        self.bid = None # type: ignore
+        self.ask = None # type: ignore
+        self.split = None # type: ignore
         self.last_update = datetime.now()
         self.max_change_per_minute = max_change_per_minute
 

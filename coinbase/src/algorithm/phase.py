@@ -22,8 +22,6 @@ class Phase():
     when: datetime
     price: float
     points: List[Tuple[datetime, float]]
-    max_score: float
-    min_score: float
     current_score: float
 
     def __init__(self):
@@ -31,8 +29,6 @@ class Phase():
         self.when = datetime.now()
         self.price = None
         self.points = []
-        self.max_score = 0.0
-        self.min_score = 0.0
         self.current_score = 0.0
 
     def get_score_frame_percent(self) -> float:
@@ -52,10 +48,6 @@ class Phase():
 
         score_percent = self.get_score_frame_percent()
         score = self.get_score(score_percent)
-        if score > self.max_score:
-            self.max_score = score
-        if score < self.min_score:
-            self.min_score = score
         self.current_score = score
 
     def to_dict(self) -> dict:
@@ -64,8 +56,6 @@ class Phase():
             'when': self.when.strftime("%Y-%m-%d %H:%M:%S.%f"),
             'price': self.price,
             'points': self.points_to_list(),
-            'max': self.max_score,
-            'min': self.min_score,
             'current': self.current_score,
         }
 
@@ -76,8 +66,6 @@ class Phase():
         ret.when = datetime.strptime(data['when'], "%Y-%m-%d %H:%M:%S.%f")
         ret.price = float(data['price']) if data['price'] else 0.0
         ret.points_from_list(data['points'])
-        ret.max_score = float(data['max'])
-        ret.min_score = float(data['min'])
         ret.current_score = float(data['current'])
         return ret
 

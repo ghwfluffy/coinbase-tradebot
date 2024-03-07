@@ -324,10 +324,11 @@ class Order():
                 ok = finish['results'][0]['success']
                 if ok:
                     self.status = Order.Status.Canceled
-                    Log.info("Canceled {} {} {}".format(
+                    Log.info("Canceled {} {} {}: {}".format(
                         "buy" if self.order_type == Order.Type.Buy else "sell",
                         self.order_id,
-                        self.get_info()))
+                        self.get_info(),
+                        reason))
                     self.final_time = datetime.now()
                     self.order_id = None
                     self.cancel_reason = reason

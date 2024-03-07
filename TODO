@@ -1,7 +1,7 @@
 Version 4
 [x] Serialize phases to file
 [x] Add phases calculations
-[\] Add phases to graph
+[ ] Add phases to graph
 [x] Make phases create buys/sells
 
 Version 3
@@ -25,6 +25,7 @@ Web App
 [ ] Add fees/volume information
 
 General
+[x] lint
 [ ] Add version tracking
 [ ] Remove cex code
 

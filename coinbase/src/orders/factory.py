@@ -68,7 +68,7 @@ def create_phased_pair(market: CurrentMarket, usd: float) -> OrderPair:
 
     buy = Order(Order.Type.Buy, num_bitcoins, usd)
     buy.tranched = False
-    buy.maker_buffer = 5.0
+    buy.maker_buffer = Settings.PHASED_MAKER_BUFFER
     sell = None
     Log.debug("Market phase at price ${:.2f} triggering phased order ({:.8f} BTC: ${:.2f}).".format(
         market.ask, num_bitcoins, usd))

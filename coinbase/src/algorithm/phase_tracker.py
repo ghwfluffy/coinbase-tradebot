@@ -21,7 +21,7 @@ class PhaseTracker():
         self.phases = []
         self.current_phase = None
         self.current_order = None
-        self.smooth = SmoothMarket(0.001)
+        self.smooth = SmoothMarket(0.006)
 
     def current(self) -> Phase:
         if not self.current_phase:
