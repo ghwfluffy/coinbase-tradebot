@@ -15,7 +15,7 @@ from utils.math import floor_btc
 DISCOUNTED_SELL: float = 0.001
 
 # How much more we value sells (less likely to cancel)
-SELL_WEIGHT: float = 8
+SELL_WEIGHT: float = 4
 
 # How long a discount will make us pause making new buys
 DISCOUNT_PAUSE = relativedelta(minutes=20)

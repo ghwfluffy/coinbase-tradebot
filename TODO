@@ -1,7 +1,7 @@
 Version 4
 [x] Serialize phases to file
 [x] Add phases calculations
-[ ] Add phases to graph
+[\] Add phases to graph
 [x] Make phases create buys/sells
 
 Version 3

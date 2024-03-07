@@ -57,11 +57,11 @@ while True:
         exit(0)
 
     # Make sure our tranches look how we want
-    #for tranche in ctx.tranches:
-    #    check_tranche(ctx, orderbook, tranche)
+    for tranche in ctx.tranches:
+        check_tranche(ctx, orderbook, tranche)
 
     # Update our phase tracking and phased wager
-    update_phases(ctx, orderbook, phases)
+    #update_phases(ctx, orderbook, phases)
 
     # Save to persistent storage
     orderbook.write_fs("orderbook.json")

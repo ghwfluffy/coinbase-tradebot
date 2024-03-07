@@ -9,6 +9,8 @@ from orders.order_pair import OrderPair
 from utils.logging import Log
 from market.smooth import SmoothMarket
 
+INITIAL_FRAME_SECONDS = 150 # XXX in PhaseTracker too
+
 class PhaseTracker():
     current_phase: Phase
     phases: list[Phase]
@@ -34,7 +36,7 @@ class PhaseTracker():
         self.phases.append(self.current_phase)
         if prev_phase:
             for i in range(0, len(prev_phase.points)):
-                if prev_phase.points[i][0] > (datetime.now() - relativedelta(minutes=1)):
+                if prev_phase.points[i][0] > (datetime.now() - relativedelta(seconds=INITIAL_FRAME_SECONDS)):
                     self.current_phase.add_point(prev_phase.points[i][1], prev_phase.points[i][0])
         return self.current_phase
 

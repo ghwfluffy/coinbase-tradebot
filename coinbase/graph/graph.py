@@ -54,6 +54,9 @@ def create_plot(
     plt.figure(figsize=(10, 6))
 
     for order in data:
+        if not order['buy'] or not order['sell']:
+            continue
+
         if order['status'] == "Canceled" and not order['buy']['order_time'] and not order['sell']['order_time']:
             continue
 
