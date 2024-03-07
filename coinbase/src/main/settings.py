@@ -54,7 +54,7 @@ class Settings():
     # Phased #
 
     # How many seconds from previous phase is included in initial frame
-    INITIAL_FRAME_SECONDS = 20
+    INITIAL_FRAME_SECONDS = 30
 
     # How much of the frame do we compare against the tail
     MAX_FRAME_SECONDS = 120
@@ -67,10 +67,10 @@ class Settings():
     # How big of an up slope in the tail determines if it's an up curve
     GOOD_SCORE = 20
     # How big of a down slope in the tail determines if it's a down curve
-    BAD_SCORE = GOOD_SCORE * -1
+    BAD_SCORE = -60
 
     # String identifier for phased tranche
     PHASED_TRANCHE_NAME = "Phased"
 
     # How much USD above/below the bid/ask price to ensure we're a maker not a taker
-    PHASED_MAKER_BUFFER = 10.0
+    PHASED_MAKER_BUFFER = 2.0

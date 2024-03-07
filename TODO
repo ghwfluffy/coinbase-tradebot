@@ -3,6 +3,8 @@ Version 4
 [x] Add phases calculations
 [ ] Add phases to graph
 [x] Make phases create buys/sells
+[x] Waning definition change: (current price / (max price - buy price)) < 0.8
+
 
 Version 3
 [ ] discount sale should be immediate (keep re-queueing directly above market price)

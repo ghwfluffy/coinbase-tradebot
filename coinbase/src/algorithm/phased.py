@@ -47,6 +47,16 @@ def update_phases(ctx: Context, order_book: OrderBook, phases: PhaseTracker) -> 
     else:
         percent = 100
 
+    # If we have an active order, calculate the percent of the maximum height we've reached
+    usd_percent: float = 1.0
+    if (phases.current_order and
+        phases.current_order.status == OrderPair.Status.PendingSell
+        ):
+        if not phases.current_max or phases.smooth.split > phases.current_max:
+            phases.current_max = phases.smooth.split
+        base_price = phases.current_order.buy.usd / phases.current_order.buy.btc
+        usd_percent = ((phases.smooth.split - base_price) / (phases.current_max - base_price))
+
     # Print debug
     if True: #False:
         print("")
@@ -59,6 +69,7 @@ def update_phases(ctx: Context, order_book: OrderBook, phases: PhaseTracker) -> 
         ))
         print("Phase tail: {}".format(floor_percent(tail)))
         print("Percent: {}".format(floor_percent(percent)))
+        print("Of Max: {}".format(floor_percent(usd_percent)))
 
     # Don't do anything within minute of phase
     if phase.phase_seconds() < Settings.INITIAL_FRAME_SECONDS:
@@ -77,7 +88,7 @@ def update_phases(ctx: Context, order_book: OrderBook, phases: PhaseTracker) -> 
             else:
                 phase.phase_type = Phase.Type.Waxing
         #elif percent < (1 - Settings.TAPER_PERCENT) and tail <= Settings.BAD_SCORE:
-        elif tail <= Settings.BAD_SCORE:
+        elif tail <= Settings.BAD_SCORE or (tail < 0 and usd_percent < (1 - Settings.TAPER_PERCENT)):
             Log.info("Waning phase start at {} BTC.".format(market.split))
             if phase.phase_type == Phase.Type.Plateau:
                 phase = phases.new_phase(Phase.Type.Waning)
@@ -93,6 +104,7 @@ def update_phases(ctx: Context, order_book: OrderBook, phases: PhaseTracker) -> 
     if phase.phase_type == Phase.Type.Waxing and not phases.current_order:
         usd = get_phased_wager(ctx)
         phases.current_order = create_phased_pair(market, usd)
+        phases.current_max = 0.0
         order_book.orders.append(phases.current_order)
         phases.current_order.churn(ctx, market)
     # Waxing: Been waxing for 5 seconds and buy still pending, we'll requeue at new price
@@ -105,9 +117,13 @@ def update_phases(ctx: Context, order_book: OrderBook, phases: PhaseTracker) -> 
                 phases.current_order.churn(ctx, market)
 
     # Waxing: No longer climbing, move to next phase
-    if phase.phase_type == Phase.Type.Waxing and tail < 0 and percent < (1 - Settings.TAPER_PERCENT):
+    if phase.phase_type == Phase.Type.Waxing and (
+        (tail < 0 and percent < (1 - Settings.TAPER_PERCENT)) or
+        usd_percent < (1 - Settings.TAPER_PERCENT)
+    ):
         Log.info("Waxing phase plateaud at {} BTC.".format(market.split))
-    #if phase.phase_type == Phase.Type.Waxing and percent <= 1:
+        Log.debug("tail({}), percent({}), TaperPecent({}), USDPercent({})".format(
+            tail, percent, 1 - Settings.TAPER_PERCENT, usd_percent))
         # Cancel pending buy
         if phases.current_order and phases.current_order.buy.status in [Order.Status.Pending, Order.Status.Active]:
             if phases.current_order.cancel(ctx, "Done waxing"):
@@ -151,5 +167,5 @@ def update_phases(ctx: Context, order_book: OrderBook, phases: PhaseTracker) -> 
             phases.current_order.sell.cancel(ctx, "Finished waning")
 
     # Done with current order
-    if phases.current_order and phases.current_order.status in [Order.Status.Complete, Order.Status.Complete]:
+    if phases.current_order and phases.current_order.status in [OrderPair.Status.Complete, OrderPair.Status.Canceled]:
         phases.current_order = None

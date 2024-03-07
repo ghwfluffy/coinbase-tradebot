@@ -15,12 +15,14 @@ class PhaseTracker():
     phases: list[Phase]
     current_phase: Phase | None
     current_order: OrderPair | None
+    current_max: float | None
     smooth: SmoothMarket
 
     def __init__(self):
         self.phases = []
         self.current_phase = None
         self.current_order = None
+        self.current_max = None
         self.smooth = SmoothMarket(0.006)
 
     def current(self) -> Phase:
