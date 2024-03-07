@@ -1,5 +1,6 @@
 from datetime import datetime
 from enum import Enum
+from typing import List, Tuple
 
 import numpy as np
 
@@ -8,12 +9,7 @@ from scipy.interpolate import CubicSpline
 
 from market.smooth import SmoothMarket
 
-def get_score(points, ):
-
-    plt.show()
-
-
-    return shape
+from settings import Settings
 
 class Phase():
     class Type(Enum):
@@ -22,16 +18,16 @@ class Phase():
         Waning = 2
         Plateau = 3
 
-    phase: 'Phase.Type'
+    phase_type: 'Phase.Type'
     when: datetime
     price: float
-    points: []
+    points: List[Tuple[datetime, float]]
     max_score: float
     min_score: float
     current_score: float
 
     def __init__(self):
-        self.phase = Phase.Type.Unknown
+        self.phase_type = Phase.Type.Unknown
         self.when = datetime.now()
         self.price = None
         self.points = []
@@ -39,22 +35,32 @@ class Phase():
         self.min_score = 0.0
         self.current_score = 0.0
 
-    def add_point(self, bid: float, when: datetime = None) -> None:
+    def get_score_frame_percent(self) -> float:
+        # What percent of the frame is the score based on
+        score_percent: float = 1
+        longevity = self.phase_seconds()
+        if longevity > Settings.MAX_FRAME_SECONDS:
+            score_percent = Settings.MAX_FRAME_SECONDS / longevity
+        return score_percent
+
+    def add_point(self, bid: float, when: datetime | None = None) -> None:
         if not when:
             when = datetime.now()
         self.points.append((when, bid))
         if self.price == None:
             self.price = bid
-        score = self.get_score()
+
+        score_percent = self.get_score_frame_percent()
+        score = self.get_score(score_percent)
         if score > self.max_score:
             self.max_score = score
         if score < self.min_score:
             self.min_score = score
         self.current_score = score
 
-    def to_dict(self) -> None:
+    def to_dict(self) -> dict:
         return {
-            'phase': self.phase.name,
+            'phase': self.phase_type.name,
             'when': self.when.strftime("%Y-%m-%d %H:%M:%S.%f"),
             'price': self.price,
             'points': self.points_to_list(),
@@ -66,13 +72,14 @@ class Phase():
     @staticmethod
     def from_dict(data: dict) -> 'Phase':
         ret = Phase()
-        ret.phase = Phase.Type[data['phase']]
+        ret.phase_type = Phase.Type[data['phase']]
         ret.when = datetime.strptime(data['when'], "%Y-%m-%d %H:%M:%S.%f")
-        ret.price = float(data['price']) if data['price'] else None
+        ret.price = float(data['price']) if data['price'] else 0.0
         ret.points_from_list(data['points'])
         ret.max_score = float(data['max'])
         ret.min_score = float(data['min'])
         ret.current_score = float(data['current'])
+        return ret
 
     def points_to_list(self) -> list:
         ret = []

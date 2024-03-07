@@ -1,3 +1,4 @@
+from typing import Optional
 from datetime import datetime
 
 from context import Context
@@ -14,7 +15,7 @@ class MarketWindow():
         self.high = high
 
     @classmethod
-    def get(cls, ctx: Context, start_time: datetime, end_time: datetime) -> 'MarketWindow':
+    def get(cls, ctx: Context, start_time: datetime, end_time: datetime) -> Optional['MarketWindow']:
         try:
             diff = (end_time - start_time).total_seconds() / 60
             if diff < 60:
@@ -29,8 +30,8 @@ class MarketWindow():
                 granularity=granularity,
             )
             if 'candles' in result:
-                low: float = None
-                high: float = None
+                low: float | None = None
+                high: float | None = None
                 for candle in result['candles']:
                     cur_low: float = float(candle['low'])
                     cur_high: float = float(candle['high'])
@@ -43,7 +44,7 @@ class MarketWindow():
                 else:
                     Log.error("No candles in market history.")
             else:
-                Log.error("Failed to get market history: {}", result['error_response']['error'])
+                Log.error("Failed to get market history: {}".format(result['error_response']['error']))
         except Exception as e:
             Log.error("Failed to get market history: {}".format(str(e)))
 

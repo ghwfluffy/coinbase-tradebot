@@ -1,3 +1,5 @@
+from typing import Optional
+
 from coinbase.rest import products
 from utils.logging import Log
 
@@ -7,7 +9,7 @@ class CurrentMarket():
     split: float
 
     @classmethod
-    def get(cls, ctx) -> 'CurrentMarket':
+    def get(cls, ctx) -> Optional['CurrentMarket']:
         try:
             # BTC-USD: Base BTC, Quote USD
             data = products.get_best_bid_ask(ctx, product_ids=["BTC-USD"])

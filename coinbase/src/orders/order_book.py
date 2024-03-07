@@ -3,6 +3,7 @@ import json
 import shutil
 
 from context import Context
+from orders.order import Order
 from orders.order_pair import OrderPair
 from market.current import CurrentMarket
 from utils.logging import Log
@@ -23,11 +24,12 @@ class OrderBook():
             return book
 
         # Read in file
+        file_data: str
         with open(file, "r") as fp:
-            data = fp.read()
+            file_data = fp.read()
 
         # Deserialize JSON string
-        data = json.loads(data)
+        data = json.loads(file_data)
 
         # Check version
         if not 'version' in data or data['version'] != 1:
@@ -64,21 +66,21 @@ class OrderBook():
     
     def __next__(self) -> OrderPair:
         if self.iter_index < len(self.orders):
-            order: Order = self.orders[self.iter_index]
+            order: OrderPair = self.orders[self.iter_index]
             self.iter_index += 1
             return order
         raise StopIteration
 
     def churn(self, ctx: Context) -> bool:
         # Get the current market spread
-        market: CurrentMarket = CurrentMarket.get(ctx)
+        market: CurrentMarket | None = CurrentMarket.get(ctx)
         if market == None:
             return False
 
         # Churn each order pair
         ret = True
         for order in self.orders:
-            ret &= order.churn(ctx, market)
+            ret &= order.churn(ctx, market) # type: ignore
 
         # Cleanup completed order pairs
         if ret:
@@ -114,11 +116,12 @@ class OrderBook():
     def write_historical(self, pair: OrderPair) -> None:
         try:
             # Read in file
+            file_data: str
             with open("historical.json", "r") as fp:
-                data = fp.read()
+                file_data = fp.read()
 
             # Deserialize JSON string
-            data = json.loads(data)
+            data: list = json.loads(file_data)
 
             # Append
             data.append(pair.to_dict())

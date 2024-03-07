@@ -1,10 +1,13 @@
 import json
 from context import Context
 from market.current import CurrentMarket
-from utils.math import floor_usd, floor_btc
+from utils.maths import floor_usd, floor_btc
 
 ctx: Context = Context()
-market: CurrentMarket = CurrentMarket.get(ctx)
+market: CurrentMarket | None = CurrentMarket.get(ctx)
+if not market:
+    print("Failed to get market data.")
+    exit(1)
 
 with open("orderbook.json", "r") as fp:
     data = json.loads(fp.read())

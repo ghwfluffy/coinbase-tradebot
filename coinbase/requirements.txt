@@ -1,8 +1,10 @@
 coinbase-advanced-py
 matplotlib
+mypy
 numpy
 pyqt5
 python-dateutil
 scipy
 sphinx
 sphinx-rtd-theme
+typeshed

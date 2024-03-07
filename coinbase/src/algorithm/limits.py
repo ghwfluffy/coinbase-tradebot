@@ -1,5 +1,5 @@
 from context import Context
-from utils.math import floor_usd
+from utils.maths import floor_usd
 
 def check_tranche_funds(ctx: Context, usd: float) -> bool:
     # TODO

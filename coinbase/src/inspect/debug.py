@@ -1,5 +1,5 @@
 import json
-from utils.math import floor_usd, floor_btc
+from utils.maths import floor_usd, floor_btc
 
 with open("historical.json", "r") as fp:
     orders = json.loads(fp.read())

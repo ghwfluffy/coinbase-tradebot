@@ -19,7 +19,7 @@ if START_TIME:
     START_TIME=parse_date(START_TIME)
 
 results = []
-total_profit = 0
+total_profit: float = 0
 for order in data:
     if order['status'] != "Complete":
         continue
@@ -39,15 +39,13 @@ for order in data:
     fee += order['sell']['final_fees'] if 'final_fees' in order['sell'] else (sell_usd * 0.001)
     fee += order['buy']['final_fees'] if 'final_fees' in order['buy'] else (buy_usd * 0.001)
     sub_total = sell_usd - buy_usd
-    total = sub_total - fee
+    total: float = sub_total - fee
 
     results.append("{}: ${} - {} min - ${:.2f} profit".format(
         end_time,
         buy_usd,
         int(delta_time),
         total,
-        sell_usd,
-        buy_usd,
     ))
 
     total_profit += total

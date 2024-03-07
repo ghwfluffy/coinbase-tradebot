@@ -38,10 +38,11 @@ while True:
     # Every minute print the market data
     if next_print <= datetime.now():
         # Get the current market spread
-        market: CurrentMarket = CurrentMarket.get(ctx)
+        market: CurrentMarket | None = CurrentMarket.get(ctx)
         if market == None:
             time.sleep(Settings.RETRY_SLEEP_SECONDS)
             continue
+        assert market is not None
 
         Log.debug("Market: ${:.2f} (${:.2f}) ${:.2f}".format(market.bid, market.split, market.ask))
 
@@ -57,11 +58,11 @@ while True:
         exit(0)
 
     # Make sure our tranches look how we want
-    for tranche in ctx.tranches:
-        check_tranche(ctx, orderbook, tranche)
+    #for tranche in ctx.tranches:
+    #    check_tranche(ctx, orderbook, tranche)
 
     # Update our phase tracking and phased wager
-    #update_phases(ctx, orderbook, phases)
+    update_phases(ctx, orderbook, phases)
 
     # Save to persistent storage
     orderbook.write_fs("orderbook.json")

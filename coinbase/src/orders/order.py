@@ -2,13 +2,14 @@ import time
 import json
 import random
 
+from typing import Optional
 from datetime import datetime
 from enum import Enum
 
 from context import Context
 from market.current import CurrentMarket
 from utils.logging import Log
-from utils.math import floor_btc, floor_usd
+from utils.maths import floor_btc, floor_usd
 from algorithm.limits import check_tranche_funds
 
 from coinbase.rest import orders as api_orders
@@ -93,17 +94,31 @@ class Order():
     status: 'Order.Status'
     btc: float
     usd: float
-    order_id: str
+    order_id: str | None
     order_time: datetime
-    final_time: datetime
-    final_market: float
-    final_fees: float
-    final_usd: float
-    cancel_time: datetime
-    cancel_reason: str
+    final_time: datetime | None
+    final_market: float | None
+    final_fees: float | None
+    final_usd: float | None
+    cancel_time: datetime | None
+    cancel_reason: str | None
     tranched: bool
+    client_order_id: str
 
-    def __init__(self, order_type: Type, btc: float, usd: float, client_order_id: str = None, order_id: str = None, order_time: datetime=None, final_time: datetime=None, status: 'Order.Status' = None, final_market=None, final_fees=None, final_usd=None, cancel_time: datetime=None, cancel_reason: str = None):
+    def __init__(self,
+            order_type: Type,
+            btc: float,
+            usd: float,
+            client_order_id: str | None = None,
+            order_id: str | None = None,
+            order_time: datetime | None = None,
+            final_time: datetime | None = None,
+            status: Optional['Order.Status'] = None,
+            final_market: float | None = None,
+            final_fees: float | None = None,
+            final_usd: float | None = None,
+            cancel_time: datetime | None = None,
+            cancel_reason: str | None = None):
         self.order_type = order_type
         self.status = status if status else Order.Status.Pending
         self.btc = btc
@@ -130,10 +145,10 @@ class Order():
             return (current_price + self.maker_buffer) >= self.get_limit_price()
         return False
 
-    def is_good_market_conditions(self, current_price: float) -> bool:
+    def is_good_market_conditions(self, current_market: CurrentMarket) -> bool:
         # There is at least a dollar gap between sell and buy bids
         # Really want to make sure we don't take the 'takers' fee
-        return current_price.ask - current_price.bid >= 1.0
+        return current_market.ask - current_market.bid >= 1.0
 
     def churn(self, ctx: Context, current_price: float) -> bool:
         # Already in canceled state
@@ -156,7 +171,7 @@ class Order():
             if not self.is_good_market_value(current_price):
                 return True
             # Check again with live current price
-            current_market: CurrentMarket = CurrentMarket.get(ctx)
+            current_market: CurrentMarket | None = CurrentMarket.get(ctx)
             if not current_market or not current_market.split or not self.is_good_market_value(current_market.split) or not self.is_good_market_conditions(current_market):
                 return True
             # We are ready to place an order
@@ -202,7 +217,7 @@ class Order():
         if (datetime.now() - self.order_time).total_seconds() < (60 * 20):
             return None
         # We're pretty close to the price we asked, we'll keep the trade open
-        if abs(current_price - self.final_market) < self.maker_buffer:
+        if not self.final_market or abs(current_price - self.final_market) < self.maker_buffer:
             return None
         # Cancel trade
         Log.debug("Sale longevity reached.")
@@ -234,6 +249,7 @@ class Order():
         limit_price: float = self.get_order_price(current_price)
 
         # New buy order
+        ok: bool = True
         if self.order_type == Order.Type.Buy:
             try:
                 order_info = buy(
@@ -243,7 +259,7 @@ class Order():
                     base_size=base_size,
                     limit_price=str(limit_price),
                 )
-                ok: bool = 'success' in order_info and order_info['success']
+                ok = 'success' in order_info and order_info['success']
                 if ok:
                     self.order_time = datetime.now()
                     self.status = Order.Status.Active
@@ -270,7 +286,7 @@ class Order():
                     base_size=base_size,
                     limit_price=str(limit_price),
                 )
-                ok: bool = 'success' in order_info and order_info['success']
+                ok = 'success' in order_info and order_info['success']
                 if ok:
                     self.order_time = datetime.now()
                     self.status = Order.Status.Active
@@ -349,7 +365,7 @@ class Order():
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> 'Order':
+    def from_dict(cls, data: dict) -> Optional['Order']:
         try:
             order_type = Order.Type[data['type']]
             status = Order.Status[data['status']]

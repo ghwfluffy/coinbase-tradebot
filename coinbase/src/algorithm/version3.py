@@ -9,7 +9,7 @@ from orders.factory import create_tranched_pair
 from algorithm.tranche import Tranche
 from market.current import CurrentMarket
 from utils.logging import Log
-from utils.math import floor_btc
+from utils.maths import floor_btc
 
 # 0.1% above market is our price for sales we want to sell at a discount
 DISCOUNTED_SELL: float = 0.001
@@ -28,7 +28,7 @@ def check_tranche(ctx: Context, orderbook: OrderBook, tranche: Tranche) -> None:
             wagers.append(pair)
 
     # Get current market value
-    market: CurrentMarket = CurrentMarket.get(ctx)
+    market: CurrentMarket | None = CurrentMarket.get(ctx)
     if market == None:
         return None
 
@@ -37,9 +37,10 @@ def check_tranche(ctx: Context, orderbook: OrderBook, tranche: Tranche) -> None:
     ctx.smooth.update_market(market)
 
     # Find the closest wager to the current market price
-    min_spread: float = None
+    diff_spread: float
+    min_spread: float | None = None
     for pair in wagers:
-        diff_spread: float = abs((ctx.smooth.bid - pair.event_price) / ctx.smooth.bid)
+        diff_spread = abs((ctx.smooth.bid - pair.event_price) / ctx.smooth.bid)
         if not min_spread or diff_spread < min_spread:
             min_spread = diff_spread
 
@@ -49,15 +50,17 @@ def check_tranche(ctx: Context, orderbook: OrderBook, tranche: Tranche) -> None:
         return None
 
     # If market is going down, we will pause trading for a while
-    discount_mode: bool = tranche.last_discount and tranche.last_discount + DISCOUNT_PAUSE > datetime.now() and market.ask < tranche.discount_price
+    discount_mode: bool = False
+    if tranche.last_discount and tranche.last_discount + DISCOUNT_PAUSE > datetime.now() and market and market.ask and tranche.discount_price and market.ask < tranche.discount_price:
+        discount_mode = True
 
     # We need to cancel something to make a new bet
     # Or if the market is going down we will see if we should cut our losses on a sale
     if discount_mode or len(wagers) >= tranche.qty:
-        max_spread: float = None
-        furthest_pair: OrderPair = None
+        max_spread: float | None = None
+        furthest_pair: OrderPair | None = None
         for pair in wagers:
-            diff_spread: float = abs((ctx.smooth.bid - pair.event_price) / ctx.smooth.bid)
+            diff_spread = abs((ctx.smooth.bid - pair.event_price) / ctx.smooth.bid)
             # Pending sells can be 4x as far
             if pair.status == OrderPair.Status.PendingSell:
                 diff_spread = diff_spread / SELL_WEIGHT
@@ -65,7 +68,7 @@ def check_tranche(ctx: Context, orderbook: OrderBook, tranche: Tranche) -> None:
                 max_spread = diff_spread
                 furthest_pair = pair
 
-        if max_spread <= tranche.spread:
+        if not furthest_pair or not max_spread or max_spread <= tranche.spread:
             #Log.debug("No valid orders to cancel for tranch {}.".format(tranche.name))
             return None
 
@@ -77,9 +80,9 @@ def check_tranche(ctx: Context, orderbook: OrderBook, tranche: Tranche) -> None:
         # Discount sell
         elif furthest_pair.status == OrderPair.Status.PendingSell:
             Log.info("Cancel sell for tranche {}.".format(tranche.name))
-            sell: Order = furthest_pair.sell
+            sell: Order | None = furthest_pair.sell
             # Cancel current sell
-            if sell.cancel(ctx, "sell high"):
+            if sell and sell.cancel(ctx, "sell high"):
                 # Requeue at DISCOUNTED_SALE rate
                 before = sell.usd
                 after = (ctx.smooth.bid + (ctx.smooth.bid * DISCOUNTED_SELL)) * sell.btc

@@ -1,23 +1,26 @@
 from market.current import CurrentMarket
 from utils.logging import Log
-from utils.math import floor_usd
+from utils.maths import floor_usd
 from datetime import datetime
 
 class SmoothMarket():
     bid: float
-    ask: float
+    ask: float 
     split: float
     last_update: datetime
     max_change_per_minute: float
 
     def __init__(self, max_change_per_minute: float = 0.0002):
-        self.bid = None
-        self.ask = None
-        self.split = None
-        self.last_update = None
+        self.bid = 999999
+        self.ask = 999999
+        self.split = 999999
+        self.last_update = datetime.now()
         self.max_change_per_minute = max_change_per_minute
 
-    def update_market(self, market: CurrentMarket) -> None:
+    def update_market(self, market: CurrentMarket | None) -> None:
+        if not market:
+            return None
+
         if not self.bid:
             self.bid = market.bid
             self.ask = market.ask
@@ -26,10 +29,10 @@ class SmoothMarket():
             return None
 
         # Blend old and new data
-        old_bid: float = self.bid
-        old_ask: float = self.ask
-        self.bid = self.blend(self.bid, market.bid)
-        self.ask = self.blend(self.ask, market.ask)
+        old_bid: float = self.bid # type: ignore
+        old_ask: float = self.ask # type: ignore
+        self.bid = self.blend(self.bid, market.bid) # type: ignore
+        self.ask = self.blend(self.ask, market.ask) # type: ignore
 
         # Normalize bid/ask relation
         if self.ask < self.bid:

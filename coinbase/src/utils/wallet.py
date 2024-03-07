@@ -1,4 +1,5 @@
 import copy
+from typing import Optional
 
 from coinbase.rest import accounts
 from market.current import CurrentMarket
@@ -28,7 +29,11 @@ def get_wallet(ctx: Context):
             w['total'] += w['hold'] + w['available']
 
         # Current price
-        bid = CurrentMarket.get(ctx).bid
+        market = CurrentMarket.get(ctx)
+        if not market:
+            Log.error("Failed to get market for wallet.")
+            return None
+        bid: float = market.bid # type: ignore
 
         # Get totals in USD
         for x in ['hold', 'available', 'total']:
@@ -64,7 +69,7 @@ def wallets_equal(lhs, rhs):
 
 # Do we have amount USD to trade
 # None=Error
-def has_liquidity(ctx: Context, amount: float) -> bool:
+def has_liquidity(ctx: Context, amount: float) -> Optional[bool]:
     wallet = get_wallet(ctx)
     if not wallet:
         return None

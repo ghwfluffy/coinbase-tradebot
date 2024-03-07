@@ -9,18 +9,18 @@ from orders.order_pair import OrderPair
 from utils.logging import Log
 from market.smooth import SmoothMarket
 
-INITIAL_FRAME_SECONDS = 150 # XXX in PhaseTracker too
+from settings import Settings
 
 class PhaseTracker():
-    current_phase: Phase
     phases: list[Phase]
-    current_order: OrderPair
+    current_phase: Phase | None
+    current_order: OrderPair | None
     smooth: SmoothMarket
 
     def __init__(self):
         self.phases = []
-        self.current_order = None
         self.current_phase = None
+        self.current_order = None
         self.smooth = SmoothMarket(0.001)
 
     def current(self) -> Phase:
@@ -32,11 +32,11 @@ class PhaseTracker():
     def new_phase(self, phase_type: Phase.Type = Phase.Type.Unknown) -> Phase:
         prev_phase = self.current_phase
         self.current_phase = Phase()
-        self.current_phase.phase = phase_type
+        self.current_phase.phase_type = phase_type
         self.phases.append(self.current_phase)
         if prev_phase:
             for i in range(0, len(prev_phase.points)):
-                if prev_phase.points[i][0] > (datetime.now() - relativedelta(seconds=INITIAL_FRAME_SECONDS)):
+                if prev_phase.points[i][0] > (datetime.now() - relativedelta(seconds=Settings.INITIAL_FRAME_SECONDS)):
                     self.current_phase.add_point(prev_phase.points[i][1], prev_phase.points[i][0])
         return self.current_phase
 
@@ -48,11 +48,12 @@ class PhaseTracker():
             return tracker
 
         # Read in file
+        file_data: str
         with open(file, "r") as fp:
-            data = fp.read()
+            file_data = fp.read()
 
         # Deserialize JSON string
-        data = json.loads(data)
+        data: dict = json.loads(file_data)
 
         # Check version
         if not 'version' in data or data['version'] != 1:

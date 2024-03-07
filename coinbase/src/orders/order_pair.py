@@ -2,6 +2,7 @@ import json
 
 from enum import Enum
 from datetime import datetime
+from typing import Optional
 
 from context import Context
 from orders.order import Order
@@ -22,7 +23,7 @@ class OrderPair():
         Canceled = 5
 
     buy: Order
-    sell: Order
+    sell: Order | None
     status: 'OrderPair.Status'
     # When the order pair was created
     event_time: datetime
@@ -31,7 +32,12 @@ class OrderPair():
     # Tranche we are fulfilling
     tranche: str
 
-    def __init__(self, tranche: str, event_price: float, buy: Order, sell: Order, event_time: datetime = None):
+    def __init__(self,
+            tranche: str,
+            event_price: float,
+            buy: Order,
+            sell: Order | None = None,
+            event_time: datetime | None = None):
         self.buy = buy
         self.sell = sell
         self.status = OrderPair.Status.Pending
@@ -62,7 +68,7 @@ class OrderPair():
 
         return ret
 
-    def cancel(self, ctx: Context, reason: str) -> None:
+    def cancel(self, ctx: Context, reason: str) -> bool:
         ret = self.buy.cancel(ctx, reason)
         if self.sell:
             ret &= self.sell.cancel(ctx, reason)
@@ -79,7 +85,7 @@ class OrderPair():
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> 'OrderPair':
+    def from_dict(cls, data: dict) -> Optional['OrderPair']:
         try:
             buy = Order.from_dict(data['buy'])
             if not buy:
@@ -94,7 +100,7 @@ class OrderPair():
             event_time = datetime.strptime(data['event_time'], "%Y-%m-%d %H:%M:%S")
             event_price = float(data['event_price'])
 
-            tranche: str = data.get('tranche')
+            tranche: str = str(data.get('tranche', ''))
             pair = cls(tranche, event_price, buy, sell, event_time)
             pair.status = OrderPair.Status[data['status']]
             return pair

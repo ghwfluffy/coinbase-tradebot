@@ -1,6 +1,9 @@
-from utils.debug import get_now_string
+import datetime
 
 DEBUG=True
+
+def get_now_string():
+    return datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 class Log():
     @staticmethod
