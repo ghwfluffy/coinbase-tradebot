@@ -22,14 +22,14 @@ class Phase():
     when: datetime
     price: float
     points: List[Tuple[datetime, float]]
-    current_score: float
+    scores: List[float]
 
     def __init__(self):
         self.phase_type = Phase.Type.Unknown
         self.when = datetime.now()
         self.price = None
         self.points = []
-        self.current_score = 0.0
+        self.scores = []
 
     def get_score_frame_percent(self) -> float:
         # What percent of the frame is the score based on
@@ -48,7 +48,7 @@ class Phase():
 
         score_percent = self.get_score_frame_percent()
         score = self.get_score(score_percent)
-        self.current_score = score
+        self.scores.append(score)
 
     def to_dict(self) -> dict:
         return {
@@ -56,7 +56,7 @@ class Phase():
             'when': self.when.strftime("%Y-%m-%d %H:%M:%S.%f"),
             'price': self.price,
             'points': self.points_to_list(),
-            'current': self.current_score,
+            'scores': self.scores,
         }
 
     @staticmethod
@@ -66,7 +66,7 @@ class Phase():
         ret.when = datetime.strptime(data['when'], "%Y-%m-%d %H:%M:%S.%f")
         ret.price = float(data['price']) if data['price'] else 0.0
         ret.points_from_list(data['points'])
-        ret.current_score = float(data['current'])
+        ret.scores = data['scores']
         return ret
 
     def points_to_list(self) -> list:
@@ -119,10 +119,41 @@ class Phase():
 
         return area_under_curve
 
-    def get_score_tail_seconds(self, seconds: float) -> float:
+    def get_tilt(self, tail_percent = 1.0) -> float:
         if len(self.points) < 2:
             return 0.0
-        total_seconds = self.phase_seconds()
-        if total_seconds < seconds:
-            return self.get_score()
-        return self.get_score(seconds / total_seconds)
+
+        # Where does tail start
+        start_index: int = int(len(self.points) * (1.0 - tail_percent))
+        if len(self.points) - start_index < 2:
+            return 0.0
+
+        # Get x and y coordinates
+        datetimes: List[datetime] = []
+        values: List[float] = []
+
+        total_score: float = 0.0
+        for i in range(start_index, len(self.points)):
+            datetimes.append(self.points[i][0])
+            total_score += self.scores[i]
+            values.append(total_score / (len(values) + 1))
+
+        # Convert datetime to a numerical format (e.g., timestamp or ordinal)
+        times_numeric = np.array([dt.timestamp() for dt in datetimes])
+
+        # Sort the data based on time, just in case it's not sorted
+        sorted_indices = np.argsort(times_numeric)
+        times_numeric_sorted = times_numeric[sorted_indices]
+        values_sorted = np.array(values)[sorted_indices]
+
+        # Interpolate using a cubic spline
+        cs = CubicSpline(times_numeric_sorted, values_sorted)
+
+        # Generate a dense set of points for analysis
+        dense_times = np.linspace(times_numeric_sorted.min(), times_numeric_sorted.max(), 1000)
+        dense_values = cs(dense_times)
+
+        # Calculate the first derivative (slope)
+        derivative = cs.derivative()(dense_times)
+
+        return derivative[-1]

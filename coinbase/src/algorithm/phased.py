@@ -16,23 +16,23 @@ from utils.maths import floor_percent, floor_seconds, floor_usd, floor
 
 # TODO: Move this stuff to a new file
 class Calculations:
-    phase_score: float
+    score: float
+    tilt: float
     tail_score: float
-    tail_percent: float
+    tail_tilt: float
+    # Percent of profit compared to all time high of phase
     usd_percent: float
+    # Highest percent change from buy
     market_movement: float
 
 def do_calculations(phases: PhaseTracker, phase: Phase) -> Calculations:
     calc: Calculations = Calculations()
-    calc.phase_score = phase.current_score
-    calc.tail_score = phase.get_score(Settings.TAIL_PERCENT * phase.get_score_frame_percent())
-    calc.tail_percent = 0.0
+    calc.score = phase.get_score()
+    calc.tilt = phase.get_tilt()
+    calc.tail_score = phase.get_score(Settings.TAIL_PERCENT)
+    calc.tail_tilt = phase.get_tilt(Settings.TAIL_PERCENT)
     calc.usd_percent = 1.0
     calc.market_movement = 0.0
-
-    # Calculate percent
-    if abs(phase.current_score - calc.tail_score) > 1:
-        calc.tail_percent = phase.current_score / (phase.current_score - calc.tail_score)
 
     # If we have an active order, calculate the percent of the maximum height we've reached
     if (phases.current_order and
@@ -46,16 +46,23 @@ def do_calculations(phases: PhaseTracker, phase: Phase) -> Calculations:
 
     return calc
 
-def is_waxing(calc: Calculations) -> bool:
-    return calc.tail_score >= Settings.GOOD_SCORE
+def is_still_waxing(calc: Calculations) -> bool:
+    return calc.tail_tilt > 0
+
+def is_start_waxing(calc: Calculations) -> bool:
+    return calc.tail_score >= Settings.GOOD_TILT
 
 def is_waning(calc: Calculations) -> bool:
-    return (calc.tail_score <= Settings.BAD_SCORE or
-            calc.usd_percent < 0 or
-            (calc.market_movement > 0.003 and calc.tail_score < 0 and calc.usd_percent < (1 - Settings.TAPER_PERCENT)))
-
-def is_plateau(calc: Calculations) -> bool:
-    return calc.tail_score < Settings.GOOD_SCORE and calc.tail_score > Settings.BAD_SCORE and calc.usd_percent > 0
+    # Going up
+    if calc.tail_tilt >= 0:
+        return False
+    # Taking a loss
+    if calc.usd_percent < 0:
+        return True
+    # Market has moved significantly and we've lost 20% of the max
+    if calc.market_movement >= 3.0 and calc.usd_percent < 0.8: # TODO: Magic numbers
+        return True
+    return False
 
 def buy_active(phases: PhaseTracker) -> bool:
     if (phases.current_order and
@@ -122,6 +129,9 @@ def create_buy(
         market: CurrentMarket,
     ) -> bool:
 
+    # XXX: Testing
+    return False
+
     # Sell active don't need to buy
     if sell_active(phases):
         return False
@@ -170,30 +180,33 @@ def print_debug(
         phase: Phase,
         calc: Calculations,
     ):
-    print("")
-    print("Market: {} | {}".format(floor_usd(phases.smooth.split), floor_usd(market.split)))
-    print("Phase: {}".format(phase.phase_type.name))
-    print("Status: {}".format(phases.current_order.status.name if phases.current_order else "None"))
-    print("Phase time: {}".format(floor_seconds(phase.phase_seconds())))
-    print("Phase current: {}".format(
-        floor_percent(phase.current_score),
-    ))
-    print("tail: {}".format(floor_percent(calc.tail_score)))
-    print("Percent: {}".format(floor_percent(calc.tail_percent)))
-    print("Of Max: {}".format(floor_percent(calc.usd_percent)))
-    print("Movement: {}".format(calc.market_movement))
+    if False:
+        print("")
+        print("Market: {} | {}".format(floor_usd(phases.smooth.split), floor_usd(market.split)))
+        print("Phase: {}".format(phase.phase_type.name))
+        print("Status: {}".format(phases.current_order.status.name if phases.current_order else "None"))
+        print("Phase time: {}".format(floor_seconds(phase.phase_seconds())))
+        print("Score: {}".format(floor_percent(calc.score)))
+        print("Tilt: {}".format(floor_percent(calc.tilt)))
+        print("Tail Score: {}".format(floor_percent(calc.tail_score)))
+        print("Tail Tilt: {}".format(floor_percent(calc.tail_tilt)))
+        print("Of Max: {}".format(floor_percent(calc.usd_percent)))
+        print("Movement: {}".format(calc.market_movement))
+    else:
+        print("{:.2f}: {}".format(floor_usd(phases.smooth.split), phase.phase_type.name))
 
-    with open("phase_data.csv", "a") as fp:
-        fp.write("{},{},{},{},{},{},{},{},{},{},{}\n".format(
+    with open("phase_data-v2.csv", "a") as fp:
+        fp.write("{},{},{},{},{},{},{},{},{},{},{},{}\n".format(
             datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f"),
             phase.phase_type.name,
             phases.current_order.status.name if phases.current_order else "None",
             floor_usd(market.split),
             floor_usd(phases.smooth.split),
             floor_seconds(phase.phase_seconds()),
-            floor_percent(phase.current_score),
+            floor_percent(calc.score),
+            floor_percent(calc.tilt),
             floor_percent(calc.tail_score),
-            floor_percent(calc.tail_percent),
+            floor_percent(calc.tail_tilt),
             floor_percent(calc.usd_percent),
             floor(calc.market_movement, 6),
         ))
@@ -210,7 +223,7 @@ def phase_unknown(
     ):
 
     # Are we in a new phase?
-    if is_waxing(calc):
+    if is_start_waxing(calc):
         Log.info("Waxing phase start at {} BTC.".format(market.split))
         phase.phase_type = Phase.Type.Waxing
     elif is_waning(calc):
@@ -230,7 +243,7 @@ def phase_plateau(
     ):
 
     # Are we in a new phase?
-    if is_waxing(calc):
+    if is_start_waxing(calc):
         Log.info("Waxing phase start at {} BTC.".format(market.split))
         phases.new_phase(Phase.Type.Waxing)
     elif is_waning(calc):
@@ -248,7 +261,7 @@ def phase_waxing(
     ):
 
     # Still waxing?
-    if is_waning(calc) or is_plateau(calc):
+    if not is_still_waxing(calc):
         Log.info("Waxing phase ending.")
         # Cancel buy if it wasn't already filled
         cancel_buy(ctx, phases)
@@ -276,7 +289,7 @@ def phase_waning(
     ):
 
     # Still waning?
-    if is_waxing(calc) or is_plateau(calc):
+    if not is_waning(calc):
         Log.info("Waning phase ending.")
         # Cancel sell if it wasn't already filled
         cancel_sell(ctx, phases)

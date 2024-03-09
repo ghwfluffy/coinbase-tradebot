@@ -65,9 +65,7 @@ class Settings():
     TAPER_PERCENT = 0.2
 
     # How big of an up slope in the tail determines if it's an up curve
-    GOOD_SCORE = 20
-    # How big of a down slope in the tail determines if it's a down curve
-    BAD_SCORE = -60
+    GOOD_TILT = 1.0
 
     # String identifier for phased tranche
     PHASED_TRANCHE_NAME = "Phased"
