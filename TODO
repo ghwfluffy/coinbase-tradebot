@@ -15,6 +15,8 @@ Version 4
         - below buy price OR
         - (change between buy and max) >= 0.3% and
             ((change between buy and current) <= 80% (change between buy and max)
+        - (change between buy and max) >= 0.3% and
+            ((change between buy and current) <= 80% (change between buy and max)
     - Else: Plateau
 
 
