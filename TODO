@@ -1,9 +1,21 @@
 Version 4
-[x] Serialize phases to file
-[x] Add phases calculations
 [ ] Add phases to graph
-[x] Make phases create buys/sells
-[x] Waning definition change: (current price / (max price - buy price)) < 0.8
+[\] Less likely to enter waning state if not much movement has happened yet
+[\] Cleanup phases code
+[ ] graphed algo
+    - Calculate tilt:
+        Interpolate summarized scores
+        - x = all datetimes
+        - y = average of score at (x) summed with all previous scores
+        - take first derivative of summarized scores
+        - take last index of derivative
+
+    - Once it goes above 1, start buy (Waxing)
+    - Once it goes below 0, start sell (Waning) if:
+        - below buy price OR
+        - (change between buy and max) >= 0.3% and
+            ((change between buy and current) <= 80% (change between buy and max)
+    - Else: Plateau
 
 
 Version 3
@@ -28,6 +40,7 @@ Web App
 
 General
 [x] lint
+[ ] Create top level module name ("tradebot")
 [ ] Add version tracking
 [ ] Remove cex code
 

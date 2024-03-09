@@ -33,19 +33,19 @@ class Settings():
             "Low",
             usd=500,
             spread=0.003,
-            qty=2,
+            qty=4,
         ),
         Tranche(
             "Mid",
             usd=500,
             spread=0.0045,
-            qty=2,
+            qty=4,
         ),
         Tranche(
             "High",
             usd=500,
             spread=0.006,
-            qty=2,
+            qty=3,
         ),
     ]
 

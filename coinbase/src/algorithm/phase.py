@@ -111,11 +111,11 @@ class Phase():
         dense_values = cs(dense_times)
 
         # Calculate the first derivative (slope)
-        first_derivative = cs.derivative()(dense_times)
+        second_derivative = cs.derivative(2)(dense_times)
 
         # Calculate the area under the curve for the first derivative for the tail section
         start_index = int(len(dense_times) * (1.0 - tail_percent))
-        area_under_curve = trapezoid(first_derivative[start_index:], dense_times[start_index:])
+        area_under_curve = trapezoid(second_derivative[start_index:], dense_times[start_index:])
 
         return area_under_curve
 
