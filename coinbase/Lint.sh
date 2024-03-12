@@ -2,4 +2,4 @@
 
 source Venv.source
 cd src
-mypy .
+mypy --check-untyped-defs .

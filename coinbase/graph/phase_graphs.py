@@ -41,7 +41,7 @@ def create_plot(
 
     # Get data
     lines = []
-    with open("phase_data-v2.csv", "r") as fp:
+    with open("phase_data-v3.csv", "r") as fp:
         lines = fp.readlines()
 
     # Parse data
@@ -51,7 +51,8 @@ def create_plot(
     datetimes = []
     scores = []
     tilts = []
-    
+    score_sums = []
+    cur_score = 0
     for line in lines:
         fields = line.split(",")
         if len(fields) <= 0:
@@ -79,6 +80,9 @@ def create_plot(
         datetimes.append(entry.time)
         scores.append(entry.tail_score)
         tilts.append(entry.tail_tilt)
+
+        cur_score += entry.phase_score
+        score_sums.append(cur_score)
 
     NUM_GRAPHS = 3
     GRAPH = 0
@@ -109,16 +113,69 @@ def create_plot(
     plt.legend()
 
 
-
     # Plot score
+    if False:
+        GRAPH += 1
+        plt.subplot(NUM_GRAPHS, 1, GRAPH)
+        #for entry in entries:
+        #    plt.scatter(entry.time, entry.phase_score, color='blue', s=1)
+            #plt.scatter(entry.time, entry.phase_score, color='blue', s=1)
+            #plt.scatter(entry.time, entry.tail_score, color='blue', s=1)
+        plt.plot(datetimes, score_sums, color='blue')
+
+        # Setup labels
+        plt.xlabel('Time')
+        plt.ylabel('Score')
+        plt.legend()
+
+
+
+    # Interpolate using a cubic spline
+    times_numeric = numpy.array([dt.timestamp() for dt in datetimes])
+    cs = CubicSpline(times_numeric, score_sums)
+
+    # Generate a dense set of points for analysis
+    dense_times = numpy.linspace(times_numeric.min(), times_numeric.max(), 1000)
+
+    # Calculate the first derivative (slope)
+    first_derivative = cs.derivative()(dense_times)
+
+    smooth_delta = []
+    sum_delta = []
+    cur_delta_sum = 0
+    last_delta = first_derivative[0]
+    last_time = dense_times[0]
+    for t in range(0, len(dense_times)):
+        change_seconds = dense_times[t] - last_time
+        cur_delta = first_derivative[t]
+        change_mode = 1
+        if cur_delta < last_delta:
+            change_mode = -1
+        max_change = 0.0005 * change_seconds
+        if abs(cur_delta - last_delta) > max_change:
+            cur_delta = last_delta + (max_change * change_mode)
+        smooth_delta.append(cur_delta)
+        last_delta = cur_delta
+
+        cur_delta_sum += cur_delta
+        sum_delta.append(cur_delta_sum / len(smooth_delta))
+
+    #cs = CubicSpline(times_numeric, tilts)
+    #dense_times = numpy.linspace(times_numeric.min(), times_numeric.max(), 1000)
+    #dense_values = cs(dense_times)
+
+    # Plot tail score
     GRAPH += 1
     plt.subplot(NUM_GRAPHS, 1, GRAPH)
-    for entry in entries:
-        plt.scatter(entry.time, entry.tail_score, color='blue', s=1)
+    #for entry in entries:
+    #    plt.scatter(entry.time, entry.tail_tilt, color='blue', s=1)
+    #plt.plot(dense_times, dense_values, color='red')
+    plt.plot(dense_times, smooth_delta, label="Smooth First Derivative")
+    #plt.plot(dense_times, first_derivative, label="First Derivative")
 
     # Setup labels
     plt.xlabel('Time')
-    plt.ylabel('Score')
+    plt.ylabel('Tilt')
     plt.legend()
 
 
@@ -128,8 +185,11 @@ def create_plot(
     # Plot tail score
     GRAPH += 1
     plt.subplot(NUM_GRAPHS, 1, GRAPH)
-    for entry in entries:
-        plt.scatter(entry.time, entry.tail_tilt, color='blue', s=1)
+    #for entry in entries:
+    #    plt.scatter(entry.time, entry.tail_tilt, color='blue', s=1)
+    #plt.plot(dense_times, dense_values, color='red')
+    plt.plot(dense_times, sum_delta, label="Smooth First Derivative")
+    #plt.plot(dense_times, first_derivative, label="First Derivative")
 
     # Setup labels
     plt.xlabel('Time')

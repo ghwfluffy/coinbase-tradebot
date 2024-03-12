@@ -10,7 +10,6 @@ from context import Context
 from market.current import CurrentMarket
 from utils.logging import Log
 from utils.maths import floor_btc, floor_usd
-from algorithm.limits import check_tranche_funds
 
 from coinbase.rest import orders as api_orders
 
@@ -160,7 +159,7 @@ class Order():
             self.status = Order.Status.Pending
 
             # Check if we have enough funds to create an order
-            if self.order_type == Order.Type.Buy and self.tranched and not check_tranche_funds(ctx, self.usd):
+            if self.order_type == Order.Type.Buy and self.tranched and not ctx.check_tranche_funds(ctx, self.usd):
                 if self.insufficient_funds:
                     return True
                 self.insufficient_funds = True

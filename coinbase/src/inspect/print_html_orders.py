@@ -29,6 +29,7 @@ def sort_price(x):
 data['orders'].sort(key=sort_price)
 
 def print_market():
+    assert market is not None
     print("<TR>")
     print("<TD>{}</TD>".format("Market"))
     print("<TD><B>{:.2f}</B></TD>".format(floor_usd(market.split)))

@@ -20,7 +20,7 @@ class Phase():
 
     phase_type: 'Phase.Type'
     when: datetime
-    price: float
+    price: float | None
     points: List[Tuple[datetime, float]]
     scores: List[float]
 
@@ -136,24 +136,33 @@ class Phase():
         for i in range(start_index, len(self.points)):
             datetimes.append(self.points[i][0])
             total_score += self.scores[i]
-            values.append(total_score / (len(values) + 1))
+            values.append(total_score)
 
         # Convert datetime to a numerical format (e.g., timestamp or ordinal)
         times_numeric = np.array([dt.timestamp() for dt in datetimes])
 
-        # Sort the data based on time, just in case it's not sorted
-        sorted_indices = np.argsort(times_numeric)
-        times_numeric_sorted = times_numeric[sorted_indices]
-        values_sorted = np.array(values)[sorted_indices]
-
         # Interpolate using a cubic spline
-        cs = CubicSpline(times_numeric_sorted, values_sorted)
+        cs = CubicSpline(times_numeric, values)
 
         # Generate a dense set of points for analysis
-        dense_times = np.linspace(times_numeric_sorted.min(), times_numeric_sorted.max(), 1000)
-        dense_values = cs(dense_times)
+        dense_times = np.linspace(times_numeric.min(), times_numeric.max(), 1000)
 
         # Calculate the first derivative (slope)
-        derivative = cs.derivative()(dense_times)
+        first_derivative = cs.derivative()(dense_times)
 
-        return derivative[-1]
+        #smooth_delta = []
+        last_delta = first_derivative[0]
+        last_time = dense_times[0]
+        for t in range(0, len(dense_times)):
+            change_seconds = dense_times[t] - last_time
+            cur_delta = first_derivative[t]
+            change_mode = 1
+            if cur_delta < last_delta:
+                change_mode = -1
+            max_change = 0.0005 * change_seconds
+            if abs(cur_delta - last_delta) > max_change:
+                cur_delta = last_delta + (max_change * change_mode)
+            #smooth_delta.append(cur_delta)
+            last_delta = cur_delta
+
+        return last_delta

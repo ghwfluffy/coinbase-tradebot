@@ -20,7 +20,7 @@ class Settings():
     # Wallet Allocations #
 
     # Don't use more than 50% of wallet funds on tranched bets
-    TRANCHE_WALLET_POOL: float = 1.0 #0.5
+    TRANCHED_WALLET_POOL: float = 0.5
 
     # Don't use more than 50% of wallet funds on phased bets
     PHASED_WALLET_POOL: float = 0.5
@@ -55,6 +55,7 @@ class Settings():
 
     # How many seconds from previous phase is included in initial frame
     INITIAL_FRAME_SECONDS = 30
+    WANING_MINIMUM_SECONDS = INITIAL_FRAME_SECONDS + 10
 
     # How much of the frame do we compare against the tail
     MAX_FRAME_SECONDS = 120
@@ -66,9 +67,21 @@ class Settings():
 
     # How big of an up slope in the tail determines if it's an up curve
     GOOD_TILT = 1.0
+    # What sort of down curve determines a definite sell
+    BAD_TILT = -1.0
 
     # String identifier for phased tranche
     PHASED_TRANCHE_NAME = "Phased"
 
     # How much USD above/below the bid/ask price to ensure we're a maker not a taker
     PHASED_MAKER_BUFFER = 2.0
+
+
+    #      #
+    # HODL #
+
+    # How often to create new hold position
+    HODL_FREQUENCY_MINUTES: float = 120
+
+    # How much to buy in our hold position
+    HODL_BTC: float = 0.00001

@@ -4,7 +4,6 @@ from context import Context
 from settings import Settings
 
 from algorithm.phase import Phase
-from algorithm.limits import get_phased_wager
 from algorithm.phase_tracker import PhaseTracker
 from orders.order_book import OrderBook
 from orders.factory import create_phased_pair
@@ -14,7 +13,6 @@ from market.current import CurrentMarket
 from utils.logging import Log
 from utils.maths import floor_percent, floor_seconds, floor_usd, floor
 
-# TODO: Move this stuff to a new file
 class Calculations:
     score: float
     tilt: float
@@ -47,17 +45,35 @@ def do_calculations(phases: PhaseTracker, phase: Phase) -> Calculations:
     return calc
 
 def is_still_waxing(calc: Calculations) -> bool:
-    return calc.tail_tilt > 0
+    return calc.tilt > 0
 
 def is_start_waxing(calc: Calculations) -> bool:
-    return calc.tail_score >= Settings.GOOD_TILT
+    return calc.tilt >= Settings.GOOD_TILT
 
-def is_waning(calc: Calculations) -> bool:
+def is_still_waning(calc: Calculations) -> bool:
     # Going up
-    if calc.tail_tilt >= 0:
+    if calc.tilt >= 0:
         return False
     # Taking a loss
     if calc.usd_percent < 0:
+        return True
+    # Already in waning phase and negative tilt
+    if calc.tilt < 0:
+        return True
+    # Market has moved significantly and we've lost 20% of the max
+    if calc.market_movement >= 3.0 and calc.usd_percent < 0.8: # TODO: Magic numbers
+        return True
+    return False
+
+def is_start_waning(calc: Calculations) -> bool:
+    # Going up
+    if calc.tilt >= 0:
+        return False
+    # Taking a loss
+    if calc.usd_percent < 0:
+        return True
+    # Bad tilt
+    if calc.tilt <= Settings.BAD_TILT:
         return True
     # Market has moved significantly and we've lost 20% of the max
     if calc.market_movement >= 3.0 and calc.usd_percent < 0.8: # TODO: Magic numbers
@@ -129,9 +145,6 @@ def create_buy(
         market: CurrentMarket,
     ) -> bool:
 
-    # XXX: Testing
-    return False
-
     # Sell active don't need to buy
     if sell_active(phases):
         return False
@@ -140,8 +153,13 @@ def create_buy(
     if buy_active(phases) and not cancel_buy(ctx, phases):
         return False
 
+    # How much to wager?
+    usd: float | None = ctx.get_phased_wager(ctx)
+    if not usd:
+        return False
+    assert usd is not None
+
     # Queue
-    usd: float = get_phased_wager(ctx)
     phases.current_order = create_phased_pair(market, usd)
     phases.current_max = 0.0
     order_book.orders.append(phases.current_order)
@@ -192,10 +210,15 @@ def print_debug(
         print("Tail Tilt: {}".format(floor_percent(calc.tail_tilt)))
         print("Of Max: {}".format(floor_percent(calc.usd_percent)))
         print("Movement: {}".format(calc.market_movement))
-    else:
-        print("{:.2f}: {}".format(floor_usd(phases.smooth.split), phase.phase_type.name))
+    elif False:
+        print("{:.2f}: {} : {:.6f} | {:.6f}".format(
+            floor_usd(phases.smooth.split),
+            phase.phase_type.name,
+            calc.score,
+            calc.tilt
+        ))
 
-    with open("phase_data-v2.csv", "a") as fp:
+    with open("phase_data-v4.csv", "a") as fp:
         fp.write("{},{},{},{},{},{},{},{},{},{},{},{}\n".format(
             datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f"),
             phase.phase_type.name,
@@ -226,7 +249,7 @@ def phase_unknown(
     if is_start_waxing(calc):
         Log.info("Waxing phase start at {} BTC.".format(market.split))
         phase.phase_type = Phase.Type.Waxing
-    elif is_waning(calc):
+    elif is_start_waning(calc):
         Log.info("Waning phase start at {} BTC.".format(market.split))
         phase.phase_type = Phase.Type.Waning
     else:
@@ -246,7 +269,7 @@ def phase_plateau(
     if is_start_waxing(calc):
         Log.info("Waxing phase start at {} BTC.".format(market.split))
         phases.new_phase(Phase.Type.Waxing)
-    elif is_waning(calc):
+    elif is_start_waning(calc):
         Log.info("Waning phase start at {} BTC.".format(market.split))
         phases.new_phase(Phase.Type.Waning)
 
@@ -289,7 +312,7 @@ def phase_waning(
     ):
 
     # Still waning?
-    if not is_waning(calc):
+    if not is_still_waning(calc):
         Log.info("Waning phase ending.")
         # Cancel sell if it wasn't already filled
         cancel_sell(ctx, phases)

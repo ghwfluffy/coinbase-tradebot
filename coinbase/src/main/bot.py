@@ -3,11 +3,13 @@ from datetime import datetime
 
 from context import Context
 from settings import Settings
-from orders.order_book import OrderBook
 from market.current import CurrentMarket
+from orders.order_book import OrderBook
 from algorithm.version3 import check_tranche
 from algorithm.phased import update_phases
 from algorithm.phase_tracker import PhaseTracker
+from algorithm.hodl import HodlHistory, check_hodl
+from algorithm.limits import check_tranche_funds, get_phased_wager
 from utils.wallet import get_wallet
 from utils.logging import Log
 
@@ -18,13 +20,18 @@ ctx: Context = Context()
 
 # Get the active orders
 orderbook: OrderBook = OrderBook.read_fs("orderbook.json")
-phases: PhaseTracker = PhaseTracker.read_fs()
+ctx.orderbook = orderbook
+phases: PhaseTracker = PhaseTracker()
+ctx.tranches = Settings.TRANCHES
+ctx.hodl_history = HodlHistory()
+hodl_history: HodlHistory = ctx.hodl_history
+
+ctx.check_tranche_funds = check_tranche_funds
+ctx.get_phased_wager = get_phased_wager
 
 # Loop variables
-churn_retries = 0
+churn_retries: int = 0
 next_print: datetime = datetime.now()
-
-ctx.tranches = Settings.TRANCHES
 
 #orderbook.clear_pending(ctx)
 
@@ -64,9 +71,11 @@ while True:
     # Update our phase tracking and phased wager
     update_phases(ctx, orderbook, phases)
 
+    # Hold algorithm
+    check_hodl(ctx, orderbook, hodl_history)
+
     # Save to persistent storage
     orderbook.write_fs("orderbook.json")
-    phases.write_fs()
 
     # Wait for next run
     time.sleep(Settings.RETRY_SLEEP_SECONDS)
