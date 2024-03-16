@@ -20,10 +20,10 @@ class Settings():
     # Wallet Allocations #
 
     # Don't use more than 50% of wallet funds on tranched bets
-    TRANCHED_WALLET_POOL: float = 0.5
+    TRANCHED_WALLET_POOL: float = 0.9
 
     # Don't use more than 50% of wallet funds on phased bets
-    PHASED_WALLET_POOL: float = 0.5
+    PHASED_WALLET_POOL: float = 0.4
 
 
     #          #
@@ -33,13 +33,13 @@ class Settings():
             "Low",
             usd=500,
             spread=0.003,
-            qty=4,
+            qty=3,
         ),
         Tranche(
             "Mid",
             usd=500,
             spread=0.0045,
-            qty=4,
+            qty=3,
         ),
         Tranche(
             "High",
@@ -81,7 +81,7 @@ class Settings():
     # HODL #
 
     # How often to create new hold position
-    HODL_FREQUENCY_MINUTES: float = 120
+    HODL_FREQUENCY_MINUTES: float = 240
 
     # How much to buy in our hold position
-    HODL_BTC: float = 0.00001
+    HODL_BTC: float = 0.00002

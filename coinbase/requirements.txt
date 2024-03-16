@@ -7,4 +7,3 @@ python-dateutil
 scipy
 sphinx
 sphinx-rtd-theme
-typeshed

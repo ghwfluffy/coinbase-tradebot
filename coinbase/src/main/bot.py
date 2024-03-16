@@ -22,6 +22,7 @@ ctx: Context = Context()
 orderbook: OrderBook = OrderBook.read_fs("orderbook.json")
 ctx.orderbook = orderbook
 phases: PhaseTracker = PhaseTracker()
+ctx.phases = phases
 ctx.tranches = Settings.TRANCHES
 ctx.hodl_history = HodlHistory()
 hodl_history: HodlHistory = ctx.hodl_history
@@ -65,8 +66,8 @@ while True:
         exit(0)
 
     # Make sure our tranches look how we want
-    #for tranche in ctx.tranches:
-    #    check_tranche(ctx, orderbook, tranche)
+    for tranche in ctx.tranches:
+        check_tranche(ctx, orderbook, tranche)
 
     # Update our phase tracking and phased wager
     update_phases(ctx, orderbook, phases)

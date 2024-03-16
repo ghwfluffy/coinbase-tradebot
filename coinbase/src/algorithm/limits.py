@@ -14,8 +14,8 @@ def get_hodl_usd(ctx: Context, wallet) -> float | None:
     wallet_btc = wallet['BTC']['total']
     pending_sell_btc: float = 0
     for order in ctx.orderbook:
-        if order.status == OrderPair.Status.PendingSell:
-            pending_sell_btc += float(order['sell']['btc'])
+        if order.status == OrderPair.Status.PendingSell and order.sell:
+            pending_sell_btc += order.sell.btc
 
     orphaned = wallet_btc - pending_sell_btc
     if orphaned > 0:
@@ -80,5 +80,8 @@ def get_phased_wager(ctx: Context) -> float | None:
     phased_amount: float = (total_wallet - hodl_usd) * Settings.PHASED_WALLET_POOL
     if phased_amount <= 20.0:
         return None
+
+    if phased_amount > 20.0: # TODO: Testing
+        return 20.0
 
     return phased_amount

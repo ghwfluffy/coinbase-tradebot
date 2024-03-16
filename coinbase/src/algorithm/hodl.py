@@ -33,7 +33,7 @@ def create_buy(ctx: Context, orderbook: OrderBook, hodl_history: HodlHistory) ->
     Log.debug("Triggering HODL purchase at ${:.2f} ({:.8f} BTC: ${:.2f}).".format(
         market.ask, num_bitcoins, usd))
     order: OrderPair = OrderPair("HODL", market.ask, buy, sell)
-    #orderbook.orders.append(order)
+    orderbook.orders.append(order)
     hodl_history.current_hodl = order
     hodl_history.last_hodl = datetime.now()
 
@@ -61,6 +61,7 @@ def check_hodl(ctx: Context, orderbook: OrderBook, hodl_history: HodlHistory) ->
         # No sell in HODL, mark as complete
         if hodl_history.current_hodl.status == OrderPair.Status.PendingSell:
             hodl_history.current_hodl.status = OrderPair.Status.Complete
+            Log.info("HODL purchase complete.")
 
         # Stop tracking current hodl
         if hodl_history.current_hodl.status in [

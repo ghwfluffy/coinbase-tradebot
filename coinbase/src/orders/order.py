@@ -18,8 +18,8 @@ TESTING=False
 #TESTING=True
 
 # XXX: Safety precautions
-MAX_PRICE=78000
-MIN_PRICE=48000
+MAX_PRICE=88000
+MIN_PRICE=58000
 
 def buy(*args, **kwargs):
     if float(kwargs['limit_price']) > MAX_PRICE:
@@ -84,10 +84,11 @@ class Order():
         Sell = 1
 
     class Status(Enum):
-        Pending = 0
-        Active = 1
-        Complete = 2
-        Canceled = 3
+        OnHold = 0
+        Pending = 1
+        Active = 2
+        Complete = 3
+        Canceled = 4
 
     order_type: Type
     status: 'Order.Status'
@@ -150,6 +151,10 @@ class Order():
         return current_market.ask - current_market.bid >= 1.0
 
     def churn(self, ctx: Context, current_price: float) -> bool:
+        # Don't trigger yet
+        if self.status == Order.Status.OnHold:
+            return True
+
         # Already in canceled state
         if self.status == Order.Status.Canceled:
             return True

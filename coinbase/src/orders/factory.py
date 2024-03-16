@@ -35,7 +35,7 @@ def create_order(market: CurrentMarket, target: TargetState, buy_now = False) ->
         market.split, num_bitcoins, target.wager, sell_price))
     return OrderPair(target._id, market.split, buy, sell)
 
-def create_tranched_pair(market: SmoothMarket, tranche: Tranche, lowball: bool = True) -> OrderPair:
+def create_tranched_pair(market: SmoothMarket, tranche: Tranche, lowball: bool = False) -> OrderPair:
     delta: float
     buy_at: float
     sell_at: float
@@ -54,7 +54,9 @@ def create_tranched_pair(market: SmoothMarket, tranche: Tranche, lowball: bool =
     sell_price = floor_usd(num_bitcoins * sell_at)
 
     buy = Order(Order.Type.Buy, num_bitcoins, tranche.usd)
+    buy.status = Order.Status.OnHold
     sell = Order(Order.Type.Sell, num_bitcoins, sell_price)
+    sell.status = Order.Status.OnHold
     Log.debug("Market price ${:.2f} triggering {} order ({:.8f} BTC: ${:.2f} -> ${:.2f}).".format(
         market.split, tranche.name, num_bitcoins, tranche.usd, sell_price)) # type: ignore
     return OrderPair(tranche.name, market.split, buy, sell) # type: ignore

@@ -11,7 +11,7 @@ ctx: Context = Context()
 market: CurrentMarket | None = CurrentMarket.get(ctx)
 assert market is not None
 
-START_TIME="2024-02-26 00:00:00"
+START_TIME="2024-03-15 03:30:00"
 #START_TIME=None
 
 def parse_date(x):
@@ -43,6 +43,7 @@ for order in data:
         buy_btc = float(order['buy']['btc'])
         current_usd = buy_btc * market.split
         fee = order['buy']['final_fees'] if 'final_fees' in order['buy'] else (buy_usd * 0.001)
+        fee += current_usd * 0.001 # Fee whenever sold
         total = (current_usd - buy_usd) - fee
         hodl_profit += total
 
@@ -53,7 +54,7 @@ for order in data:
             total,
         ))
 
-        break
+        continue
 
     end_time = order['sell']['final_time'] if 'final_time' in order['sell'] else order['sell']['order_time']
     if START_TIME and parse_date(end_time) < START_TIME:

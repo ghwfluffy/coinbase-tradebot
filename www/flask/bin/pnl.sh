@@ -6,4 +6,5 @@ TOPDIR="$(readlink -f "$(dirname "$(readlink -f "${0}")")/../../../")"
 
 cd "${TOPDIR}/coinbase"
 source .venv/bin/activate
-python3 src/pnl.py 2>&1
+export PYTHONPATH=src:src/main
+python3 src/inspect/pnl.py 2>&1

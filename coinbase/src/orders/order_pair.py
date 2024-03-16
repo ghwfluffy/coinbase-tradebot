@@ -11,10 +11,12 @@ from utils.logging import Log
 
 class OrderPair():
     class Status(Enum):
+        # Waiting for a trigger
+        OnHold = 0
         # Buy not filed
-        Pending = 0
+        Pending = 1
         # Buy order open
-        Active = 1
+        Active = 2
         # Bought bitcoin but sale pending
         PendingSell = 3
         # Sold and bought bitcoin
@@ -46,6 +48,10 @@ class OrderPair():
         self.tranche = tranche
 
     def churn(self, ctx: Context, market: CurrentMarket) -> bool:
+        # Marked complete for some reason
+        if self.status in [OrderPair.Status.Canceled, OrderPair.Status.Complete]:
+            return True
+
         # Place buy
         ret = self.buy.churn(ctx, market.split)
 
@@ -59,6 +65,8 @@ class OrderPair():
                 self.status = OrderPair.Status.Canceled
             elif self.buy.status == Order.Status.Complete and self.sell and self.sell.status == Order.Status.Complete:
                 self.status = OrderPair.Status.Complete
+            elif self.buy.status == Order.Status.OnHold:
+                self.status = OrderPair.Status.OnHold
             elif self.buy.status == Order.Status.Pending:
                 self.status = OrderPair.Status.Pending
             elif self.buy.status == Order.Status.Active:

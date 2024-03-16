@@ -12,7 +12,7 @@ import matplotlib
 from scipy.interpolate import make_interp_spline
 
 def create_plot(
-    START_AT="2024-03-04 00:00:00",
+    START_AT="2024-03-11 04:00:00",
     SHOW_ONLY_COMPLETE=False,
     SHOW_PENDING=True,
     ORDERBOOK_ONLY=False,

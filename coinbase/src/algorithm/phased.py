@@ -26,7 +26,7 @@ class Calculations:
 def do_calculations(phases: PhaseTracker, phase: Phase) -> Calculations:
     calc: Calculations = Calculations()
     calc.score = phase.get_score()
-    calc.tilt = phase.get_tilt()
+    calc.tilt = phase.get_avg_tilt()
     calc.tail_score = phase.get_score(Settings.TAIL_PERCENT)
     calc.tail_tilt = phase.get_tilt(Settings.TAIL_PERCENT)
     calc.usd_percent = 1.0
@@ -45,38 +45,30 @@ def do_calculations(phases: PhaseTracker, phase: Phase) -> Calculations:
     return calc
 
 def is_still_waxing(calc: Calculations) -> bool:
-    return calc.tilt > 0
+    return calc.score > 0
+    #return calc.tilt > 0
 
 def is_start_waxing(calc: Calculations) -> bool:
-    return calc.tilt >= Settings.GOOD_TILT
+    return calc.score >= 1.0
+    #return calc.tilt >= Settings.GOOD_TILT
 
 def is_still_waning(calc: Calculations) -> bool:
-    # Going up
-    if calc.tilt >= 0:
-        return False
-    # Taking a loss
-    if calc.usd_percent < 0:
-        return True
-    # Already in waning phase and negative tilt
-    if calc.tilt < 0:
-        return True
-    # Market has moved significantly and we've lost 20% of the max
-    if calc.market_movement >= 3.0 and calc.usd_percent < 0.8: # TODO: Magic numbers
+    if calc.score < 0:
         return True
     return False
 
 def is_start_waning(calc: Calculations) -> bool:
     # Going up
-    if calc.tilt >= 0:
+    if calc.score >= 0:
         return False
     # Taking a loss
     if calc.usd_percent < 0:
         return True
     # Bad tilt
-    if calc.tilt <= Settings.BAD_TILT:
+    if calc.score <= -1.0:
         return True
     # Market has moved significantly and we've lost 20% of the max
-    if calc.market_movement >= 3.0 and calc.usd_percent < 0.8: # TODO: Magic numbers
+    if calc.market_movement >= 0.004 and calc.usd_percent < 0.8: # TODO: Magic numbers
         return True
     return False
 
@@ -130,7 +122,10 @@ def cancel_sell(ctx: Context, phases: PhaseTracker) -> bool:
     assert phases.current_order is not None
     assert phases.current_order.sell is not None
 
-    return phases.current_order.sell.cancel(ctx, "Requeue phased sell")
+    if phases.current_order.sell.cancel(ctx, "Requeue phased sell"):
+        phases.current_order.sell = None
+        return True
+    return False
 
 def active_position(phases: PhaseTracker) -> bool:
     if phases.current_order and phases.current_order.status == OrderPair.Status.PendingSell:
@@ -210,15 +205,16 @@ def print_debug(
         print("Tail Tilt: {}".format(floor_percent(calc.tail_tilt)))
         print("Of Max: {}".format(floor_percent(calc.usd_percent)))
         print("Movement: {}".format(calc.market_movement))
-    elif False:
-        print("{:.2f}: {} : {:.6f} | {:.6f}".format(
+    elif True: # False:
+        print("{:.2f}: {} : {:.6f} | {:.6f} (MM {:.6f})".format(
             floor_usd(phases.smooth.split),
             phase.phase_type.name,
             calc.score,
-            calc.tilt
+            calc.tilt,
+            calc.market_movement,
         ))
 
-    with open("phase_data-v4.csv", "a") as fp:
+    with open("phase_data-v5.csv", "a") as fp:
         fp.write("{},{},{},{},{},{},{},{},{},{},{},{}\n".format(
             datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f"),
             phase.phase_type.name,

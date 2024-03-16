@@ -12,7 +12,7 @@ if not market:
 with open("orderbook.json", "r") as fp:
     data = json.loads(fp.read())
 
-cols = ["Status", "Market", "Buy", "Sell", "Tranche"]
+cols = ["Status", "Market", "Buy", "Sell", "Tranche", "Position"]
 
 print("<TABLE border=1 cellpadding=5><TR>")
 for col in cols:
@@ -20,7 +20,7 @@ for col in cols:
 print("</TR>")
 
 def sort_price(x):
-    if x['status'] == 'PendingSell':
+    if x['status'] == 'PendingSell' and x['sell']:
         return float(x['sell']['market'])
     else:
         buy = floor_usd(x['buy']['final_market'] if x['buy']['final_market'] else x['buy']['market'])
@@ -36,6 +36,7 @@ def print_market():
     print("<TD>{:.2f}</TD>".format(floor_usd(market.bid)))
     print("<TD>{:.2f}</TD>".format(floor_usd(market.ask)))
     print("<TD>{}</TD>".format("&nbsp;"))
+    print("<TD>{}</TD>".format("&nbsp;"))
     print("</TR>")
 
 market_printed = False
@@ -50,8 +51,12 @@ for order in data['orders']:
     print("<TD>{}</TD>".format(order['status']))
     print("<TD>{:.2f}</TD>".format(floor_usd(order['event_price'])))
     print("<TD>{:.2f}</TD>".format(buy))
-    print("<TD>{:.2f}</TD>".format(floor_usd(order['sell']['market'])))
+    if order['sell']:
+        print("<TD>{:.2f}</TD>".format(floor_usd(order['sell']['market'])))
+    else:
+        print("<TD>&nbsp;</TD>")
     print("<TD>{}</TD>".format(order['tranche']))
+    print("<TD>{}</TD>".format(floor_usd(order['buy']['usd'])))
     print("</TR>")
 
 if not market_printed:

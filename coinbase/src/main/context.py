@@ -19,10 +19,12 @@ class Context(rest_base.RESTBase):
         self.smooth: SmoothMarket = SmoothMarket()
         #self.tranches: List[Tranche] = []
         self.tranches: List[Any] = []
+        self.tranche_phase: Any = None
 
         # Version 4 algorithm: Phasic
         #self.phases: List[Phase] = []
-        self.phases: List[Any] = []
+        #self.phases: List[Any] = []
+        self.phases: Any = None
 
         # Version 0 algorithm: HODL
         #self.hodl_history: HodlHistory = HodlHistory()

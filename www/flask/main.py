@@ -38,7 +38,7 @@ def get_wallet():
 
 @app.route('/pnl', methods=['GET'])
 def get_pnl():
-    cmd = ['./bin/pnl.sh']
+    cmd = ['sudo', '-u', 'ghw', './bin/pnl.sh']
     process = subprocess.run(cmd, text=True, capture_output=True)
     stdout = process.stdout
     data = {
