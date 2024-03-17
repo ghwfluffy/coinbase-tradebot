@@ -16,6 +16,7 @@ class Log():
         str_err: str = str(e)
         if len(str_err) > 256:
             str_err = str_err[0:256]
+        str_err = str_err.replace("\n", "\\n ")
         print("[{}] [ERROR] {}: {}".format(get_now_string(), msg, str_err))
 
     @staticmethod

@@ -1,7 +1,7 @@
 import os
 import json
 
-from typing import List
+from typing import List, Callable
 from threading import RLock
 
 from gtb.orders.order_pair import OrderPair
@@ -64,7 +64,6 @@ class OrderBook():
     # Remove completed/canceled pairs
     def cleanup(self) -> None:
         with self.mtx:
-            updated: bool = False
             i: int = 0
             while i < len(self.order_pairs):
                 pair: OrderPair = self.order_pairs[i]
@@ -74,8 +73,21 @@ class OrderBook():
                         pair.algorithm,
                     ))
                     self.order_pairs.pop(i)
-                    updated = True
                 else:
                     i += 1
-            if updated:
-                self.write_fs()
+
+    def get_ids(self) -> List[int]:
+        ret: List[int] = []
+        with self.mtx:
+            for pair in self.order_pairs:
+                ret.append(id(pair))
+        return ret
+
+    def process_id(self, pair_id: int, func: Callable) -> bool:
+        with self.mtx:
+            for pair in self.order_pairs:
+                if id(pair) == pair_id:
+                    with pair.mtx:
+                        func(pair)
+                    return True
+        return False

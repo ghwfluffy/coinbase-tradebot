@@ -1,6 +1,6 @@
 from enum import Enum
 from datetime import datetime
-
+from threading import Lock
 from typing import Optional
 
 from gtb.orders.order import Order
@@ -30,6 +30,8 @@ class OrderPair():
     status: OrderPair.Status
     algorithm: str
     event_time: datetime
+    buy_only: bool
+    mtx: Lock
 
     def __init__(self, algorithm: str, buy: Order, sell: Order | None = None) -> None:
         self.buy = buy
@@ -37,6 +39,36 @@ class OrderPair():
         self.status = OrderPair.Status.Pending
         self.algorithm = algorithm
         self.event_time = datetime.now()
+        self.buy_only = False
+        self.mtx = Lock()
+
+        self.update_status()
+
+    # Setup pair status from buy/sell status
+    def update_status(self) -> None:
+        if self.buy.status == Order.Status.OnHold:
+            self.status = OrderPair.Status.OnHold
+        elif self.buy.status == Order.Status.Pending:
+            self.status = OrderPair.Status.Pending
+        elif self.buy.status == Order.Status.Active:
+            self.status = OrderPair.Status.Active
+        elif self.buy.status == Order.Status.Canceled:
+            self.status = OrderPair.Status.Canceled
+        elif not self.sell:
+            if self.buy_only:
+                self.status = OrderPair.Status.Complete
+            else:
+                self.status = OrderPair.Status.OnHoldSell
+        elif self.sell.status == Order.Status.OnHold:
+            self.status = OrderPair.Status.OnHoldSell
+        elif self.sell.status == Order.Status.Pending:
+            self.status = OrderPair.Status.PendingSell
+        elif self.sell.status == Order.Status.Active:
+            self.status = OrderPair.Status.ActiveSell
+        elif self.sell.status == Order.Status.Canceled:
+            self.status = OrderPair.Status.Canceled
+        elif self.sell.status == Order.Status.Complete:
+            self.status = OrderPair.Status.Complete
 
     def to_dict(self) -> dict:
         return {
@@ -45,6 +77,7 @@ class OrderPair():
             'event_time': self.event_time.strftime("%Y-%m-%d %H:%M:%S"),
             'buy': self.buy.to_dict(),
             'sell': self.sell.to_dict() if self.sell else None,
+            'buy_only': self.buy_only,
         }
 
     @classmethod
@@ -63,6 +96,7 @@ class OrderPair():
             ret = cls(algorithm, buy, sell)
             ret.status = status
             ret.event_time = datetime.strptime(data['event_time'], "%Y-%m-%d %H:%M:%S")
+            ret.buy_only = data['buy_only']
             return ret
         except Exception as e:
             Log.exception("Failed to deserialize OrderPair", e)

@@ -4,7 +4,9 @@ GTB
 [x] record market every minute
 [x] phases from fs (ms accuracy)
 [x] order pair
-[ ] coinbase order place/track/cancel
+[x] coinbase order place/track
+[x] coinbase order cancel
+[ ] Tranche vs phase allocations
 [ ] Tranche thread
 [ ] Phase buying thread
 [ ] inspect scripts
@@ -12,6 +14,7 @@ GTB
 [ ] code cleanup, magic numbers, comments
 [ ] go live
 [ ] Delete old code
+[ ] failed to cancel but does cancel = orphan
 
 Web App
 [ ] Add better formatting

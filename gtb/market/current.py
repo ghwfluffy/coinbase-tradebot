@@ -20,7 +20,7 @@ class CurrentMarketThread(BotThread):
     next_write: datetime
 
     def __init__(self, ctx: Context) -> None:
-        super().__init__(ctx)
+        super().__init__(ctx, sleep_seconds = 0)
         # smooth = 0.1% change per minute max
         self.max_change_per_minute = 0.001
         self.next_write = datetime.now()

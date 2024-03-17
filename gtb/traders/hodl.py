@@ -53,6 +53,7 @@ class DiamondHands(BotThread):
         usd: float = self.ctx.smooth_market.split * btc
         order: Order = Order(Order.Type.Buy, btc, usd)
         pair: OrderPair = OrderPair(DiamondHands.ALGORITHM, order, None)
+        pair.buy_only = True
 
         # Queue order
         self.ctx.order_book.append(pair)
