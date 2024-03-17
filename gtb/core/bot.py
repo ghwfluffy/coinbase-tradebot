@@ -5,6 +5,7 @@ from gtb.core.context import Context
 from gtb.core.thread import BotThread
 
 from gtb.market.current import CurrentMarketThread
+from gtb.phases.tracker import PhaseTracker
 
 class Bot():
     ctx: Context
@@ -17,7 +18,7 @@ class Bot():
             # Keep current market conditions updated
             CurrentMarketThread(self.ctx),
             # Continuously make determinations if we're going up or down
-            #PhaseTracker(self.ctx),
+            PhaseTracker(self.ctx),
             # Periodically buy and "hodl"
             #DiamondHands(self.ctx),
             # Pick buy and sell points based on current market

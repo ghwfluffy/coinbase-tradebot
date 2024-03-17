@@ -12,12 +12,10 @@ from coinbase.rest import products
 
 # Keep track of the current market bid/ask
 class CurrentMarketThread(BotThread):
-    last_update: datetime
     max_change_per_minute: float
 
     def __init__(self, ctx: Context) -> None:
         super().__init__(ctx)
-        self.last_update = datetime.now()
         # smooth = 0.1% change per minute max
         self.max_change_per_minute = 0.001
 
@@ -30,8 +28,7 @@ class CurrentMarketThread(BotThread):
                 continue
             assert data is not None
             self.ctx.current_market = data
-            self.ctx.smooth_market = copy.copy(data)
-            self.last_update = datetime.now()
+            self.ctx.smooth_market = copy.deepcopy(data)
             break
         Log.info("Current market initialized.")
 
@@ -58,11 +55,11 @@ class CurrentMarketThread(BotThread):
         new_split: float = floor_usd((new_ask + new_bid) / 2)
 
         # Save update
-        self.last_update = datetime.now()
         self.ctx.current_market = current_market
         self.ctx.smooth_market.bid = new_bid
         self.ctx.smooth_market.ask = new_ask
         self.ctx.smooth_market.split = new_split
+        self.ctx.smooth_market.updated = current_market.updated
 
         # Log
         Log.trace("Market: [ {:.2f} | {:.2f} ] -> Smooth: [ {:.2f} | {:.2f} ]".format(
@@ -78,6 +75,7 @@ class CurrentMarketThread(BotThread):
             data = products.get_best_bid_ask(self.ctx.api, product_ids=["BTC-USD"])
 
             ret = MarketPrices()
+            ret.updated = datetime.now()
             # Buy price
             ret.bid = float(data['pricebooks'][0]['bids'][0]['price'])
             # Sell price
@@ -94,7 +92,7 @@ class CurrentMarketThread(BotThread):
         delta: float = abs((current - new) / current)
 
         # Don't change too fast
-        seconds: float = (datetime.now() - self.last_update).total_seconds()
+        seconds: float = (datetime.now() - self.ctx.smooth_market.updated).total_seconds()
         max_delta: float = self.max_change_per_minute * (seconds / 60)
         if delta > max_delta:
             delta = max_delta
