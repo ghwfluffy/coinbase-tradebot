@@ -9,6 +9,7 @@ from gtb.orders.order import Order, OrderInfo
 from gtb.orders.order_pair import OrderPair
 from gtb.orders.cancel import cancel_order
 from gtb.utils.logging import Log
+from gtb.utils.maths import floor_usd
 
 from coinbase.rest import orders as order_api
 
@@ -27,7 +28,7 @@ class OrderProcessor(BotThread):
             self.ctx.order_book.process_id(pair, partial(OrderProcessor.process, self))
 
         # Cleanup orderbook
-        self.ctx.order_book.cleanup()
+        self.ctx.order_book.cleanup(self.ctx.history)
         # Save orderbook changes to fs
         self.ctx.order_book.write_fs()
 
@@ -84,6 +85,9 @@ class OrderProcessor(BotThread):
                 pair.algorithm,
             ))
             order.status = Order.Status.Complete
+            order.info.final_market = float(data['order']['average_filled_price'])
+            order.info.final_fees = float(data['order']['total_fees'])
+            order.info.final_usd = float(data['order']['filled_value'])
         # Canceled
         elif status != "OPEN":
             Log.info("{} order for {} canceled.".format(
@@ -117,13 +121,13 @@ class OrderProcessor(BotThread):
         final_price: float
         if order.order_type == Order.Type.Buy:
             queue = order_api.limit_order_gtc_buy
-            final_price = self.ctx.current_market.ask - 20.0
-            if final_price > order_price:
+            final_price = floor_usd(self.ctx.current_market.ask - 20.0)
+            if final_price < order_price:
                 return None
         elif order.order_type == Order.Type.Sell:
             queue = order_api.limit_order_gtc_sell
-            final_price = self.ctx.current_market.bid + 20.0
-            if final_price < order_price:
+            final_price = floor_usd(self.ctx.current_market.bid + 20.0)
+            if final_price > order_price:
                 return None
 
         # Randomize a client order ID
@@ -134,8 +138,8 @@ class OrderProcessor(BotThread):
             self.ctx.api,
             client_order_id=client_order_id,
             product_id='BTC-USD',
-            base_size=order.btc,
-            limit_price=final_price,
+            base_size="{:.8f}".format(order.btc),
+            limit_price=str(final_price),
         )
 
         # Success: Setup OrderInfo and move to active state

@@ -4,17 +4,17 @@ import json
 from typing import List
 from threading import RLock
 
-from gtb.orders.order import Order
+from gtb.orders.order_pair import OrderPair
 from gtb.utils.logging import Log
 
 class OrderHistory():
     file: str = "data/historical.json"
 
-    orders: List[Order]
+    order_pairs: List[OrderPair]
     mtx: RLock
 
     def __init__(self) -> None:
-        self.orders = []
+        self.order_pairs = []
         self.mtx = RLock()
 
     def read_fs(self) -> None:
@@ -33,17 +33,17 @@ class OrderHistory():
 
             # Interpret
             for order in data:
-                cur: Order | None = Order.from_dict(order)
+                cur: OrderPair | None = OrderPair.from_dict(order)
                 if cur:
-                    self.orders.append(cur)
+                    self.order_pairs.append(cur)
 
-            Log.info("Read {} historical orders.".format(len(self.orders)))
+            Log.info("Read {} historical order pairs.".format(len(self.order_pairs)))
 
     def write_fs(self) -> None:
         with self.mtx:
             # Serialize to dictionary
             data: list = []
-            for order in self.orders:
+            for order in self.order_pairs:
                 data.append(order.to_dict())
             # Serialize to string
             str_data: str = json.dumps(data)
@@ -56,7 +56,7 @@ class OrderHistory():
             with open(OrderHistory.file, "w") as fp:
                 fp.write(str_data)
 
-    def append(self, order: Order) -> None:
+    def append(self, order: OrderPair) -> None:
         with self.mtx:
-            self.orders.append(order)
+            self.order_pairs.append(order)
             self.write_fs()

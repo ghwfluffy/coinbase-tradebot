@@ -71,17 +71,19 @@ class CurrentMarketThread(BotThread):
         self.ctx.smooth_market.split = new_split
         self.ctx.smooth_market.updated = current_market.updated
 
-        # Log
-        Log.trace("Market: [ {:.2f} | {:.2f} ] -> Smooth: [ {:.2f} | {:.2f} ]".format(
-            floor_usd(self.ctx.current_market.bid),
-            floor_usd(self.ctx.current_market.ask),
-            floor_usd(self.ctx.smooth_market.bid),
-            floor_usd(self.ctx.smooth_market.ask),
-        ))
-
         # Write market data to filesystem every minute
         if self.next_write <= datetime.now():
             self.next_write = datetime.now() + relativedelta(minutes=1)
+
+            # Log
+            Log.trace("Market: [ {:.2f} | {:.2f} ] -> Smooth: [ {:.2f} | {:.2f} ]".format(
+                floor_usd(self.ctx.current_market.bid),
+                floor_usd(self.ctx.current_market.ask),
+                floor_usd(self.ctx.smooth_market.bid),
+                floor_usd(self.ctx.smooth_market.ask),
+            ))
+
+            # To file
             with open(CurrentMarketThread.file, "a") as fp:
                 fp.write("{},{},{},{},{}\n".format(
                     datetime.now().strftime("%Y-%m-%d %H:%M:%S"),

@@ -8,7 +8,7 @@ from gtb.orders.order_pair import OrderPair
 from gtb.utils.logging import Log
 
 class OrderBook():
-    file: str = "data/historical.json"
+    file: str = "data/orderbook.json"
 
     order_pairs: List[OrderPair]
     mtx: RLock
@@ -62,7 +62,7 @@ class OrderBook():
             self.write_fs()
 
     # Remove completed/canceled pairs
-    def cleanup(self) -> None:
+    def cleanup(self, history) -> None:
         with self.mtx:
             i: int = 0
             while i < len(self.order_pairs):
@@ -73,6 +73,7 @@ class OrderBook():
                         pair.algorithm,
                     ))
                     self.order_pairs.pop(i)
+                    history.append(pair)
                 else:
                     i += 1
 

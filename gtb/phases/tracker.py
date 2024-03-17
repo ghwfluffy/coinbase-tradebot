@@ -18,10 +18,12 @@ class PhaseTracker(BotThread):
     file: str = "data/phases.json"
 
     history: List[Tuple[datetime, float]]
+    next_write: datetime
 
     def __init__(self, ctx: Context) -> None:
         super().__init__(ctx)
         self.history = []
+        self.next_write = datetime.now()
 
     def init(self) -> None:
         # Initialize state on restart
@@ -84,13 +86,16 @@ class PhaseTracker(BotThread):
             # Trim history
             self.history = self.history[extended_index:]
 
-        Log.trace("Phases: [ {} | {} | {} | {} | {} ]".format(
-            calc.extended.name,
-            calc.long.name,
-            calc.mid.name,
-            calc.short.name,
-            calc.acute.name,
-        ))
+        # Trace log periodically
+        if self.next_write <= datetime.now():
+            self.next_write = datetime.now() + relativedelta(minutes=1)
+            Log.trace("Phases: [ {} | {} | {} | {} | {} ]".format(
+                calc.extended.name,
+                calc.long.name,
+                calc.mid.name,
+                calc.short.name,
+                calc.acute.name,
+            ))
 
         # Save state
         self.write_fs()

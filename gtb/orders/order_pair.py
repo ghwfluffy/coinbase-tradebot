@@ -27,7 +27,7 @@ class OrderPair():
 
     buy: Order
     sell: Order | None
-    status: OrderPair.Status
+    status: 'OrderPair.Status'
     algorithm: str
     event_time: datetime
     buy_only: bool

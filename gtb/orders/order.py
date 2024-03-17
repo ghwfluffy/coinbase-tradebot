@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Optional
 
 from gtb.utils.logging import Log
-from gtb.utils.maths import floor_usd
+from gtb.utils.maths import floor_usd, floor_btc
 
 class OrderInfo():
     order_id: str
@@ -62,9 +62,12 @@ class OrderInfo():
             except:
                 ret.cancel_time = None
                 pass
-            ret.final_market = float(data['final_market'])
-            ret.final_fees = float(data['final_fees'])
-            ret.final_usd = float(data['final_usd'])
+            if data['final_market']:
+                ret.final_market = float(data['final_market'])
+            if data['final_fees']:
+                ret.final_fees = float(data['final_fees'])
+            if data['final_usd']:
+                ret.final_usd = float(data['final_usd'])
             ret.cancel_reason = data['cancel_reason']
             return ret
         except Exception as e:
@@ -83,8 +86,8 @@ class Order():
         Complete = 3
         Canceled = 4
 
-    order_type: Order.Type
-    status: Order.Status
+    order_type: 'Order.Type'
+    status: 'Order.Status'
     btc: float
     usd: float
     info: OrderInfo | None
@@ -93,8 +96,8 @@ class Order():
     def __init__(self, order_type: Type, btc: float, usd: float) -> None:
         self.order_type = order_type
         self.status = Order.Status.Pending
-        self.btc = btc
-        self.usd = usd
+        self.btc = floor_btc(btc)
+        self.usd = floor_usd(usd)
         self.info = None
         self.insufficient_funds = False
 
@@ -102,7 +105,7 @@ class Order():
         ret: dict = {
             'type': self.order_type.name,
             'status': self.status.name,
-            'btc': self.btc,
+            'btc': "{:.8f}".format(self.btc),
             'usd': self.usd,
             'info': None,
         }
@@ -117,6 +120,7 @@ class Order():
             btc: float = float(data['btc'])
             usd: float = float(data['usd'])
             ret = cls(order_type, btc, usd)
+            ret.status = Order.Status[data['status']]
             if data['info']:
                 ret.info = OrderInfo.from_dict(data['info'])
             return ret

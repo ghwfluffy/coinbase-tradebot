@@ -6,6 +6,7 @@ from gtb.core.context import Context
 from gtb.core.settings import Settings
 from gtb.orders.order import Order
 from gtb.orders.order_pair import OrderPair
+from gtb.utils.logging import Log
 
 # Periodically buys bitcoins and does not sell
 class DiamondHands(BotThread):
@@ -21,7 +22,7 @@ class DiamondHands(BotThread):
 
     def init(self) -> None:
         # Find most recent HODL: Order history
-        for pair in self.ctx.order_book.order_pairs:
+        for pair in self.ctx.history.order_pairs:
             if pair.status != OrderPair.Status.Complete:
                 continue
             if pair.algorithm != DiamondHands.ALGORITHM:
@@ -49,6 +50,7 @@ class DiamondHands(BotThread):
             return None
 
         # Create order
+        Log.info("Creating new HODL order.")
         btc: float = Settings.HODL_BTC
         usd: float = self.ctx.smooth_market.split * btc
         order: Order = Order(Order.Type.Buy, btc, usd)
