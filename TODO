@@ -1,12 +1,15 @@
 GTB
-[ ] order/book/pair
-[ ] write history
+[x] HODL algorithm
+[x] order book
+[x] record market every minute
+[x] phases from fs (ms accuracy)
+[x] order pair
+[ ] coinbase order place/track/cancel
 [ ] Tranche thread
-[ ] HODL thread
 [ ] Phase buying thread
 [ ] inspect scripts
 [ ] update www
-[ ] code cleanup, magic numbers
+[ ] code cleanup, magic numbers, comments
 [ ] go live
 [ ] Delete old code
 
@@ -17,8 +20,6 @@ Web App
 
 General
 [ ] Log rotator
-[ ] Create top level module name ("tradebot")
-[ ] Add version tracking
 [ ] Remove cex code
 
 Roadmap

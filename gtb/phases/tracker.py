@@ -1,3 +1,6 @@
+import os
+import json
+
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 
@@ -12,15 +15,17 @@ from gtb.utils.logging import Log
 
 # Keep track of the current market bid/ask
 class PhaseTracker(BotThread):
+    file: str = "data/phases.json"
+
     history: List[Tuple[datetime, float]]
-    diffs: List[Phase]
 
     def __init__(self, ctx: Context) -> None:
         super().__init__(ctx)
         self.history = []
 
     def init(self) -> None:
-        pass
+        # Initialize state on restart
+        self.read_fs()
 
     def think(self) -> None:
         # Get latest market
@@ -74,7 +79,7 @@ class PhaseTracker(BotThread):
             calc.long = self.calc_phase(long_index, 100.0)
 
         if extended_index >= 0:
-            calc.extended = self.calc_phase(extended_index, 800.0)
+            calc.extended = self.calc_phase(extended_index, 500.0)
 
             # Trim history
             self.history = self.history[extended_index:]
@@ -87,6 +92,9 @@ class PhaseTracker(BotThread):
             calc.acute.name,
         ))
 
+        # Save state
+        self.write_fs()
+
     def calc_phase(self, index: int, min_delta: float) -> Phase:
         before: float = self.history[index][1]
         after: float = self.history[-1][1]
@@ -97,3 +105,44 @@ class PhaseTracker(BotThread):
         elif after < before:
             return Phase.Waning
         return Phase.Unknown
+
+    def read_fs(self) -> None:
+        if not os.path.exists(PhaseTracker.file):
+            Log.info("No historical phase data.")
+            return None
+
+        # Read file
+        str_data: str
+        with open(PhaseTracker.file, "r") as fp:
+            str_data = fp.read()
+
+        # JSON deserialize
+        data: list = json.loads(str_data)
+
+        # Interpret
+        for point in data:
+            self.history.append((
+                datetime.strptime(point['t'], "%Y-%m-%d %H:%M:%S.%f"),
+                float(point['x']),
+            ))
+
+        Log.info("Read {} historical phase points.".format(len(self.history)))
+
+    def write_fs(self) -> None:
+        # Serialize to dictionary
+        data: list = []
+        for point in self.history:
+            data.append({
+                't': point[0].strftime("%Y-%m-%d %H:%M:%S.%f"),
+                'x': point[1],
+            })
+        # Serialize to string
+        str_data: str = json.dumps(data)
+
+        # Create directory
+        if not os.path.exists(os.path.dirname(PhaseTracker.file)):
+            os.makedirs(os.path.dirname(PhaseTracker.file))
+
+        # Write
+        with open(PhaseTracker.file, "w") as fp:
+            fp.write(str_data)

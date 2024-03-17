@@ -6,6 +6,7 @@ from gtb.core.thread import BotThread
 
 from gtb.market.current import CurrentMarketThread
 from gtb.phases.tracker import PhaseTracker
+from gtb.traders.hodl import DiamondHands
 
 class Bot():
     ctx: Context
@@ -20,7 +21,7 @@ class Bot():
             # Continuously make determinations if we're going up or down
             PhaseTracker(self.ctx),
             # Periodically buy and "hodl"
-            #DiamondHands(self.ctx),
+            DiamondHands(self.ctx),
             # Pick buy and sell points based on current market
             #SpreadTrader(self.ctx),
             # Try to predict large up ticks in the market
@@ -29,6 +30,10 @@ class Bot():
         self.cond = Condition()
 
     def start(self) -> None:
+        # Initialize from filesystem state
+        self.ctx.history.read_fs()
+        self.ctx.order_book.read_fs()
+
         self.ctx.is_running = True
 
         # Start threads

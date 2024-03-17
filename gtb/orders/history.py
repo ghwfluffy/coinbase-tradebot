@@ -13,7 +13,7 @@ class OrderHistory():
     orders: List[Order]
     mtx: RLock
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.orders = []
         self.mtx = RLock()
 

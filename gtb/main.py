@@ -2,9 +2,12 @@ import signal
 from functools import partial
 
 from gtb.core.bot import Bot
+from gtb.core.version import VERSION
 from gtb.utils.logging import Log
 
 def run_bot() -> None:
+    Log.info("Starting version {}".format(VERSION))
+
     bot: Bot = Bot()
 
     # Shut down cleanly on SIGINT/SIGKILL

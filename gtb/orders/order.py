@@ -41,7 +41,7 @@ class OrderInfo():
         }
 
     @classmethod
-    def from_dict(cls, data) -> Optional['OrderInfo']:
+    def from_dict(cls, data: dict) -> Optional['OrderInfo']:
         try:
             ret = cls()
             ret.order_id = data['order_id']
@@ -86,7 +86,6 @@ class Order():
     status: Order.Status
     btc: float
     usd: float
-    event_time: datetime
     info: OrderInfo | None
 
     def __init__(self, order_type: Type, btc: float, usd: float) -> None:
@@ -94,7 +93,6 @@ class Order():
         self.status = Order.Status.Pending
         self.btc = btc
         self.usd = usd
-        self.event_time = datetime.now()
         self.info = None
 
     def to_dict(self) -> dict:
@@ -103,7 +101,6 @@ class Order():
             'status': self.status.name,
             'btc': self.btc,
             'usd': self.usd,
-            'event_time': self.event_time.strftime("%Y-%m-%d %H:%M:%S"),
             'info': None,
         }
         if self.info:
@@ -111,13 +108,12 @@ class Order():
         return ret
 
     @classmethod
-    def from_dict(cls, data) -> Optional['Order']:
+    def from_dict(cls, data: dict) -> Optional['Order']:
         try:
             order_type: Order.Type = Order.Type[data['type']]
             btc: float = float(data['btc'])
             usd: float = float(data['usd'])
             ret = cls(order_type, btc, usd)
-            ret.event_time = datetime.strptime(data['event_time'], "%Y-%m-%d %H:%M:%S")
             if data['info']:
                 ret.info = OrderInfo.from_dict(data['info'])
             return ret

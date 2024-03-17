@@ -1,6 +1,8 @@
+import os
 import time
 import copy
 from datetime import datetime
+from dateutil.relativedelta import relativedelta
 
 from gtb.market.prices import MarketPrices
 from gtb.core.thread import BotThread
@@ -12,12 +14,16 @@ from coinbase.rest import products
 
 # Keep track of the current market bid/ask
 class CurrentMarketThread(BotThread):
+    file: str = "data/market.csv"
+
     max_change_per_minute: float
+    next_write: datetime
 
     def __init__(self, ctx: Context) -> None:
         super().__init__(ctx)
         # smooth = 0.1% change per minute max
         self.max_change_per_minute = 0.001
+        self.next_write = datetime.now()
 
     def init(self) -> None:
         # Make sure we have the current market data before any other threads start
@@ -31,6 +37,10 @@ class CurrentMarketThread(BotThread):
             self.ctx.smooth_market = copy.deepcopy(data)
             break
         Log.info("Current market initialized.")
+
+        # Create data directory
+        if not os.path.exists(os.path.dirname(CurrentMarketThread.file)):
+            os.makedirs(os.path.dirname(CurrentMarketThread.file))
 
     def think(self) -> None:
         # Get the current market data
@@ -68,6 +78,18 @@ class CurrentMarketThread(BotThread):
             floor_usd(self.ctx.smooth_market.bid),
             floor_usd(self.ctx.smooth_market.ask),
         ))
+
+        # Write market data to filesystem every minute
+        if self.next_write <= datetime.now():
+            self.next_write = datetime.now() + relativedelta(minutes=1)
+            with open(CurrentMarketThread.file, "a") as fp:
+                fp.write("{},{},{},{},{}\n".format(
+                    datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    self.ctx.current_market.bid,
+                    self.ctx.current_market.ask,
+                    self.ctx.smooth_market.bid,
+                    self.ctx.smooth_market.ask,
+                ))
 
     def retrieve(self) -> MarketPrices | None:
         try:
