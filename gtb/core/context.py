@@ -15,7 +15,7 @@ class Context():
     order_book: OrderBook
     is_running: bool
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.api = CoinbaseApi()
         self.current_market = MarketPrices()
         self.smooth_market = MarketPrices()

@@ -7,7 +7,7 @@ GTB
 [x] coinbase order place/track
 [x] coinbase order cancel
 [x] Tranche vs phase allocations
-[ ] Tranche thread
+[x] Tranche thread
 [ ] Phase buying thread
 [ ] inspect scripts
 [ ] update www

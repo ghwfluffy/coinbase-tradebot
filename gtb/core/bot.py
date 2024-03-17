@@ -8,6 +8,7 @@ from gtb.market.current import CurrentMarketThread
 from gtb.orders.processor import OrderProcessor
 from gtb.phases.tracker import PhaseTracker
 from gtb.traders.hodl import DiamondHands
+from gtb.traders.spread import SpreadTrader
 
 class Bot():
     ctx: Context
@@ -26,7 +27,7 @@ class Bot():
             # Periodically buy and "hodl"
             DiamondHands(self.ctx),
             # Pick buy and sell points based on current market
-            #SpreadTrader(self.ctx),
+            SpreadTrader(self.ctx),
             # Try to predict large up ticks in the market
             #PhasedTrader(self.ctx),
         ]

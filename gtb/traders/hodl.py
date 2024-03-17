@@ -15,7 +15,7 @@ class DiamondHands(BotThread):
     last_buy: datetime | None
     next_buy: datetime
 
-    def __init__(self, ctx: Context):
+    def __init__(self, ctx: Context) -> None:
         super().__init__(ctx)
         self.last_buy = None
         self.next_buy = datetime.now()

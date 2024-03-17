@@ -177,6 +177,8 @@ class OrderProcessor(BotThread):
             ))
 
     def check_allocation(self, algorithm: str, usd: float) -> bool:
+        # Drop sub-identifier
+        algorithm = algorithm.split('-')[0]
         # Shouldn't happen
         if not algorithm in Settings.allocations:
             return True

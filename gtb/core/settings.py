@@ -1,11 +1,22 @@
-from typing import Dict
+from typing import Dict, List
+
+class Spread():
+    name: str
+    usd: float
+    spread: float
+
+    def __init__(self, name, usd, spread) -> None:
+        self.name = name
+        self.usd = usd
+        self.spread = spread
 
 class Settings():
     allocations: Dict[str, float] = {
         "HODL": 1.0,
-        "Tranche": 0.9,
+        "Spread": 0.9,
         "Phased": 0.005,
     }
+
 
     # HODL Algorithm #
     ##################
@@ -15,3 +26,25 @@ class Settings():
 
     # How much to buy in our hold position
     HODL_BTC: float = 0.00002
+
+
+    # Spread Algorithm #
+    ####################
+
+    spreads: List[Spread] = [
+        Spread(
+            name="Low",
+            usd=500,
+            spread=0.003,
+        ),
+        Spread(
+            name="Mid",
+            usd=500,
+            spread=0.0045,
+        ),
+        Spread(
+            name="High",
+            usd=500,
+            spread=0.006,
+        ),
+    ]

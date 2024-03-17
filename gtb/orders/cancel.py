@@ -7,6 +7,17 @@ from gtb.utils.logging import Log
 from coinbase.rest import orders as order_api
 
 def cancel_order(ctx: Context, algorithm: str, order: Order, reason: str) -> bool:
+    # Already complete
+    if order.status == Order.Status.Complete:
+        return False
+    # Already canceled
+    if order.status == Order.Status.Canceled:
+        return True
+    # Not registered with coinbase
+    if order.status == Order.Status.Pending or order.status == Order.Status.OnHold:
+        order.status = Order.Status.Canceled
+        return True
+
     try:
         assert order.info is not None
         result = order_api.cancel_orders(
