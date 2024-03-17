@@ -1,39 +1,14 @@
-Version 4
-[ ] Add phases to graph
-[\] Less likely to enter waning state if not much movement has happened yet
-[\] Cleanup phases code
-[ ] graphed algo
-    - Calculate tilt:
-        Interpolate summarized scores
-        - x = all datetimes
-        - y = average of score at (x) summed with all previous scores
-        - take first derivative of summarized scores
-        - take last index of derivative
-
-    - Once it goes above 1, start buy (Waxing)
-    - Once it goes below 0, start sell (Waning) if:
-        - below buy price OR
-        - (change between buy and max) >= 0.3% and
-            ((change between buy and current) <= 80% (change between buy and max)
-        - (change between buy and max) >= 0.3% and
-            ((change between buy and current) <= 80% (change between buy and max)
-    - Else: Plateau
-
-
-Version 3
-[ ] discount sale should be immediate (keep re-queueing directly above market price)
-[ ] cancel active buys when sale gets discounted
-[ ] Log rotator
-[ ] historical.json must exist
-[ ] Code cleanup
-    [ ] Move magic numbers/strings to Settings
-    [ ] Consolidate graph dir / requirements
-    [ ] Move stuff out of src topdir
-    [ ] Remove old main files
-[ ] PendingSell split to ActiveSell
-[ ] sale longevity code?
-[ ] failed cancel can orphan bitcoin
-    - mark sale as to-be-requeued and let churn handle it
+GTB
+[ ] order/book/pair
+[ ] write history
+[ ] Tranche thread
+[ ] HODL thread
+[ ] Phase buying thread
+[ ] inspect scripts
+[ ] update www
+[ ] code cleanup, magic numbers
+[ ] go live
+[ ] Delete old code
 
 Web App
 [ ] Add better formatting
@@ -41,7 +16,7 @@ Web App
 [ ] Add fees/volume information
 
 General
-[x] lint
+[ ] Log rotator
 [ ] Create top level module name ("tradebot")
 [ ] Add version tracking
 [ ] Remove cex code
