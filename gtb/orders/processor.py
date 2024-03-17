@@ -5,11 +5,13 @@ from dateutil.relativedelta import relativedelta
 
 from gtb.core.thread import BotThread
 from gtb.core.context import Context
+from gtb.core.settings import Settings
 from gtb.orders.order import Order, OrderInfo
 from gtb.orders.order_pair import OrderPair
 from gtb.orders.cancel import cancel_order
 from gtb.utils.logging import Log
 from gtb.utils.maths import floor_usd
+from gtb.utils.wallet import Wallet
 
 from coinbase.rest import orders as order_api
 
@@ -113,6 +115,15 @@ class OrderProcessor(BotThread):
         if self.ctx.current_market.ask - self.ctx.current_market.bid < 1.0:
             return None
 
+        if order.order_type == Order.Type.Buy and not self.check_allocation(pair.algorithm, order.usd):
+            if not order.insufficient_funds:
+                Log.error("No allocation available for ${:.2f} {}.".format(
+                    order.usd,
+                    pair.algorithm,
+                ))
+                order.insufficient_funds = True
+            return None
+
         # This is the market price we want to buy/sell at
         order_price: float = order.get_limit_price()
 
@@ -164,3 +175,43 @@ class OrderProcessor(BotThread):
                 final_price,
                 order_info['error_response']['error'],
             ))
+
+    def check_allocation(self, algorithm: str, usd: float) -> bool:
+        # Shouldn't happen
+        if not algorithm in Settings.allocations:
+            return True
+
+        # Get wallet
+        wallet: Wallet | None = Wallet.get(self.ctx)
+        if not wallet:
+            return False
+        assert wallet is not None
+
+        # If usd < wallet available: can't buy
+        if wallet.usd_available < usd:
+            return False
+
+        # Get all USD for active trades and its allocations
+        all_pending_usd: float = 0.0
+        alg_pending_usd: float = 0.0
+        for pair in self.ctx.order_book.order_pairs:
+            if pair.status in [
+                    OrderPair.Status.Active,
+                    OrderPair.Status.OnHoldSell,
+                    OrderPair.Status.PendingSell,
+                    OrderPair.Status.ActiveSell,
+                ]:
+                all_pending_usd += pair.buy.usd
+                if pair.algorithm == algorithm:
+                    alg_pending_usd += pair.buy.usd
+
+        # The percent allocation for this algorithm
+        percent: float = Settings.allocations[algorithm]
+
+        # The total amount of USD in the pot
+        total_usd: float = wallet.usd_available + all_pending_usd
+        # Check if there is any allocation left
+        if ((total_usd * percent) - alg_pending_usd) < usd:
+            return False
+
+        return True

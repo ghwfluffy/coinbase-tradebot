@@ -1,4 +1,12 @@
+from typing import Dict
+
 class Settings():
+    allocations: Dict[str, float] = {
+        "HODL": 1.0,
+        "Tranche": 0.9,
+        "Phased": 0.005,
+    }
+
     # HODL Algorithm #
     ##################
 
