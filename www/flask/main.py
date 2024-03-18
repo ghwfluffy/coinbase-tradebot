@@ -1,6 +1,6 @@
 from flask import Flask, jsonify
 
-from graph import create_plot
+from gtb.inspect.graph import create_plot
 
 import io
 import os
@@ -90,7 +90,7 @@ def get_count():
 def get_graph():
     orig_dir = os.getcwd()
     try:
-        os.chdir('/var/tradebot/coinbase')
+        os.chdir('/var/tradebot')
         plt = create_plot()
 
         # Save the plot to a BytesIO object

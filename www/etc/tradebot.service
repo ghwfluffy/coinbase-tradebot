@@ -1,12 +1,12 @@
 [Unit]
-Description=Coinbase Bot
+Description=Ghw Trading Bot
 After=network.target
 
 [Service]
 User=ghw
 Group=ghw
 WorkingDirectory=/var/tradebot/coinbase
-ExecStart=/var/tradebot/coinbase/Run.sh
+ExecStart=/var/tradebot/Run.sh
 StandardOutput=append:/var/tradebot/logs/log.txt
 StandardError=inherit
 

@@ -14,7 +14,7 @@ GTB
     [x] wallet
     [x] history
     [x] graph
-[ ] update www
+[x] update www
 [ ] go live
 [ ] Phase buying thread
 [ ] code cleanup, magic numbers, comments

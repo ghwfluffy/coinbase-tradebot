@@ -4,7 +4,7 @@ set -eu -o pipefail
 
 TOPDIR="$(readlink -f "$(dirname "$(readlink -f "${0}")")/../../../")"
 
-cd "${TOPDIR}/coinbase"
+cd "${TOPDIR}"
 source .venv/bin/activate
-export PYTHONPATH=src:src/main
-python3 src/inspect/print_html_history.py 2>&1
+export PYTHONPATH=.
+python3 -u gtb/inspect/print_html_history.py 2>&1
