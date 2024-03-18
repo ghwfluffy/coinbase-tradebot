@@ -23,7 +23,7 @@ market: MarketPrices = get_current_market(ctx)
 # Table Header
 print("<TABLE border=1 cellpadding=5>")
 print("  <TR>")
-for col in ["Algorithm", "BTC", "BTC@USD", "USD"]:
+for col in ["Algorithm", "BTC", "BTC@USD", "USD", "Total"]:
     print("    <TH>{}</TH>".format(col))
 print("  </TR>")
 

@@ -12,8 +12,8 @@ import matplotlib
 
 from scipy.interpolate import make_interp_spline
 
-from gtb.core.context import Context
 from gtb.orders.order_book import OrderBook
+from gtb.orders.history import OrderHistory
 from gtb.orders.order_pair import OrderPair
 from gtb.orders.order import Order
 from gtb.utils.logging import Log
@@ -30,15 +30,16 @@ def parse_date(x):
 def create_plot(
     START_AT="2024-03-11 04:00:00",
     backend='Agg'
-    ):
+    ) -> None:
 
     START_AT = parse_date(START_AT)
     matplotlib.use(backend)
 
     # Get data
-    ctx: Context = Context()
-    ctx.order_book.read_fs()
-    ctx.history.read_fs()
+    order_book: OrderBook = OrderBook()
+    order_book.read_fs()
+    history: OrderHistory = OrderHistory()
+    history.read_fs()
 
     market_csv: List[str]
     with open("data/market.csv") as fp:
@@ -59,8 +60,8 @@ def create_plot(
     plt.figure(figsize=(10, 6))
 
     # Add order pairs
-    pairs = ctx.order_book.order_pairs
-    pairs += ctx.history.order_pairs
+    pairs = order_book.order_pairs
+    pairs += history.order_pairs
     for pair in pairs:
         if pair.event_time < START_AT:
             continue
@@ -122,7 +123,7 @@ def create_plot(
         values.append(sell_market)
 
         if pair.sell.status == Order.Status.Complete:
-            color: str = 'green' if sell_market >= buy_market else 'red'
+            color = 'green' if sell_market >= buy_market else 'red'
             plt.plot([buy_time, sell_time], [buy_market, sell_market], color=color) # type: ignore
         else:
             plt.plot([buy_time, sell_time], [buy_market, sell_market], color='gray', linestyle='--', linewidth=1) # type: ignore
@@ -139,13 +140,13 @@ def create_plot(
     # Make a yellow line for the market value
     market: List[Tuple[datetime, float]] = []
     for line in market_csv:
-        line: List[str] = line.split(",")
-        when: datetime = parse_date(line[0])
+        fields: List[str] = line.split(",")
+        when: datetime = parse_date(fields[0])
         if when < min_time:
             continue
 
-        bid: float = float(line[3])
-        ask: float = float(line[4])
+        bid: float = float(fields[3])
+        ask: float = float(fields[4])
         split: float = (bid + ask) / 2
         market.append((when, split))
         values.append(split)
@@ -166,8 +167,6 @@ def create_plot(
     plt.ylabel('Price USD')
     plt.legend()
 
-    return plt
-
 if __name__ == '__main__':
-    plt = create_plot(backend='Qt5Agg')
+    create_plot(backend='Qt5Agg')
     plt.show()

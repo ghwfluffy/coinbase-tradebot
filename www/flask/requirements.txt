@@ -1,7 +1,8 @@
 Flask
+coinbase-advanced-py
 gunicorn
-python-dateutil
 matplotlib
-pyqt5
 numpy
+pyqt5
+python-dateutil
 scipy

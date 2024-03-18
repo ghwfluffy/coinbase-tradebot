@@ -58,7 +58,7 @@ def get_orders():
 
 @app.route('/history', methods=['GET'])
 def get_history():
-    cmd = ['./bin/history.sh']
+    cmd = ['sudo', '-u', 'ghw', './bin/history.sh']
     process = subprocess.run(cmd, text=True, capture_output=True)
     stdout = process.stdout
     data = {

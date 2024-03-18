@@ -9,7 +9,7 @@
 <div id="error"></div><BR/>
 <div id="time"></div><BR/>
 <div id="count"></div><BR/>
-<TABLE>
+<TABLE cellpadding=10>
   <TR>
     <TD width=100%>
       <div id="orders"></div>
@@ -17,27 +17,22 @@
   </TR>
   <TR>
     <TD width=100%>
-      <div id="pnl" class="plaintext"></div>
+      <div id="pnl"></div>
     </TD>
   </TR>
   <TR>
     <TD width=100%>
-      <div id="graph" class="plaintext"></div>
-    </TD>
-  </TR>
-  <TR>
-    <TD width=100%>
-      <div id="wallet" class="plaintext"></div>
-    </TD>
-  </TR>
-  <TR>
-    <TD width=100%>
-      <div id="alloc" class="plaintext"></div>
+      <div id="wallet"></div>
     </TD>
   </TR>
   <TR>
     <TD width=100%>
       <div id="history"></div>
+    </TD>
+  </TR>
+  <TR>
+    <TD width=100%>
+      <div id="graph" class="plaintext"></div>
     </TD>
   </TR>
   <TR>
@@ -89,7 +84,7 @@ fetch('/api/wallet')
     return response.json(); // Parse the response body as JSON
   })
   .then(data => {
-    document.getElementById('wallet').textContent = data.wallet;
+    document.getElementById('wallet').innerHTML = data.wallet;
   })
   .catch(error => {
     document.getElementById("error").textContent = "Network error";
@@ -104,7 +99,7 @@ fetch('/api/pnl')
     return response.json(); // Parse the response body as JSON
   })
   .then(data => {
-    document.getElementById('pnl').textContent = data.pnl;
+    document.getElementById('pnl').innerHTML = data.pnl;
   })
   .catch(error => {
     document.getElementById("error").textContent = "Network error";
@@ -149,21 +144,6 @@ fetch('/api/history')
   })
   .then(data => {
     document.getElementById('history').innerHTML = data.history;
-  })
-  .catch(error => {
-    document.getElementById("error").textContent = "Network error";
-  });
-
-fetch('/api/alloc')
-  .then(response => {
-    // Check if the request was successful
-    if (!response.ok) {
-      throw new Error('Network response was not ok');
-    }
-    return response.json(); // Parse the response body as JSON
-  })
-  .then(data => {
-    document.getElementById('alloc').textContent = data.alloc;
   })
   .catch(error => {
     document.getElementById("error").textContent = "Network error";
