@@ -2,6 +2,7 @@ from typing import List, Callable
 from functools import partial
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
+from dateutil import parser as date_parser
 
 from gtb.core.thread import BotThread
 from gtb.core.context import Context
@@ -82,14 +83,21 @@ class OrderProcessor(BotThread):
         status: str = data['order']['status']
         # Completed
         if status == "FILLED":
-            Log.info("{} order for {} filled.".format(
-                order.order_type.name,
-                pair.algorithm,
-            ))
             order.status = Order.Status.Complete
             order.info.final_market = float(data['order']['average_filled_price'])
             order.info.final_fees = float(data['order']['total_fees'])
-            order.info.final_usd = float(data['order']['filled_value'])
+            order.info.final_time = date_parser.parse(data['order']['last_fill_time'])
+            if order.order_type == Order.Type.Buy:
+                order.info.final_usd = float(data['order']['total_value_after_fees'])
+            else:
+                order.info.final_usd = float(data['order']['filled_value'])
+            Log.info("{} order for {} filled (${:.2f} USD @ ${:.2f}) (${:.2f} fee).".format(
+                order.order_type.name,
+                pair.algorithm,
+                order.info.final_usd,
+                order.info.final_market,
+                order.info.final_fees,
+            ))
         # Canceled
         elif status != "OPEN":
             Log.info("{} order for {} canceled.".format(
@@ -133,12 +141,12 @@ class OrderProcessor(BotThread):
         if order.order_type == Order.Type.Buy:
             queue = order_api.limit_order_gtc_buy
             final_price = floor_usd(self.ctx.current_market.ask - 20.0)
-            if final_price < order_price:
+            if final_price > order_price:
                 return None
         elif order.order_type == Order.Type.Sell:
             queue = order_api.limit_order_gtc_sell
             final_price = floor_usd(self.ctx.current_market.bid + 20.0)
-            if final_price > order_price:
+            if final_price < order_price:
                 return None
 
         # Randomize a client order ID

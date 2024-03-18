@@ -5,7 +5,7 @@ class Spread():
     usd: float
     spread: float
 
-    def __init__(self, name, usd, spread) -> None:
+    def __init__(self, name: str, usd: float, spread: float) -> None:
         self.name = name
         self.usd = usd
         self.spread = spread
@@ -34,17 +34,20 @@ class Settings():
     spreads: List[Spread] = [
         Spread(
             name="Low",
-            usd=500,
+            usd=20,
+            #usd=500,
             spread=0.003,
         ),
         Spread(
             name="Mid",
-            usd=500,
+            usd=20,
+            #usd=500,
             spread=0.0045,
         ),
         Spread(
             name="High",
-            usd=500,
+            usd=20,
+            #usd=500,
             spread=0.006,
         ),
     ]

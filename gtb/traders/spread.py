@@ -11,7 +11,7 @@ from gtb.orders.order_pair import OrderPair
 from gtb.orders.cancel import cancel_order
 from gtb.phases.phase import Phase
 from gtb.utils.logging import Log
-from gtb.utils.maths import floor_btc, floor_usd
+from gtb.utils.maths import floor_btc, floor_usd, ceil_usd
 
 # Pick buy and sell points above/below current market
 class SpreadTrader(BotThread):
@@ -106,7 +106,8 @@ class SpreadTrader(BotThread):
 
     def end_bad_positions(self, spread_info: Spread) -> None:
         # Calculate what "too much loss" is
-        max_delta: float = spread_info.spread * self.ctx.smooth_market.split
+        max_delta: float = (spread_info.spread * self.ctx.smooth_market.split) * 3
+        #max_delta: float = (spread_info.spread * self.ctx.smooth_market.split) / 2
         max_market: float = self.ctx.smooth_market.split + max_delta
         for pair in self.current_spreads[spread_info.name]:
             with pair.mtx:
@@ -127,6 +128,12 @@ class SpreadTrader(BotThread):
                     OrderPair.Status.Pending,
                     OrderPair.Status.Active,
                 ]:
+                    Log.info("Cancel buy spread {} below threshold ({:.2f} vs {:.2f}) (${:.2f} USD).".format(
+                        spread_info.name,
+                        limit_price,
+                        max_market,
+                        pair.buy.usd,
+                    ))
                     cancel_order(self.ctx, SpreadTrader.ALGORITHM, pair.buy, "below spread range")
 
                 # Requeue cheaper sell
@@ -139,6 +146,12 @@ class SpreadTrader(BotThread):
                     if pair.sell.info and datetime.now() < pair.sell.info.order_time + relativedelta(minutes=2):
                         continue
                     # Cancel
+                    Log.info("Discount sell spread {} fell below threshold ({:.2f} vs {:.2f}) (${:.2f} USD).".format(
+                        spread_info.name,
+                        limit_price,
+                        max_market,
+                        pair.buy.usd,
+                    ))
                     if cancel_order(self.ctx, SpreadTrader.ALGORITHM, pair.sell, "below spread range"):
                         # Requeue at market price
                         pair.sell.status = Order.Status.Pending
@@ -167,21 +180,22 @@ class SpreadTrader(BotThread):
         if min_delta < spread_info.spread / 2:
             return None
 
-        Log.info("Market price {} triggering new {} spread (${:.2f} USD).".format(
+        Log.info("Market price {:.2f} triggering new {} spread (${:.2f} USD).".format(
             self.ctx.smooth_market.split,
             spread_info.name,
             spread_info.usd,
         ))
 
         # Maths
-        spread_usd: float = self.ctx.smooth_market.split * spread_info.spread
-        buy_market: float = floor_usd(self.ctx.smooth_market.split - (spread_usd / 2))
-        sell_market: float = floor_usd(self.ctx.smooth_market.split + (spread_usd / 2))
+        market: float = self.ctx.smooth_market.split
+        spread_usd: float = market * spread_info.spread
+        buy_market: float = floor_usd(market - (spread_usd / 2))
+        sell_market: float = floor_usd(market + (spread_usd / 2))
         btc: float = floor_btc(spread_info.usd / buy_market)
-        buy_usd: float = buy_market * btc
-        sell_usd: float = sell_market * btc
+        buy_usd: float = spread_info.usd
+        sell_usd: float = ceil_usd(sell_market * btc)
 
-        Log.debug("Spread: {:.2f}, BTC: {:.2f} Buy: ${:.2f}, Sell: ${:.2f}".format(
+        Log.debug("Spread: {:.2f}, BTC: {:.8f} Buy: ${:.2f}, Sell: ${:.2f}".format(
             spread_usd,
             btc,
             buy_usd,
@@ -205,9 +219,13 @@ class SpreadTrader(BotThread):
         # Extended waning thread, don't make any buys
         if self.ctx.phases.extended == Phase.Waning:
             return None
+        if self.ctx.phases.long == Phase.Waning:
+            return None
         # Wait for most recent change to be upwards
         if self.ctx.phases.acute != Phase.Waxing:
-            return None
+            # Either acute is waxing, or short/mid both waxing
+            if self.ctx.phases.short != Phase.Waxing or self.ctx.phases.mid != Phase.Waxing:
+                return None
 
         for pair in self.current_spreads[spread_info.name]:
             with pair.mtx:
@@ -215,10 +233,27 @@ class SpreadTrader(BotThread):
                     continue
                 # And price is below what we want to buy at
                 if pair.buy.get_limit_price() < self.ctx.smooth_market.bid:
+                    #Log.debug("XXX: Not low yet: {:.2f} vs {:.2f}".format(
+                    #    pair.buy.get_limit_price(), self.ctx.smooth_market.bid))
                     continue
-                pair.buy.status = Order.Status.Pending
                 delta: float = pair.buy.get_limit_price() - self.ctx.smooth_market.bid
-                Log.debug("Spread {} buy is ready. {:.2f} USD away.".format(
-                    spread_info.name,
-                    delta,
-                ))
+                #Log.debug("XXX: delta: {:.2f}".format(delta))
+                if delta < 200.0:
+                    pair.buy.status = Order.Status.Pending
+                    Log.debug("Spread {} buy is ready. {:.2f} USD away.".format(
+                        spread_info.name,
+                        delta,
+                    ))
+
+    def back_to_hold(self, spread_info: Spread) -> None:
+        for pair in self.current_spreads[spread_info.name]:
+            with pair.mtx:
+                if pair.status != OrderPair.Status.Pending:
+                    continue
+                delta: float = abs(pair.buy.get_limit_price() - self.ctx.smooth_market.bid)
+                if self.ctx.phases.long == Phase.Waning or delta >= 200.0:
+                    pair.buy.status = Order.Status.OnHold
+                    Log.debug("Spread {} buy being paused. {:.2f} USD away.".format(
+                        spread_info.name,
+                        delta,
+                    ))

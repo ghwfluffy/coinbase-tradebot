@@ -8,11 +8,16 @@ GTB
 [x] coinbase order cancel
 [x] Tranche vs phase allocations
 [x] Tranche thread
-[ ] Phase buying thread
-[ ] inspect scripts
+[x] inspect scripts
+    [x] html_orders
+    [x] PNL
+    [x] wallet
+    [x] history
+    [x] graph
 [ ] update www
-[ ] code cleanup, magic numbers, comments
 [ ] go live
+[ ] Phase buying thread
+[ ] code cleanup, magic numbers, comments
 [ ] Delete old code
 [ ] failed to cancel but does cancel = orphan
 

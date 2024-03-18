@@ -41,7 +41,7 @@ class PhaseTracker(BotThread):
         if len(self.history) == 1:
             return None
 
-        extended_ago: datetime = datetime.now() - relativedelta(hours=3)
+        extended_ago: datetime = datetime.now() - relativedelta(hours=1)
         long_ago: datetime = datetime.now() - relativedelta(minutes=30)
         mid_ago: datetime = datetime.now() - relativedelta(minutes=10)
         short_ago: datetime = datetime.now() - relativedelta(minutes=5)
@@ -78,7 +78,7 @@ class PhaseTracker(BotThread):
             calc.mid = self.calc_phase(mid_index, 50.0)
 
         if long_index >= 0:
-            calc.long = self.calc_phase(long_index, 100.0)
+            calc.long = self.calc_phase(long_index, 200.0)
 
         if extended_index >= 0:
             calc.extended = self.calc_phase(extended_index, 500.0)

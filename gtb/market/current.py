@@ -12,6 +12,20 @@ from gtb.utils.maths import floor_usd
 
 from coinbase.rest import products
 
+def get_current_market(ctx: Context) -> MarketPrices:
+    # BTC-USD: Base BTC, Quote USD
+    data = products.get_best_bid_ask(ctx.api, product_ids=["BTC-USD"])
+
+    ret = MarketPrices()
+    ret.updated = datetime.now()
+    # Buy price
+    ret.bid = float(data['pricebooks'][0]['bids'][0]['price'])
+    # Sell price
+    ret.ask = float(data['pricebooks'][0]['asks'][0]['price'])
+    # Half point
+    ret.split = round((ret.bid + ret.ask) / 2, 16)
+    return ret
+
 # Keep track of the current market bid/ask
 class CurrentMarketThread(BotThread):
     file: str = "data/market.csv"
@@ -95,18 +109,7 @@ class CurrentMarketThread(BotThread):
 
     def retrieve(self) -> MarketPrices | None:
         try:
-            # BTC-USD: Base BTC, Quote USD
-            data = products.get_best_bid_ask(self.ctx.api, product_ids=["BTC-USD"])
-
-            ret = MarketPrices()
-            ret.updated = datetime.now()
-            # Buy price
-            ret.bid = float(data['pricebooks'][0]['bids'][0]['price'])
-            # Sell price
-            ret.ask = float(data['pricebooks'][0]['asks'][0]['price'])
-            # Half point
-            ret.split = round((ret.bid + ret.ask) / 2, 16)
-            return ret
+            return get_current_market(self.ctx)
         except Exception as e:
             Log.exception("Failed to get market price", e)
             return None
