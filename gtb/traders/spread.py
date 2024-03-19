@@ -18,11 +18,13 @@ class SpreadTrader(BotThread):
     ALGORITHM: str = "Spread"
 
     current_spreads: Dict[str, List[OrderPair]]
+    waning: bool
 
     def __init__(self, ctx: Context) -> None:
         super().__init__(ctx)
 
         self.current_spreads = {}
+        self.waning = False
 
     def init(self) -> None:
         # Make empty order lists
@@ -106,7 +108,7 @@ class SpreadTrader(BotThread):
 
     def end_bad_positions(self, spread_info: Spread) -> None:
         # Calculate what "too much loss" is
-        max_delta: float = (spread_info.spread * self.ctx.smooth_market.split) * 3
+        max_delta: float = (spread_info.spread * self.ctx.smooth_market.split) * 3.3
         #max_delta: float = (spread_info.spread * self.ctx.smooth_market.split) / 2
         max_market: float = self.ctx.smooth_market.split + max_delta
         for pair in self.current_spreads[spread_info.name]:
@@ -152,6 +154,7 @@ class SpreadTrader(BotThread):
                         max_market,
                         pair.buy.usd,
                     ))
+                    self.ctx.notify.queue("Market fall discounting ${:.2f} sell.".format(pair.buy.usd))
                     if cancel_order(self.ctx, SpreadTrader.ALGORITHM, pair.sell, "below spread range"):
                         # Requeue at market price
                         pair.sell.status = Order.Status.Pending
@@ -177,23 +180,39 @@ class SpreadTrader(BotThread):
                 min_delta = sell_delta
 
         # Too close
-        if min_delta < spread_info.spread / 2:
+        if min_delta < spread_info.spread:
             return None
-
-        Log.info("Market price {:.2f} triggering new {} spread (${:.2f} USD).".format(
-            self.ctx.smooth_market.split,
-            spread_info.name,
-            spread_info.usd,
-        ))
 
         # Maths
         market: float = self.ctx.smooth_market.split
         spread_usd: float = market * spread_info.spread
-        buy_market: float = floor_usd(market - (spread_usd / 2))
-        sell_market: float = floor_usd(market + (spread_usd / 2))
+        buy_market: float
+        sell_market: float
+        suffix: str
+        buy_mode: Order.Status = Order.Status.OnHold
+        if self.ctx.phases.mid == Phase.Waxing:
+            suffix = "U"
+            buy_mode = Order.Status.Pending
+            buy_market = floor_usd(market - 20)
+            sell_market = floor_usd(market + spread_usd + 50)
+        elif self.ctx.phases.mid == Phase.Waning:
+            suffix = "D"
+            buy_market = floor_usd(market - spread_usd)
+            sell_market = floor_usd(market)
+        else:
+            suffix = "P"
+            buy_market = floor_usd(market - (spread_usd / 2))
+            sell_market = floor_usd(market + (spread_usd / 2))
         btc: float = floor_btc(spread_info.usd / buy_market)
         buy_usd: float = spread_info.usd
         sell_usd: float = ceil_usd(sell_market * btc)
+
+        Log.info("Market price {:.2f} triggering new {}-{} spread (${:.2f} USD).".format(
+            self.ctx.smooth_market.split,
+            spread_info.name,
+            suffix,
+            spread_info.usd,
+        ))
 
         Log.debug("Spread: {:.2f}, BTC: {:.8f} Buy: ${:.2f}, Sell: ${:.2f}".format(
             spread_usd,
@@ -203,13 +222,13 @@ class SpreadTrader(BotThread):
 
         # Buy order
         buy: Order = Order(Order.Type.Buy, btc, buy_usd)
-        buy.status = Order.Status.OnHold
+        buy.status = buy_mode
 
         # Sell order
         sell: Order = Order(Order.Type.Sell, btc, sell_usd)
         sell.status = Order.Status.Pending
 
-        new_pair: OrderPair = OrderPair(SpreadTrader.ALGORITHM + "-" + spread_info.name, buy, sell)
+        new_pair: OrderPair = OrderPair(SpreadTrader.ALGORITHM + "-" + spread_info.name + "-" + suffix, buy, sell)
 
         # Queue order
         self.ctx.order_book.append(new_pair)
@@ -217,10 +236,17 @@ class SpreadTrader(BotThread):
 
     def wait_for_waxing(self, spread_info: Spread) -> None:
         # Extended waning thread, don't make any buys
-        if self.ctx.phases.extended == Phase.Waning:
+        if self.ctx.phases.extended == Phase.Waning or self.ctx.phases.long == Phase.Waning:
+            # TODO: Get out of all positions
+            if not self.waning:
+                self.waning = True
+                Log.info("Market is going down.")
+                self.ctx.notify.queue("Market is going down")
             return None
-        if self.ctx.phases.long == Phase.Waning:
-            return None
+        if self.waning:
+            self.waning = False
+            Log.info("Market normalized.")
+            self.ctx.notify.queue("Market normalized")
         # Wait for most recent change to be upwards
         if self.ctx.phases.acute != Phase.Waxing:
             # Either acute is waxing, or short/mid both waxing

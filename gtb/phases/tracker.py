@@ -41,12 +41,14 @@ class PhaseTracker(BotThread):
         if len(self.history) == 1:
             return None
 
+        max_ago: datetime = datetime.now() - relativedelta(hours=6)
         extended_ago: datetime = datetime.now() - relativedelta(hours=1)
         long_ago: datetime = datetime.now() - relativedelta(minutes=30)
         mid_ago: datetime = datetime.now() - relativedelta(minutes=10)
         short_ago: datetime = datetime.now() - relativedelta(minutes=5)
         acute_ago: datetime = datetime.now() - relativedelta(minutes=1)
 
+        max_index: int = -1
         extended_index: int = -1
         long_index: int = -1
         mid_index: int = -1
@@ -54,6 +56,8 @@ class PhaseTracker(BotThread):
         acute_index: int = -1
         for index in range(0, len(self.history)):
             cur: Tuple[datetime, float] = self.history[index]
+            if cur[0] < max_ago:
+                max_index = index
             if cur[0] < extended_ago:
                 extended_index = index
             if cur[0] < long_ago:
@@ -83,8 +87,9 @@ class PhaseTracker(BotThread):
         if extended_index >= 0:
             calc.extended = self.calc_phase(extended_index, 500.0)
 
-            # Trim history
-            self.history = self.history[extended_index:]
+        # Trim history
+        if max_index >= 0:
+            self.history = self.history[max_index:]
 
         # Trace log periodically
         if self.next_write <= datetime.now():

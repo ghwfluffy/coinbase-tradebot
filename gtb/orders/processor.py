@@ -98,6 +98,25 @@ class OrderProcessor(BotThread):
                 order.info.final_market,
                 order.info.final_fees,
             ))
+
+            if order.order_type == Order.Type.Buy:
+                self.ctx.notify.queue("Buy order ${:.2f} filled ({})".format(order.info.final_usd, pair.algorithm))
+            else:
+                assert pair.buy.info is not None
+                assert pair.buy.info.final_fees is not None
+                assert pair.buy.info.final_usd is not None
+                assert pair.sell is not None
+                assert pair.sell.info is not None
+                assert pair.sell.info.final_fees is not None
+                assert pair.sell.info.final_usd is not None
+                fees: float = pair.sell.info.final_fees + pair.buy.info.final_fees
+                total: float = pair.sell.info.final_usd - pair.buy.info.final_usd - fees
+                if total < 0.01 and total > -0.01:
+                    self.ctx.notify.queue("Trade broke even ({})".format(pair.algorithm))
+                elif total > 0:
+                    self.ctx.notify.queue("Trade made ${:.2f} profit ({})".format(total, pair.algorithm))
+                else:
+                    self.ctx.notify.queue("Trade made ${:.2f} loss ({})".format(total * -1, pair.algorithm))
         # Canceled
         elif status != "OPEN":
             Log.info("{} order for {} canceled.".format(

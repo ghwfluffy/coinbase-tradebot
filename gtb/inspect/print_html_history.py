@@ -18,7 +18,7 @@ ctx.history.read_fs()
 # Table Header
 print("<TABLE border=1 cellpadding=5>")
 print("  <TR>")
-for col in ["Algorithm", "Buy", "Sell", "Fees", "Total"]:
+for col in ["Time", "Algorithm", "Buy", "Sell", "Fees", "Total"]:
     print("    <TH>{}</TH>".format(col))
 print("  </TR>")
 
@@ -32,6 +32,7 @@ for pair in reversed(ctx.history.order_pairs):
     assert pair.buy.info.final_fees is not None
 
     print("  <TR>")
+    print("    <TD>{}</TD>".format(pair.event_time.strftime("%Y-%m-%d %H:%M:%S")))
     print("    <TD>{}</TD>".format(pair.algorithm))
     print("    <TD>${:.2f}</TD>".format(pair.buy.info.final_usd))
     if pair.sell and pair.sell.info and pair.sell.info.final_usd:

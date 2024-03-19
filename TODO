@@ -1,21 +1,15 @@
 GTB
-[x] HODL algorithm
-[x] order book
-[x] record market every minute
-[x] phases from fs (ms accuracy)
-[x] order pair
-[x] coinbase order place/track
-[x] coinbase order cancel
-[x] Tranche vs phase allocations
-[x] Tranche thread
-[x] inspect scripts
-    [x] html_orders
-    [x] PNL
-    [x] wallet
-    [x] history
-    [x] graph
-[x] update www
-[ ] go live
+[x] SMS notifications
+    [x] custom email
+    [x] infrastructure
+    [x] events
+        [x] bid fill
+        [x] discount event
+        [x] large market shift?
+[ ] smooth or actual to trigger onhold->pending
+[ ] event time
+[ ] spread by frequency
+[ ] changelog
 [ ] Phase buying thread
 [ ] code cleanup, magic numbers, comments
 [ ] Delete old code

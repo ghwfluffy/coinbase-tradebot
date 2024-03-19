@@ -9,6 +9,7 @@ from gtb.orders.processor import OrderProcessor
 from gtb.phases.tracker import PhaseTracker
 from gtb.traders.hodl import DiamondHands
 from gtb.traders.spread import SpreadTrader
+from gtb.noti.notifications import NotificationThread
 
 class Bot():
     ctx: Context
@@ -18,6 +19,8 @@ class Bot():
     def __init__(self) -> None:
         self.ctx = Context()
         self.threads = [
+            # Send SMS notifications
+            NotificationThread(self.ctx),
             # Keep current market conditions updated
             CurrentMarketThread(self.ctx),
             # Keep current market conditions updated
