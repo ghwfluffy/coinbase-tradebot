@@ -42,7 +42,7 @@ class PhaseTracker(BotThread):
             return None
 
         max_ago: datetime = datetime.now() - relativedelta(hours=6)
-        extended_ago: datetime = datetime.now() - relativedelta(hours=1)
+        extended_ago: datetime = datetime.now() - relativedelta(minutes=90)
         long_ago: datetime = datetime.now() - relativedelta(minutes=30)
         mid_ago: datetime = datetime.now() - relativedelta(minutes=10)
         short_ago: datetime = datetime.now() - relativedelta(minutes=5)

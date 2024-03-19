@@ -1,11 +1,6 @@
 GTB
-[x] SMS notifications
-    [x] custom email
-    [x] infrastructure
-    [x] events
-        [x] bid fill
-        [x] discount event
-        [x] large market shift?
+[x] cancel on wane
+[x] stateful spread buyer
 [ ] smooth or actual to trigger onhold->pending
 [ ] event time
 [ ] spread by frequency

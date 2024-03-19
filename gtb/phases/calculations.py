@@ -9,7 +9,7 @@ class PhaseCalculations():
     mid: Phase
     # Last 30 minutes
     long: Phase
-    # Last 3 hours
+    # Last 90 minutes
     extended: Phase
 
     def __init__(self) -> None:
