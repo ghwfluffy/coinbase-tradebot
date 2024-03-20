@@ -68,17 +68,20 @@ class SpreadTrader(BotThread):
 
     def update_state(self) -> None:
         # Market is going down
-        if self.ctx.phases.extended == Phase.Waning or self.ctx.phases.long == Phase.Waning:
+        overall_waning: bool = self.ctx.phases.extended == Phase.Waning or self.ctx.phases.long == Phase.Waning
+        now_waning: bool = self.ctx.phases.mid == Phase.Waning
+        # Waning overall and current trend is waning
+        if overall_waning and (now_waning or self.state == SpreadTrader.State.Waning):
             # Log/Notify
             if self.state != SpreadTrader.State.Waning:
                 Log.info("Market is going down.")
-                self.ctx.notify.queue("Market is going down")
+                self.ctx.notify.queue(f"Market is going down (${self.ctx.smooth_market.split:.2f})")
             self.state = SpreadTrader.State.Waning
             self.last_state_update = datetime.now()
             return None
 
         # Not enough time has passed to declare a waning state is over
-        if self.state == SpreadTrader.State.Waning and self.last_state_update + relativedelta(minutes=5) > datetime.now():
+        if self.state == SpreadTrader.State.Waning and self.last_state_update + relativedelta(minutes=1) > datetime.now():
             return None
 
         self.last_state_update = datetime.now()
@@ -86,20 +89,23 @@ class SpreadTrader(BotThread):
         # Overall steady, but currently going up
         if self.ctx.phases.extended == Phase.Plateau and self.ctx.phases.long == Phase.Waxing:
             if self.state != SpreadTrader.State.Optimistic:
-                Log.info("Market optimistic")
+                Log.info("Market is optimistic")
+                self.ctx.notify.queue(f"Market is optimistic (${self.ctx.smooth_market.split:.2f})")
                 self.state = SpreadTrader.State.Optimistic
             return None
 
         # Overall steady, but currently going down
         elif self.ctx.phases.extended == Phase.Plateau and self.ctx.phases.long == Phase.Waning:
             if self.state != SpreadTrader.State.Cautious:
-                Log.info("Market cautious")
+                Log.info("Market is cautious")
+                self.ctx.notify.queue(f"Market is cautious (${self.ctx.smooth_market.split:.2f})")
                 self.state = SpreadTrader.State.Cautious
             self.last_state_update = datetime.now()
             return None
 
         elif self.state != SpreadTrader.State.Steady:
             Log.info("Market steady")
+            self.ctx.notify.queue(f"Market is steady (${self.ctx.smooth_market.split:.2f})")
             self.state = SpreadTrader.State.Steady
 
     def handle_spread(self, spread_info: Spread) -> None:
@@ -161,9 +167,11 @@ class SpreadTrader(BotThread):
 
     def end_bad_positions(self, spread_info: Spread) -> None:
         # Calculate what "too much loss" is
-        max_delta: float = (spread_info.spread * self.ctx.smooth_market.split) * 3.3
+        max_delta: float = (spread_info.spread * self.ctx.smooth_market.bid) * 2
         #max_delta: float = (spread_info.spread * self.ctx.smooth_market.split) / 2
         max_market: float = self.ctx.smooth_market.split + max_delta
+
+        bad_state: bool = False
         for pair in self.current_spreads[spread_info.name]:
             with pair.mtx:
                 # The price i intend to buy at
@@ -184,22 +192,19 @@ class SpreadTrader(BotThread):
                     f"below threshold ({limit_price} vs {max_market})",
                 )
 
+                # Fell below buy margin
+                if pair.buy.status == Order.Status.Complete:
+                    bad_state = True
+
+        # Cut all our losses if we think we're going down
+        if bad_state:
+            if self.state != SpreadTrader.State.Waning:
+                self.state = SpreadTrader.State.Cautious
+            self.last_state_change = datetime.now()
+            for spread in Settings.spreads:
+                self.cut_losses(spread)
+
     def handle_new_spread(self, spread_info: Spread) -> None:
-        # Find the closest other pair
-        min_delta: float = spread_info.spread * 10
-        for pair in self.current_spreads[spread_info.name]:
-            assert pair.sell is not None
-            buy_delta: float = abs(pair.buy.get_limit_price() - self.ctx.smooth_market.split) / self.ctx.smooth_market.split
-            sell_delta: float = abs(pair.sell.get_limit_price() - self.ctx.smooth_market.split) / self.ctx.smooth_market.split
-            if buy_delta < min_delta:
-                min_delta = buy_delta
-            if sell_delta < min_delta:
-                min_delta = sell_delta
-
-        # Too close
-        if min_delta < spread_info.spread:
-            return None
-
         # Maths
         market: float = self.ctx.smooth_market.split
         spread_usd: float = market * (spread_info.spread * (1 + (spread_info.spread * 1.5)))
@@ -207,23 +212,57 @@ class SpreadTrader(BotThread):
         buy_market: float
         sell_market: float
         suffix: str
-        buy_mode: Order.Status = Order.Status.OnHold
-        if self.ctx.phases.mid == Phase.Waxing:
+        buy_mode: Order.Status
+        if self.ctx.phases.short == Phase.Waning:
+            suffix = "D"
+            buy_mode = Order.Status.Pending #OnHold
+            buy_market = floor_usd(market - spread_usd)
+            sell_market = floor_usd(market)
+        else:
             suffix = "U"
             buy_mode = Order.Status.Pending
             buy_market = floor_usd(market - 20)
             sell_market = floor_usd(market + spread_usd + 20)
-        elif self.ctx.phases.mid == Phase.Waning:
-            suffix = "D"
-            buy_market = floor_usd(market - spread_usd)
-            sell_market = floor_usd(market)
-        else:
-            suffix = "P"
-            buy_market = floor_usd(market - (spread_usd / 2))
-            sell_market = floor_usd(market + (spread_usd / 2))
         btc: float = floor_btc(spread_info.usd / buy_market)
         buy_usd: float = spread_info.usd
         sell_usd: float = ceil_usd(sell_market * btc)
+
+        # Does the buy auto complete or do we want to wait?
+        if self.ctx.phases.short == Phase.Waxing:
+            buy_mode = Order.Status.Pending
+        elif self.ctx.phases.mid == Phase.Waxing:
+            buy_mode = Order.Status.Pending
+        elif self.ctx.phases.long == Phase.Waxing:
+            buy_mode = Order.Status.Pending
+        elif self.ctx.phases.extended == Phase.Waxing:
+            buy_mode = Order.Status.Pending
+        elif (self.ctx.phases.short == Phase.Plateau or
+                self.ctx.phases.mid == Phase.Plateau or
+                self.ctx.phases.long == Phase.Plateau or
+                self.ctx.phases.extended == Phase.Plateau):
+            buy_mode = Order.Status.Pending
+        else:
+            buy_mode = Order.Status.OnHold
+
+        # Find the closest other pair
+        closest_delta: float = spread_info.spread * 10
+        for pair in self.current_spreads[spread_info.name]:
+            buy_delta: float = abs(pair.buy.get_limit_price() - buy_market) / self.ctx.smooth_market.split
+            if buy_delta < closest_delta:
+                closest_delta = buy_delta
+
+        # How frequently are we making bets right now
+        min_delta: float
+        if self.state == SpreadTrader.State.Steady:
+            min_delta = spread_info.spread / 2
+        elif self.state == SpreadTrader.State.Optimistic:
+            min_delta = spread_info.spread / 4
+        else: # Cautious
+            min_delta = spread_info.spread
+
+        # Too close
+        if closest_delta < min_delta:
+            return None
 
         Log.info("Market price {:.2f} triggering new {}-{} spread (${:.2f} USD).".format(
             self.ctx.smooth_market.split,

@@ -1,11 +1,13 @@
 from flask import Flask, jsonify
 
-from gtb.inspect.graph import create_plot
-
 import io
 import os
 import base64
 import subprocess
+
+import matplotlib.pyplot as plt
+
+from gtb.inspect.graph import create_plot
 
 app = Flask("tradebot")
 
@@ -43,6 +45,16 @@ def get_pnl():
     stdout = process.stdout
     data = {
         "pnl": stdout,
+    }
+    return jsonify(data)
+
+@app.route('/spread-stats', methods=['GET'])
+def get_spread_stats():
+    cmd = ['sudo', '-u', 'ghw', './bin/spread_stats.sh']
+    process = subprocess.run(cmd, text=True, capture_output=True)
+    stdout = process.stdout
+    data = {
+        "stats": stdout,
     }
     return jsonify(data)
 
@@ -91,7 +103,7 @@ def get_graph():
     orig_dir = os.getcwd()
     try:
         os.chdir('/var/tradebot')
-        plt = create_plot()
+        create_plot()
 
         # Save the plot to a BytesIO object
         buf = io.BytesIO()

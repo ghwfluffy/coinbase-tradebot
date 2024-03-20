@@ -2,6 +2,8 @@ from typing import List
 
 from threading import Lock
 
+from gtb.utils.logging import Log
+
 class NotificationQueue():
     message_queue: List[str]
     mtx: Lock
@@ -12,6 +14,9 @@ class NotificationQueue():
     def queue(self, msg: str) -> None:
         with self.mtx:
             self.message_queue.append(msg)
+            if len(self.message_queue) > 10:
+                Log.error("Truncating notifications.")
+                self.message_queue = ["Too many notifications"]
 
     def peek(self) -> str | None:
         with self.mtx:

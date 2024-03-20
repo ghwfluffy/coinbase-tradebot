@@ -22,6 +22,11 @@
   </TR>
   <TR>
     <TD width=100%>
+      <div id="spread_stats"></div>
+    </TD>
+  </TR>
+  <TR>
+    <TD width=100%>
       <div id="wallet"></div>
     </TD>
   </TR>
@@ -100,6 +105,21 @@ fetch('/api/pnl')
   })
   .then(data => {
     document.getElementById('pnl').innerHTML = data.pnl;
+  })
+  .catch(error => {
+    document.getElementById("error").textContent = "Network error";
+  });
+
+fetch('/api/spread-stats')
+  .then(response => {
+    // Check if the request was successful
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
+    return response.json(); // Parse the response body as JSON
+  })
+  .then(data => {
+    document.getElementById('spread_stats').innerHTML = data.stats;
   })
   .catch(error => {
     document.getElementById("error").textContent = "Network error";
