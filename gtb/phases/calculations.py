@@ -11,6 +11,8 @@ class PhaseCalculations():
     long: Phase
     # Last 90 minutes
     extended: Phase
+    # Last 8 hours
+    trend: Phase
 
     def __init__(self) -> None:
         self.acute = Phase.Unknown
@@ -18,3 +20,4 @@ class PhaseCalculations():
         self.mid = Phase.Unknown
         self.long = Phase.Unknown
         self.extended = Phase.Unknown
+        self.trend = Phase.Unknown

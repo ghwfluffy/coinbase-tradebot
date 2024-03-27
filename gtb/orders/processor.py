@@ -100,7 +100,8 @@ class OrderProcessor(BotThread):
             ))
 
             if order.order_type == Order.Type.Buy:
-                self.ctx.notify.queue("Buy order ${:.2f} filled ({})".format(order.info.final_usd, pair.algorithm))
+                #self.ctx.notify.queue("Buy order ${:.2f} filled ({})".format(order.info.final_usd, pair.algorithm))
+                pass
             else:
                 assert pair.buy.info is not None
                 assert pair.buy.info.final_fees is not None
@@ -111,12 +112,12 @@ class OrderProcessor(BotThread):
                 assert pair.sell.info.final_usd is not None
                 fees: float = pair.sell.info.final_fees + pair.buy.info.final_fees
                 total: float = pair.sell.info.final_usd - pair.buy.info.final_usd - fees
-                if total < 0.01 and total > -0.01:
-                    self.ctx.notify.queue("Trade broke even ({})".format(pair.algorithm))
-                elif total > 0:
-                    self.ctx.notify.queue("Trade made ${:.2f} profit ({})".format(total, pair.algorithm))
-                else:
-                    self.ctx.notify.queue("Trade made ${:.2f} loss ({})".format(total * -1, pair.algorithm))
+                #if total < 0.01 and total > -0.01:
+                #    self.ctx.notify.queue("Trade broke even ({})".format(pair.algorithm))
+                #elif total > 0:
+                #    self.ctx.notify.queue("Trade made ${:.2f} profit ({})".format(total, pair.algorithm))
+                #else:
+                #    self.ctx.notify.queue("Trade made ${:.2f} loss ({})".format(total * -1, pair.algorithm))
         # Canceled
         elif status != "OPEN":
             Log.info("{} order for {} canceled.".format(
@@ -127,8 +128,9 @@ class OrderProcessor(BotThread):
         # Stale
         elif order.info.order_time + relativedelta(minutes=2) < datetime.now():
             # If we're far off the mark, lets set it to pending so it gets requeued
+            buy: bool = order.order_type == Order.Type.Buy
             market: float = self.ctx.current_market.bid if order.order_type == Order.Type.Buy else self.ctx.current_market.ask
-            if abs(order.info.order_market - market) > 100.0:
+            if (buy and market - order.info.order_market > 100.0) or (not buy and order.info.order_market - market > 100.0):
                 Log.info("Stale {} for {}.".format(
                     order.order_type.name,
                     pair.algorithm,
@@ -157,14 +159,19 @@ class OrderProcessor(BotThread):
         # Determine if it's the appropriate time to queue our order
         queue: Callable
         final_price: float
+        queue_price: float
         if order.order_type == Order.Type.Buy:
             queue = order_api.limit_order_gtc_buy
-            final_price = floor_usd(self.ctx.current_market.ask - 20.0)
+            queue_price = floor_usd(self.ctx.current_market.ask - 40.0)
+            final_price = queue_price - 20.0
+            if queue_price < order_price:
+                return None
             if final_price > order_price:
                 return None
         elif order.order_type == Order.Type.Sell:
             queue = order_api.limit_order_gtc_sell
-            final_price = floor_usd(self.ctx.current_market.bid + 20.0)
+            queue_price = floor_usd(self.ctx.current_market.bid + 40.0)
+            final_price = queue_price + 20.0
             if final_price < order_price:
                 return None
 

@@ -28,7 +28,7 @@ def parse_date(x):
     return datetime.strptime(x, "%Y-%m-%d %H:%M:%S")
 
 def create_plot(
-    START_AT="2024-03-20 08:00:00",
+    START_AT="2024-03-26 15:30:00",
     backend='Agg'
     ) -> None:
 

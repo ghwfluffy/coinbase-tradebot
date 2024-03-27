@@ -1,5 +1,6 @@
 from gtb.core.api import CoinbaseApi
 from gtb.market.prices import MarketPrices
+from gtb.market.top import MarketTop
 from gtb.phases.calculations import PhaseCalculations
 from gtb.orders.history import OrderHistory
 from gtb.orders.order_book import OrderBook
@@ -11,6 +12,7 @@ class Context():
     api: CoinbaseApi
     current_market: MarketPrices
     smooth_market: MarketPrices
+    market_top: MarketTop
     phases: PhaseCalculations
     history: OrderHistory
     order_book: OrderBook
@@ -21,6 +23,7 @@ class Context():
         self.api = CoinbaseApi()
         self.current_market = MarketPrices()
         self.smooth_market = MarketPrices()
+        self.market_top = MarketTop()
         self.phases = PhaseCalculations()
         self.history = OrderHistory()
         self.order_book = OrderBook()

@@ -13,6 +13,7 @@ Log.INFO = False
 ctx: Context = Context()
 ctx.order_book.read_fs()
 ctx.history.read_fs()
+ctx.history.prune("2024-03-26 15:30:00")
 
 market: MarketPrices = get_current_market(ctx)
 
@@ -51,9 +52,9 @@ for pair in ctx.history.order_pairs:
 
     if algorithm == "Spread":
         spread_finalized -= pair.buy.info.final_usd
-        #spread_finalized -= pair.buy.info.final_fees
+        spread_finalized -= pair.buy.info.final_fees
         spread_finalized += pair.sell.info.final_usd
-        #spread_finalized -= pair.sell.info.final_fees
+        spread_finalized -= pair.sell.info.final_fees
 
 # Read in pending orders
 spread_pending_btc: float = 0.0
@@ -70,10 +71,11 @@ for pair in ctx.order_book.order_pairs:
     assert pair.buy.info.final_usd is not None
     assert pair.buy.info.final_fees is not None
 
+    algorithm = pair.algorithm.split("-")[0]
     if algorithm == "Spread":
         spread_pending_btc += pair.buy.btc
         spread_pending_usd += pair.buy.info.final_usd
-        #spread_pending_usd += pair.buy.info.final_fees
+        spread_pending_usd += pair.buy.info.final_fees
 
 # Print HODL
 hodl_current: float = hodl_btc * market.bid

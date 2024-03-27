@@ -33,27 +33,23 @@ class Settings():
 
     spreads: List[Spread] = [
         Spread(
-            name="Min",
-            usd=20,
-            #usd=500,
-            spread=0.002,
-        ),
-        Spread(
             name="Low",
-            usd=20,
-            #usd=500,
-            spread=0.003,
+            usd=100,
+            spread=0.0036,
         ),
         Spread(
             name="Mid",
-            usd=20,
-            #usd=500,
-            spread=0.0045,
+            usd=225,
+            spread=0.0046,
         ),
         Spread(
             name="High",
-            usd=20,
-            #usd=500,
-            spread=0.006,
+            usd=300,
+            spread=0.0052,
+        ),
+        Spread(
+            name="Max",
+            usd=300,
+            spread=0.01,
         ),
     ]

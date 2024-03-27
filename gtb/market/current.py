@@ -40,6 +40,15 @@ class CurrentMarketThread(BotThread):
         self.next_write = datetime.now()
 
     def init(self) -> None:
+        self.init_current_market()
+        self.init_market_top()
+        Log.info("Current market initialized.")
+
+        # Create data directory
+        if not os.path.exists(os.path.dirname(CurrentMarketThread.file)):
+            os.makedirs(os.path.dirname(CurrentMarketThread.file))
+
+    def init_current_market(self) -> None:
         # Make sure we have the current market data before any other threads start
         while True:
             data: MarketPrices | None = self.retrieve()
@@ -50,11 +59,10 @@ class CurrentMarketThread(BotThread):
             self.ctx.current_market = data
             self.ctx.smooth_market = copy.deepcopy(data)
             break
-        Log.info("Current market initialized.")
 
-        # Create data directory
-        if not os.path.exists(os.path.dirname(CurrentMarketThread.file)):
-            os.makedirs(os.path.dirname(CurrentMarketThread.file))
+    def init_market_top(self) -> None:
+        self.ctx.market_top.price = self.ctx.current_market.bid - 200
+        self.ctx.market_top.last_update = datetime.now()
 
     def think(self) -> None:
         # Get the current market data
@@ -85,26 +93,30 @@ class CurrentMarketThread(BotThread):
         self.ctx.smooth_market.split = new_split
         self.ctx.smooth_market.updated = current_market.updated
 
+        self.blend_top(datetime.now(), new_split)
+
         # Write market data to filesystem every minute
         if self.next_write <= datetime.now():
             self.next_write = datetime.now() + relativedelta(minutes=1)
 
             # Log
-            Log.trace("Market: [ {:.2f} | {:.2f} ] -> Smooth: [ {:.2f} | {:.2f} ]".format(
+            Log.trace("Market: [ {:.2f} | {:.2f} ] -> Smooth: [ {:.2f} | {:.2f} ] -> Top: {:.2f}".format(
                 floor_usd(self.ctx.current_market.bid),
                 floor_usd(self.ctx.current_market.ask),
                 floor_usd(self.ctx.smooth_market.bid),
                 floor_usd(self.ctx.smooth_market.ask),
+                self.ctx.market_top.price,
             ))
 
             # To file
             with open(CurrentMarketThread.file, "a") as fp:
-                fp.write("{},{},{},{},{}\n".format(
+                fp.write("{},{},{},{},{},{:.2f}\n".format(
                     datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                     self.ctx.current_market.bid,
                     self.ctx.current_market.ask,
                     self.ctx.smooth_market.bid,
                     self.ctx.smooth_market.ask,
+                    self.ctx.market_top.price,
                 ))
 
     def retrieve(self) -> MarketPrices | None:
@@ -125,3 +137,22 @@ class CurrentMarketThread(BotThread):
             delta = max_delta
 
         return current + (current * delta * positive)
+
+    def blend_top(self, when: datetime, new: float) -> None:
+        max_change_per_minute: float = 0.0002
+        current: float = self.ctx.market_top.price
+        last_update: datetime = self.ctx.market_top.last_update
+        positive: float = 1 if new > current else -1
+        # Tracking top of market don't fall easily
+        if positive < 0:
+            max_change_per_minute /= 10
+        delta: float = abs((current - new) / current)
+
+        # Don't change too fast
+        seconds: float = (when - last_update).total_seconds()
+        max_delta: float = max_change_per_minute * (seconds / 60)
+        if delta > max_delta:
+            delta = max_delta
+
+        self.ctx.market_top.price = current + (current * delta * positive)
+        self.ctx.market_top.last_update = when

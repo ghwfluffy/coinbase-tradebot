@@ -27,6 +27,7 @@ class SpreadTrader(BotThread):
 
     current_spreads: Dict[str, List[OrderPair]]
     state: State
+    state_census: List[State]
     last_state_change: datetime
 
     def __init__(self, ctx: Context) -> None:
@@ -34,6 +35,7 @@ class SpreadTrader(BotThread):
 
         self.current_spreads = {}
         self.state = SpreadTrader.State.Init
+        self.state_census = []
         self.last_state_change = datetime.now()
 
     def init(self) -> None:
@@ -67,46 +69,65 @@ class SpreadTrader(BotThread):
             self.handle_spread(spread)
 
     def update_state(self) -> None:
+        # Pick a state
+        state: SpreadTrader.State = self.pick_state()
+
+        # Keep track of most recent 20 picks
+        self.state_census.append(state)
+        while len(self.state_census) > 90:
+            self.state_census.pop(0)
+
+        # Don't change too often
+        # Not enough time has passed to declare a state change
+        if self.state != SpreadTrader.State.Init and self.last_state_change + relativedelta(minutes=1) > datetime.now():
+            return None
+
+        # Take a consensus
+        agreement: bool = True
+        for c in self.state_census:
+            if c != self.state_census[0]:
+                agreement = False
+                break
+
+        # State changed
+        if agreement and self.state != state:
+            self.state = state
+            self.last_state_change = datetime.now()
+
+            if self.state == SpreadTrader.State.Waning:
+                Log.info("Market is going down.")
+                self.ctx.notify.queue(f"Market is going down (${self.ctx.smooth_market.split:.2f})")
+
+            elif self.state == SpreadTrader.State.Optimistic:
+                Log.info("Market is optimistic")
+                self.ctx.notify.queue(f"Market is optimistic (${self.ctx.smooth_market.split:.2f})")
+
+            elif self.state == SpreadTrader.State.Cautious:
+                Log.info("Market is cautious")
+                self.ctx.notify.queue(f"Market is cautious (${self.ctx.smooth_market.split:.2f})")
+            else:
+                Log.info("Market steady")
+                self.ctx.notify.queue(f"Market is steady (${self.ctx.smooth_market.split:.2f})")
+
+    def pick_state(self) -> 'SpreadTrader.State':
         # Market is going down
         overall_waning: bool = self.ctx.phases.extended == Phase.Waning or self.ctx.phases.long == Phase.Waning
         now_waning: bool = self.ctx.phases.mid == Phase.Waning
         # Waning overall and current trend is waning
         if overall_waning and (now_waning or self.state == SpreadTrader.State.Waning):
-            # Log/Notify
-            if self.state != SpreadTrader.State.Waning:
-                Log.info("Market is going down.")
-                self.ctx.notify.queue(f"Market is going down (${self.ctx.smooth_market.split:.2f})")
-            self.state = SpreadTrader.State.Waning
-            self.last_state_update = datetime.now()
-            return None
-
-        # Not enough time has passed to declare a waning state is over
-        if self.state == SpreadTrader.State.Waning and self.last_state_update + relativedelta(minutes=1) > datetime.now():
-            return None
-
-        self.last_state_update = datetime.now()
+            return SpreadTrader.State.Waning
 
         # Overall steady, but currently going up
-        if self.ctx.phases.extended == Phase.Plateau and self.ctx.phases.long == Phase.Waxing:
-            if self.state != SpreadTrader.State.Optimistic:
-                Log.info("Market is optimistic")
-                self.ctx.notify.queue(f"Market is optimistic (${self.ctx.smooth_market.split:.2f})")
-                self.state = SpreadTrader.State.Optimistic
-            return None
+        elif self.ctx.phases.extended == Phase.Plateau and self.ctx.phases.long == Phase.Waxing:
+            return SpreadTrader.State.Optimistic
 
         # Overall steady, but currently going down
         elif self.ctx.phases.extended == Phase.Plateau and self.ctx.phases.long == Phase.Waning:
-            if self.state != SpreadTrader.State.Cautious:
-                Log.info("Market is cautious")
-                self.ctx.notify.queue(f"Market is cautious (${self.ctx.smooth_market.split:.2f})")
-                self.state = SpreadTrader.State.Cautious
-            self.last_state_update = datetime.now()
-            return None
+            return SpreadTrader.State.Cautious
 
-        elif self.state != SpreadTrader.State.Steady:
-            Log.info("Market steady")
-            self.ctx.notify.queue(f"Market is steady (${self.ctx.smooth_market.split:.2f})")
-            self.state = SpreadTrader.State.Steady
+        # Steady
+        else:
+            return SpreadTrader.State.Steady
 
     def handle_spread(self, spread_info: Spread) -> None:
         current_orders: List[OrderPair] = self.current_spreads[spread_info.name]
@@ -167,9 +188,9 @@ class SpreadTrader(BotThread):
 
     def end_bad_positions(self, spread_info: Spread) -> None:
         # Calculate what "too much loss" is
-        max_delta: float = (spread_info.spread * self.ctx.smooth_market.bid) * 2
-        #max_delta: float = (spread_info.spread * self.ctx.smooth_market.split) / 2
-        max_market: float = self.ctx.smooth_market.split + max_delta
+        # Buy is 1% above market price
+        max_market_smooth: float = 1.01 * self.ctx.smooth_market.bid
+        max_market_jagged: float = 1.01 * self.ctx.current_market.bid
 
         bad_state: bool = False
         for pair in self.current_spreads[spread_info.name]:
@@ -178,18 +199,22 @@ class SpreadTrader(BotThread):
                 limit_price: float = pair.buy.get_limit_price()
                 # The price i actually bought at
                 if pair.buy.status == Order.Status.Complete:
+                    # If we're not in an overall downward trend, we're gonna hope we come back up to make the sell
+                    if self.ctx.phases.trend != Phase.Waning:
+                        continue
+
                     assert pair.buy.info is not None
                     assert pair.buy.info.final_market is not None
                     limit_price = pair.buy.info.final_market
 
                 # Within valid range?
-                if limit_price < max_market:
+                if limit_price < max_market_smooth and limit_price < max_market_jagged:
                     continue
 
                 self.set_undesirable(
                     spread_info,
                     pair,
-                    f"below threshold ({limit_price} vs {max_market})",
+                    f"below threshold ({limit_price} vs {max_market_smooth})",
                 )
 
                 # Fell below buy margin
@@ -221,11 +246,17 @@ class SpreadTrader(BotThread):
         else:
             suffix = "U"
             buy_mode = Order.Status.Pending
-            buy_market = floor_usd(market - 20)
-            sell_market = floor_usd(market + spread_usd + 20)
+            buy_market = floor_usd(market - (spread_usd / 2) - 26)
+            sell_market = floor_usd(market + (spread_usd / 2) + 26)
+        buy_market -= 10
+        sell_market += 10
         btc: float = floor_btc(spread_info.usd / buy_market)
         buy_usd: float = spread_info.usd
         sell_usd: float = ceil_usd(sell_market * btc)
+
+        # Sell is too close to market top
+        if sell_usd - 100 > self.ctx.market_top.price:
+            return None
 
         # Does the buy auto complete or do we want to wait?
         if self.ctx.phases.short == Phase.Waxing:
@@ -337,6 +368,9 @@ class SpreadTrader(BotThread):
 
     # Cancel all buys, sell all positions at a loss
     def cut_losses(self, spread_info: Spread) -> None:
+        # If we're not in an overall downward trend, we'll take our chances and hold our positions
+        if self.ctx.phases.trend != Phase.Waning:
+            return None
         for pair in self.current_spreads[spread_info.name]:
             with pair.mtx:
                 self.set_undesirable(spread_info, pair, "market falling")
@@ -354,6 +388,9 @@ class SpreadTrader(BotThread):
         # Do nothing if we just requeued this within the last couple minutes
         if pair.sell and pair.sell.info and datetime.now() < pair.sell.info.order_time + relativedelta(minutes=2):
             return None
+
+        # XXX: Not discounting any sells anymore
+        return None
 
         # Requeue cheaper sell
         if pair.sell and pair.status in [

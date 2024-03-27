@@ -3,6 +3,7 @@ import json
 
 from typing import List
 from threading import RLock
+from datetime import datetime
 
 from gtb.orders.order_pair import OrderPair
 from gtb.utils.logging import Log
@@ -60,3 +61,13 @@ class OrderHistory():
         with self.mtx:
             self.order_pairs.append(order)
             self.write_fs()
+
+    def prune(self, oldest: str) -> None:
+        with self.mtx:
+            oldest_date: datetime = datetime.strptime(oldest, "%Y-%m-%d %H:%M:%S")
+            idx = 0
+            while idx < len(self.order_pairs):
+                if self.order_pairs[idx].event_time < oldest_date:
+                    self.order_pairs.pop(idx)
+                else:
+                    idx += 1

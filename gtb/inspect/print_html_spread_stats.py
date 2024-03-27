@@ -11,6 +11,7 @@ Log.INFO = False
 
 ctx: Context = Context()
 ctx.history.read_fs()
+ctx.history.prune("2024-03-26 15:30:00")
 
 # Table Header
 print("<TABLE border=1 cellpadding=5>")

@@ -41,7 +41,8 @@ class PhaseTracker(BotThread):
         if len(self.history) == 1:
             return None
 
-        max_ago: datetime = datetime.now() - relativedelta(hours=6)
+        max_ago: datetime = datetime.now() - relativedelta(hours=12)
+        trend_ago: datetime = datetime.now() - relativedelta(hours=8)
         extended_ago: datetime = datetime.now() - relativedelta(minutes=90)
         long_ago: datetime = datetime.now() - relativedelta(minutes=30)
         mid_ago: datetime = datetime.now() - relativedelta(minutes=10)
@@ -49,6 +50,7 @@ class PhaseTracker(BotThread):
         acute_ago: datetime = datetime.now() - relativedelta(minutes=1)
 
         max_index: int = -1
+        trend_index: int = -1
         extended_index: int = -1
         long_index: int = -1
         mid_index: int = -1
@@ -58,6 +60,8 @@ class PhaseTracker(BotThread):
             cur: Tuple[datetime, float] = self.history[index]
             if cur[0] < max_ago:
                 max_index = index
+            if cur[0] < trend_ago:
+                trend_index = index
             if cur[0] < extended_ago:
                 extended_index = index
             if cur[0] < long_ago:
@@ -87,6 +91,9 @@ class PhaseTracker(BotThread):
         if extended_index >= 0:
             calc.extended = self.calc_phase(extended_index, 500.0)
 
+        if trend_index >= 0:
+            calc.trend = self.calc_phase(trend_index, 200.0)
+
         # Trim history
         if max_index >= 0:
             self.history = self.history[max_index:]
@@ -94,12 +101,13 @@ class PhaseTracker(BotThread):
         # Trace log periodically
         if self.next_write <= datetime.now():
             self.next_write = datetime.now() + relativedelta(minutes=1)
-            Log.trace("Phases: [ {} | {} | {} | {} | {} ]".format(
+            Log.trace("Phases: [ {} | {} | {} | {} | {} ] - Trend: {}".format(
                 calc.extended.name,
                 calc.long.name,
                 calc.mid.name,
                 calc.short.name,
                 calc.acute.name,
+                calc.trend.name,
             ))
 
         # Save state
