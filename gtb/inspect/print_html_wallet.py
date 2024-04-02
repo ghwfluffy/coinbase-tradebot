@@ -52,6 +52,7 @@ spread_usd: float = 0.0
 
 # Read in active orders
 for pair in ctx.order_book.order_pairs:
+    algorithm = pair.algorithm.split("-")[0]
     # Bitcoins to be sold
     if pair.status in [
         OrderPair.Status.OnHoldSell,

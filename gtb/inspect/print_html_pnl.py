@@ -52,7 +52,7 @@ for pair in ctx.history.order_pairs:
 
     if algorithm == "Spread":
         spread_finalized -= pair.buy.info.final_usd
-        spread_finalized -= pair.buy.info.final_fees
+        #spread_finalized -= pair.buy.info.final_fees
         spread_finalized += pair.sell.info.final_usd
         spread_finalized -= pair.sell.info.final_fees
 
@@ -75,11 +75,11 @@ for pair in ctx.order_book.order_pairs:
     if algorithm == "Spread":
         spread_pending_btc += pair.buy.btc
         spread_pending_usd += pair.buy.info.final_usd
-        spread_pending_usd += pair.buy.info.final_fees
+        #spread_pending_usd += pair.buy.info.final_fees
 
 # Print HODL
 hodl_current: float = hodl_btc * market.bid
-hodl_fees: float = hodl_current * 0.001
+hodl_fees: float = hodl_current * 0.0015
 hodl_final: float = hodl_current - hodl_usd - hodl_fees
 print("  <TR>")
 print("    <TD>HODL</TD>")
@@ -90,7 +90,7 @@ print("  </TR>")
 
 # Print spread
 spread_to_sell: float = spread_pending_btc * market.bid
-spread_to_sell_fees: float = spread_to_sell * 0.001
+spread_to_sell_fees: float = spread_to_sell * 0.0015
 spread_pending: float = spread_to_sell - spread_pending_usd - spread_to_sell_fees
 print("  <TR>")
 print("    <TD>Spread</TD>")

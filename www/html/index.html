@@ -42,6 +42,16 @@
   </TR>
   <TR>
     <TD width=100%>
+      <div id="demand" class="plaintext"></div>
+    </TD>
+  </TR>
+  <TR>
+    <TD width=100%>
+      <div id="volume" class="plaintext"></div>
+    </TD>
+  </TR>
+  <TR>
+    <TD width=100%>
       <div id="logs" class="plaintext"></div>
     </TD>
   </TR>
@@ -75,6 +85,42 @@ fetch('/api/graph')
     img.src = "data:image/png;base64," + data.data;
     img.style.width = "100%";
     document.getElementById("graph").appendChild(img);
+  })
+  .catch(error => {
+    document.getElementById("error").textContent = "Network error";
+  });
+
+fetch('/api/demand')
+  .then(response => {
+    // Check if the request was successful
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
+    return response.json(); // Parse the response body as JSON
+  })
+  .then(data => {
+    const img = document.createElement('img');
+    img.src = "data:image/png;base64," + data.data;
+    img.style.width = "100%";
+    document.getElementById("demand").appendChild(img);
+  })
+  .catch(error => {
+    document.getElementById("error").textContent = "Network error";
+  });
+
+fetch('/api/volume')
+  .then(response => {
+    // Check if the request was successful
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
+    return response.json(); // Parse the response body as JSON
+  })
+  .then(data => {
+    const img = document.createElement('img');
+    img.src = "data:image/png;base64," + data.data;
+    img.style.width = "100%";
+    document.getElementById("volume").appendChild(img);
   })
   .catch(error => {
     document.getElementById("error").textContent = "Network error";

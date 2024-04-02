@@ -34,14 +34,14 @@ for pair in reversed(ctx.history.order_pairs):
     print("  <TR>")
     print("    <TD>{}</TD>".format(pair.event_time.strftime("%Y-%m-%d %H:%M:%S")))
     print("    <TD>{}</TD>".format(pair.algorithm))
-    print("    <TD>${:.2f}</TD>".format(pair.buy.info.final_usd))
+    print("    <TD>${:.2f}</TD>".format(pair.buy.info.final_usd - pair.buy.info.final_fees))
     if pair.sell and pair.sell.info and pair.sell.info.final_usd:
         assert pair.sell is not None
         assert pair.sell.info is not None
         assert pair.sell.info.final_usd is not None
         assert pair.sell.info.final_fees is not None
         fees: float = pair.sell.info.final_fees + pair.buy.info.final_fees
-        total: float = pair.sell.info.final_usd - pair.buy.info.final_usd - fees
+        total: float = pair.sell.info.final_usd - pair.buy.info.final_usd - pair.sell.info.final_fees
         print("    <TD>${:.2f}</TD>".format(pair.sell.info.final_usd))
         print("    <TD>${:.2f}</TD>".format(fees))
         print("    <TD>${:.2f}</TD>".format(total))

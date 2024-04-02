@@ -22,7 +22,10 @@ def get_info():
 def get_logs():
     logs = ""
     with open("/var/tradebot/logs/log.txt", "r") as fp:
-        logs = fp.read()
+        logs = fp.readlines()
+    if len(logs) > 5000:
+        logs = logs[-5000:]
+    logs = "".join(logs)
     data = {
         "logs": logs,
     }
@@ -122,3 +125,23 @@ def get_graph():
         return jsonify(data)
     finally:
         os.chdir(orig_dir)
+
+@app.route('/demand', methods=['GET'])
+def get_demand():
+    cmd = ['sudo', '-u', 'ghw', './bin/demand_graph.sh']
+    process = subprocess.run(cmd, text=True, capture_output=True)
+    stdout = process.stdout
+    data = {
+        "data": stdout,
+    }
+    return jsonify(data)
+
+@app.route('/volume', methods=['GET'])
+def get_volume():
+    cmd = ['sudo', '-u', 'ghw', './bin/volume_graph.sh']
+    process = subprocess.run(cmd, text=True, capture_output=True)
+    stdout = process.stdout
+    data = {
+        "data": stdout,
+    }
+    return jsonify(data)

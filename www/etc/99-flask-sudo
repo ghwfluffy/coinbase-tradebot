@@ -1,8 +1,10 @@
 www-data ALL=(ghw) NOPASSWD: \
     /var/tradebot/www/flask/bin/allocations.sh, \
     /var/tradebot/www/flask/bin/counter.sh, \
+    /var/tradebot/www/flask/bin/demand_graph.sh, \
     /var/tradebot/www/flask/bin/history.sh, \
     /var/tradebot/www/flask/bin/orders.sh, \
     /var/tradebot/www/flask/bin/pnl.sh, \
     /var/tradebot/www/flask/bin/spread_stats.sh, \
+    /var/tradebot/www/flask/bin/volume_graph.sh, \
     /var/tradebot/www/flask/bin/wallet.sh

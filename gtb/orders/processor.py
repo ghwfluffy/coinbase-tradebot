@@ -19,7 +19,7 @@ from coinbase.rest import orders as order_api
 class OrderProcessor(BotThread):
 
     def __init__(self, ctx: Context) -> None:
-        super().__init__(ctx)
+        super().__init__(ctx, sleep_seconds = 0.2)
 
     def init(self) -> None:
         pass
@@ -100,7 +100,7 @@ class OrderProcessor(BotThread):
             ))
 
             if order.order_type == Order.Type.Buy:
-                #self.ctx.notify.queue("Buy order ${:.2f} filled ({})".format(order.info.final_usd, pair.algorithm))
+                self.ctx.notify.queue("Buy order ${:.2f} filled ({})".format(order.info.final_usd, pair.algorithm))
                 pass
             else:
                 assert pair.buy.info is not None
@@ -110,19 +110,21 @@ class OrderProcessor(BotThread):
                 assert pair.sell.info is not None
                 assert pair.sell.info.final_fees is not None
                 assert pair.sell.info.final_usd is not None
-                fees: float = pair.sell.info.final_fees + pair.buy.info.final_fees
+                fees: float = pair.sell.info.final_fees # buy price includes fees
                 total: float = pair.sell.info.final_usd - pair.buy.info.final_usd - fees
-                #if total < 0.01 and total > -0.01:
-                #    self.ctx.notify.queue("Trade broke even ({})".format(pair.algorithm))
-                #elif total > 0:
-                #    self.ctx.notify.queue("Trade made ${:.2f} profit ({})".format(total, pair.algorithm))
-                #else:
-                #    self.ctx.notify.queue("Trade made ${:.2f} loss ({})".format(total * -1, pair.algorithm))
+                if total < 0.01 and total > -0.01:
+                    self.ctx.notify.queue("Trade broke even ({})".format(pair.algorithm))
+                elif total > 0:
+                    self.ctx.notify.queue("Trade made ${:.2f} profit ({})".format(total, pair.algorithm))
+                else:
+                    self.ctx.notify.queue("Trade made ${:.2f} loss ({})".format(total * -1, pair.algorithm))
         # Canceled
         elif status != "OPEN":
-            Log.info("{} order for {} canceled.".format(
+            # TODO: Partially filled orders are possible?
+            Log.info("{} order for {} canceled ({}).".format(
                 order.order_type.name,
                 pair.algorithm,
+                status,
             ))
             order.status = Order.Status.Canceled
         # Stale

@@ -246,16 +246,21 @@ class SpreadTrader(BotThread):
         else:
             suffix = "U"
             buy_mode = Order.Status.Pending
-            buy_market = floor_usd(market - (spread_usd / 2) - 26)
-            sell_market = floor_usd(market + (spread_usd / 2) + 26)
-        buy_market -= 10
-        sell_market += 10
+            buy_market = floor_usd(market - (spread_usd / 2))
+            sell_market = floor_usd(market + (spread_usd / 2))
+        buy_market -= 60
+        sell_market -= 20
         btc: float = floor_btc(spread_info.usd / buy_market)
         buy_usd: float = spread_info.usd
-        sell_usd: float = ceil_usd(sell_market * btc)
+        sell_usd: float = sell_market * btc
+
+        #buy_fee: float = buy_usd * 0.015 # XXX
+        #sell_usd = ceil_usd(sell_usd + buy_fee)
+        #sell_market = ceil_usd(sell_usd / btc)
 
         # Sell is too close to market top
-        if sell_usd - 100 > self.ctx.market_top.price:
+        if sell_market > self.ctx.market_top.price - 100:
+            top: float = self.ctx.market_top.price - 100
             return None
 
         # Does the buy auto complete or do we want to wait?

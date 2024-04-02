@@ -69,18 +69,27 @@ def create_plot(
         if pair.status == OrderPair.Status.Canceled:
             continue
 
+        color: str
+        buy_market: float
+        buy_time: datetime
         if pair.algorithm == "HODL":
-            values.append(pair.buy.get_limit_price())
-            times.append(pair.event_time)
-            plt.scatter(pair.event_time, pair.buy.get_limit_price(), color='pink') # type: ignore
+            color = 'pink'
+            buy_time = pair.event_time
+            if pair.buy.status == Order.Status.Complete:
+                assert pair.buy.info is not None
+                buy_time = pair.buy.info.order_time
+                color = '#C71585'
+
+            buy_market = pair.buy.get_limit_price()
+            values.append(buy_market)
+            times.append(buy_time)
+            plt.scatter(buy_time, buy_market, color=color) # type: ignore
             continue
 
         # Buy
-        buy_market: float
-        buy_time: datetime
-        color: str = 'blue'
         if pair.buy.status == Order.Status.Active:
             assert pair.buy.info is not None
+            color = 'orange'
             buy_time = pair.buy.info.order_time
             buy_market = pair.buy.get_limit_price()
         elif pair.buy.status == Order.Status.Complete:
@@ -91,6 +100,7 @@ def create_plot(
             buy_market = pair.buy.info.final_market
             color = 'red'
         else:
+            color = 'blue'
             buy_time = pair.event_time
             buy_market = pair.buy.get_limit_price()
         plt.scatter(buy_time, buy_market, color=color) # type: ignore
@@ -98,6 +108,7 @@ def create_plot(
         values.append(buy_market)
 
         if not pair.sell:
+            # Shouldn't happen
             continue
 
         # Sell
@@ -117,6 +128,7 @@ def create_plot(
             sell_market = pair.sell.info.final_market
         else:
             sell_time = buy_time
+            #sell_time = buy_time
             sell_market = pair.sell.get_limit_price()
         plt.scatter(sell_time, sell_market, color='green') # type: ignore
         times.append(sell_time)
@@ -124,9 +136,10 @@ def create_plot(
 
         if pair.sell.status == Order.Status.Complete:
             color = 'green' if sell_market >= buy_market else 'red'
-            plt.plot([buy_time, sell_time], [buy_market, sell_market], color=color) # type: ignore
+            plt.plot([buy_time, sell_time], [buy_market, sell_market], color=color, zorder=1) # type: ignore
         else:
-            plt.plot([buy_time, sell_time], [buy_market, sell_market], color='gray', linestyle='--', linewidth=1) # type: ignore
+            plt.plot([buy_time, sell_time], [buy_market, sell_market], color='gray', linestyle='--', linewidth=1, zorder=1) # type: ignore
+            plt.plot([sell_time, datetime.now()], [sell_market, sell_market], color='gray', linestyle='--', linewidth=1, zorder=1) # type: ignore
 
     if len(values) == 0:
         print("No matching data.")
@@ -159,7 +172,7 @@ def create_plot(
 
     market.sort(key=lambda x:x[0])
     x, y = zip(*market)
-    plt.plot(x, y, color='yellow')
+    plt.plot(x, y, color='yellow', zorder=0)
 
     # Setup labels
     plt.title('Trade History')
