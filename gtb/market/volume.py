@@ -10,13 +10,14 @@ from gtb.utils.maths import floor_usd
 
 from coinbase.rest import products
 
-VOLUME_WINDOW = 3000.0
-
 class MarketVolume():
     pricebook: dict
 
     def __init__(self, pricebook: dict):
         self.pricebook = pricebook
+
+    def get_time(self) -> datetime:
+        return datetime.strptime(self.pricebook['time'], "%Y-%m-%d %H:%M:%S.%f")
 
     def debug_print(self) -> None:
         print(json.dumps(self.pricebook, indent=2))
@@ -43,13 +44,13 @@ def get_volume_orders(ctx: Context) -> MarketVolume:
     # BTC-USD: Base BTC, Quote USD
     data = products.get_product_book(ctx.api, product_id="BTC-USD")
     return MarketVolume({
+            'time': datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f"),
             'bids': data['pricebook']['bids'],
             'asks': data['pricebook']['asks'],
         })
 
 class TrackVolumeThread(BotThread):
-    file: str = "data/volume.csv"
-    next_write: datetime
+    file: str = "data/volume.jsonl"
 
     def __init__(self, ctx: Context) -> None:
         super().__init__(ctx, sleep_seconds = 1)
@@ -59,4 +60,11 @@ class TrackVolumeThread(BotThread):
         pass
 
     def think(self) -> None:
-        pass
+        try:
+            volume: MarketVolume = get_volume_orders(self.ctx)
+        except:
+            return None;
+
+        # To file
+        with open(TrackVolumeThread.file, "a") as fp:
+            fp.write("{}\n".format(json.dumps(volume.pricebook)))

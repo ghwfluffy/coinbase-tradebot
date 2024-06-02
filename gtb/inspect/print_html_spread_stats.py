@@ -11,12 +11,12 @@ Log.INFO = False
 
 ctx: Context = Context()
 ctx.history.read_fs()
-ctx.history.prune("2024-03-26 15:30:00")
+#ctx.history.prune("2024-03-26 15:30:00")
 
 # Table Header
 print("<TABLE border=1 cellpadding=5>")
 print("  <TR>")
-for col in ["Spread", "Wins", "Losses", "Total", "Average"]:
+for col in ["Spread", "Wins", "Losses", "Total"]:#, "Average"]:
     print("    <TH>{}</TH>".format(col))
 print("  </TR>")
 
@@ -72,18 +72,18 @@ keys.sort()
 
 for spread in keys:
     stats: Stats = spread_stats[spread]
-    if stats.wins < 2:
-        continue
+    #if stats.wins < 2:
+    #    continue
     total_count: int = stats.wins + stats.losses
     total_delta: float = stats.wins_delta + stats.losses_delta
-    average: float = total_delta / stats.wins
+    #average: float = total_delta / stats.wins
     #average: float = total_delta / total_count
     print(f"  <TR>")
     print(f"    <TD>{spread}</TD>")
     print(f"    <TD>${stats.wins_delta:.2f} ({stats.wins})</TD>")
     print(f"    <TD>${stats.losses_delta:.2f} ({stats.losses})</TD>")
     print(f"    <TD>${total_delta:.2f} ({total_count})</TD>")
-    print(f"    <TD>${average:.2f}</TD>")
+    #print(f"    <TD>${average:.2f}</TD>")
     print(f"  </TR>")
 
 # End table

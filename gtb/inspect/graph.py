@@ -17,6 +17,7 @@ from gtb.orders.history import OrderHistory
 from gtb.orders.order_pair import OrderPair
 from gtb.orders.order import Order
 from gtb.utils.logging import Log
+from gtb.market.volume import MarketVolume
 
 Log.INFO = False
 
@@ -28,7 +29,7 @@ def parse_date(x):
     return datetime.strptime(x, "%Y-%m-%d %H:%M:%S")
 
 def create_plot(
-    START_AT="2024-03-26 15:30:00",
+    START_AT="2024-05-03 17:00:00",
     backend='Agg'
     ) -> None:
 
@@ -44,6 +45,12 @@ def create_plot(
     market_csv: List[str]
     with open("data/market.csv") as fp:
         market_csv = fp.readlines()
+
+    market_demand: List[Tuple[datetime, float]] = []
+    with open("data/demand.csv") as fp:
+        for line in fp:
+            demand_fields: List[str] = line.split(",")
+            market_demand.append((datetime.strptime(demand_fields[0], "%Y-%m-%d %H:%M:%S.%f"), float(demand_fields[1])))
 
     # Aggregated data
     times: List[datetime] = []
@@ -107,6 +114,10 @@ def create_plot(
         times.append(buy_time)
         values.append(buy_market)
 
+        # Draw from conception
+        plt.scatter(pair.event_time, pair.event_price, color="black") # type: ignore
+        plt.plot([pair.event_time, buy_time], [pair.event_price, buy_market], color="orange", zorder=1) # type: ignore
+
         if not pair.sell:
             # Shouldn't happen
             continue
@@ -152,6 +163,10 @@ def create_plot(
 
     # Make a yellow line for the market value
     market: List[Tuple[datetime, float]] = []
+    demand: List[Tuple[datetime, float]] = []
+    demand_smooth: float = 0
+    demand_lastupdate: datetime
+    volume_index: int = 0
     for line in market_csv:
         fields: List[str] = line.split(",")
         when: datetime = parse_date(fields[0])
@@ -164,6 +179,126 @@ def create_plot(
         market.append((when, split))
         values.append(split)
 
+
+        if volume_index == 0:
+            demand_smooth = split
+            demand_lastupdate = when
+
+        #while (volume_index + 1) < len(market_volume):
+        #    cur_volume: MarketVolume = market_volume[volume_index]
+        #    if cur_volume.get_time() > when:
+        #        break
+        #    if cur_volume.get_time() <= when and market_volume[volume_index + 1].get_time() >= when:
+        #        demand_pos: int = 10
+        #        demand_value: float = cur_volume.get_bids(demand_pos) / cur_volume.get_asks(demand_pos)
+        #        below: bool = demand_value < 1
+        #        while (below and demand_value < 1) or (not below and demand_value > 1):
+        #            demand_pos += 5
+        #            demand_value = cur_volume.get_bids(demand_pos) / cur_volume.get_asks(demand_pos)
+        #            if demand_pos > 2000:
+        #                break
+
+        #        positive: float = -1 if below else 1
+        #        delta: float = abs(demand_pos / demand_smooth)
+
+        #        # Don't change too fast
+        #        demand_time_diff: float = (when - demand_lastupdate).total_seconds()
+        #        max_demand_per_minute: float = 0.001
+        #        max_delta: float = max_demand_per_minute * (demand_time_diff / 60)
+        #        if delta > max_delta:
+        #            delta = max_delta
+
+        #        demand.append((when, demand_smooth + (demand_smooth * delta * positive)))
+        #        break
+        #    volume_index += 1
+        start_index: int = volume_index
+        while False and (volume_index + 1) < len(market_demand):
+            start_demand: Tuple[datetime, float] = market_demand[start_index]
+            if start_demand[0] > when:
+                break
+            end_demand: Tuple[datetime, float] = market_demand[volume_index]
+            if end_demand[0] >= when:
+                def blend_demand(avg: Tuple[datetime, float], cur: Tuple[datetime, float]) -> Tuple[datetime, float]:
+                    demand_delta: float = cur[1] - avg[1]
+                    positive: int = 1 if demand_delta > 0 else -1
+                    time_delta: float = (cur[0] - avg[0]).total_seconds()
+                    max_delta_per_minute: float = 200
+                    max_delta: float = max_delta_per_minute * (time_delta / 60)
+                    if abs(demand_delta) > max_delta:
+                        demand_delta = max_delta * positive
+                    return (cur[0], avg[1] + demand_delta)
+
+                avg: Tuple[datetime, float] = (start_demand[0], 0)
+                avg2: float = 0
+                for index in range(start_index, volume_index):
+                    cur_demand: Tuple[datetime, float] = market_demand[index]
+                    avg = blend_demand(avg, cur_demand)
+
+                    avg2 += cur_demand[1]
+                avg2 /= (volume_index - start_index)
+
+                demand_value: float = split + avg2
+                #demand_value: float = split + avg[1]
+                positive: float = 1 if demand_value >= demand_smooth else -1
+                demand_time_diff: float = (when - demand_lastupdate).total_seconds()
+                demand_delta: float = abs(demand_smooth - demand_value)
+                if demand_delta > 50:
+                    demand_delta = 50
+                #max_delta_per_minute: float = 200
+                #max_delta: float = max_delta_per_minute * (demand_time_diff / 60)
+                #print("| {} | {}".format(demand_time_diff, demand_delta))
+                #if demand_delta > max_delta:
+                #    demand_delta = max_delta
+                demand_lastupdate = when
+                demand_smooth = demand_smooth + (demand_delta * positive)
+                demand.append((when, demand_smooth))
+                #demand_lastupdate = when
+                #demand_smooth = demand_smooth + (demand_smooth * delta * positive)
+                #delta: float = 1 if demand_smooth == 0 else abs(demand_smooth - demand_value) / demand_smooth
+
+
+
+
+
+
+
+                #if avg2 > 0:
+                #    demand.append((when, split + 100))
+                #else:
+                #    demand.append((when, split - 100))
+                #demand.append((when, split + avg2))
+                #demand.append((when, split + avg[1]))
+
+#                demand_value: float = avg[1]
+#                positive: float = 1 if demand_value >= 0 else -1
+#                demand_time_diff: float = (when - demand_lastupdate).total_seconds()
+#                demand_delta: float = abs(demand_value)
+#                max_delta_per_minute: float = 10
+#                max_delta: float = max_delta_per_minute * (demand_time_diff / 60)
+#                print("{} | {} | {}".format(demand_time_diff, demand_delta, max_delta))
+#                if demand_delta > max_delta:
+#                    demand_delta = max_delta
+#                demand_lastupdate = when
+#                demand_smooth = demand_smooth + (demand_delta * positive)
+                #demand_lastupdate = when
+                #demand_smooth = demand_smooth + (demand_smooth * delta * positive)
+                #delta: float = 1 if demand_smooth == 0 else abs(demand_smooth - demand_value) / demand_smooth
+
+                # Don't change too fast
+                #demand_time_diff: float = (when - demand_lastupdate).total_seconds()
+                #max_demand_per_minute: float = 10
+                #max_delta: float = max_demand_per_minute * (demand_time_diff / 60)
+                #if delta > max_delta:
+                #    delta = max_delta
+                #print("{} | {} | {}".format(demand_value, demand_smooth, delta))
+
+                #demand_smooth = demand_smooth + (demand_smooth * delta * positive)
+#                demand.append((when, split + demand_smooth))
+
+
+                break
+            volume_index += 1
+
     # Setup y axis
     values.sort()
     min_value: float = values[0]
@@ -172,7 +307,11 @@ def create_plot(
 
     market.sort(key=lambda x:x[0])
     x, y = zip(*market)
-    plt.plot(x, y, color='yellow', zorder=0)
+    plt.plot(x, y, color='yellow', zorder=10, label='market')
+
+    #demand.sort(key=lambda x:x[0])
+    #x, y = zip(*demand)
+    #plt.plot(x, y, color='#9900cc', zorder=10, label='demand')
 
     # Setup labels
     plt.title('Trade History')
@@ -181,5 +320,6 @@ def create_plot(
     plt.legend()
 
 if __name__ == '__main__':
-    create_plot(backend='Qt5Agg')
+    #create_plot(backend='Qt5Agg')
+    create_plot(backend='Agg')
     plt.show()

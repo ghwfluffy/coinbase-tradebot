@@ -50,6 +50,13 @@ spread_btc_hold: float = 0.0
 # Amount of USD locked in active spreads
 spread_usd: float = 0.0
 
+# Amount of BTC pending sell for AllIn
+allin_btc: float = 0.0
+allin_btc_hold: float = 0.0
+# Amount of USD locked in active AllIn
+allin_usd: float = 0.0
+
+
 # Read in active orders
 for pair in ctx.order_book.order_pairs:
     algorithm = pair.algorithm.split("-")[0]
@@ -63,6 +70,10 @@ for pair in ctx.order_book.order_pairs:
             spread_btc += pair.buy.btc
             if pair.status == OrderPair.Status.ActiveSell:
                 spread_btc_hold += pair.buy.btc
+        elif algorithm == "AllIn":
+            allin_btc += pair.buy.btc
+            if pair.status == OrderPair.Status.ActiveSell:
+                allin_btc_hold += pair.buy.btc
 
     # USD locked in active trade
     elif pair.status in [
@@ -70,8 +81,20 @@ for pair in ctx.order_book.order_pairs:
     ]:
         if algorithm == "Spread":
             spread_usd += pair.buy.usd
+        elif algorithm == "AllIn":
+            allin_usd += pair.buy.usd
         elif algorithm == "HODL":
             hodl_usd += pair.buy.usd
+
+# AllIn
+allin_btc_usd: float = floor_usd(allin_btc * market.bid)
+print("  <TR>")
+print("    <TD>AllIn</TD>")
+print("    <TD>{:.8f}</TD>".format(allin_btc))
+print("    <TD>${:.2f}</TD>".format(allin_btc_usd))
+print("    <TD>${:.2f}</TD>".format(allin_usd))
+print("    <TD>${:.2f}</TD>".format(allin_usd + allin_btc_usd))
+print("  </TR>")
 
 # Spread
 spread_btc_usd: float = floor_usd(spread_btc * market.bid)
@@ -94,9 +117,9 @@ print("    <TD>${:.2f}</TD>".format(hodl_usd + hodl_btc_usd))
 print("  </TR>")
 
 # Out-of-band
-other_btc: float = wallet.btc_hold - spread_btc_hold
+other_btc: float = wallet.btc_hold - spread_btc_hold - allin_btc_hold
 other_btc_usd: float = floor_usd(other_btc * market.bid)
-other_usd: float = wallet.usd_hold - spread_usd - hodl_usd
+other_usd: float = wallet.usd_hold - spread_usd - hodl_usd - allin_usd
 print("  <TR>")
 print("    <TD>Manual</TD>")
 print("    <TD>{:.8f}</TD>".format(other_btc))
@@ -106,7 +129,7 @@ print("    <TD>${:.2f}</TD>".format(other_usd + other_btc_usd))
 print("  </TR>")
 
 # Orphans
-orphan_btc: float = wallet.btc_available - (spread_btc - spread_btc_hold) - hodl_btc
+orphan_btc: float = wallet.btc_available - (spread_btc - spread_btc_hold + allin_btc - allin_btc_hold) - hodl_btc
 orphan_btc_usd: float = floor_usd(orphan_btc * market.bid)
 orphan_usd: float = wallet.usd_available
 print("  <TR>")

@@ -5,10 +5,12 @@ from gtb.core.context import Context
 from gtb.core.thread import BotThread
 
 from gtb.market.current import CurrentMarketThread
+from gtb.market.volume import TrackVolumeThread
 from gtb.orders.processor import OrderProcessor
 from gtb.phases.tracker import PhaseTracker
 from gtb.traders.hodl import DiamondHands
 from gtb.traders.spread import SpreadTrader
+from gtb.traders.allin import AllInTrader
 from gtb.noti.notifications import NotificationThread
 
 class Bot():
@@ -31,6 +33,10 @@ class Bot():
             DiamondHands(self.ctx),
             # Pick buy and sell points based on current market
             SpreadTrader(self.ctx),
+            # Make one big bet and see what market does
+            AllInTrader(self.ctx),
+            # Track the current market volume/demand
+            #TrackVolumeThread(self.ctx),
             # Try to predict large up ticks in the market
             #PhasedTrader(self.ctx),
         ]

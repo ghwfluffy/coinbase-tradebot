@@ -30,6 +30,7 @@ class OrderPair():
     status: 'OrderPair.Status'
     algorithm: str
     event_time: datetime
+    event_price: float
     buy_only: bool
     mtx: Lock
 
@@ -39,6 +40,7 @@ class OrderPair():
         self.status = OrderPair.Status.Pending
         self.algorithm = algorithm
         self.event_time = datetime.now()
+        self.event_price = buy.get_limit_price()
         self.buy_only = False
         self.mtx = Lock()
 
@@ -75,6 +77,7 @@ class OrderPair():
             'status': self.status.name,
             'algorithm': self.algorithm,
             'event_time': self.event_time.strftime("%Y-%m-%d %H:%M:%S"),
+            'event_price': "{:0.2f}".format(self.event_price),
             'buy': self.buy.to_dict(),
             'sell': self.sell.to_dict() if self.sell else None,
             'buy_only': self.buy_only,
@@ -96,6 +99,8 @@ class OrderPair():
             ret = cls(algorithm, buy, sell)
             ret.status = status
             ret.event_time = datetime.strptime(data['event_time'], "%Y-%m-%d %H:%M:%S")
+            if 'event_price' in data:
+                ret.event_price = float(data['event_price'])
             ret.buy_only = data['buy_only']
             return ret
         except Exception as e:

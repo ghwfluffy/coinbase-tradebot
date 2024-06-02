@@ -23,8 +23,8 @@ def get_logs():
     logs = ""
     with open("/var/tradebot/logs/log.txt", "r") as fp:
         logs = fp.readlines()
-    if len(logs) > 5000:
-        logs = logs[-5000:]
+    if len(logs) > 50:
+        logs = logs[-50:]
     logs = "".join(logs)
     data = {
         "logs": logs,

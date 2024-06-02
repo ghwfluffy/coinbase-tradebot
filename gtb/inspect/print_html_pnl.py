@@ -28,6 +28,7 @@ hodl_usd: float = 0.0
 hodl_btc: float = 0.0
 
 spread_finalized: float = 0.0
+allin_finalized: float = 0.0
 
 # Read in finalized orders
 for pair in ctx.history.order_pairs:
@@ -55,10 +56,17 @@ for pair in ctx.history.order_pairs:
         #spread_finalized -= pair.buy.info.final_fees
         spread_finalized += pair.sell.info.final_usd
         spread_finalized -= pair.sell.info.final_fees
+    elif algorithm == "AllIn":
+        allin_finalized -= pair.buy.info.final_usd
+        #allin_finalized -= pair.buy.info.final_fees
+        allin_finalized += pair.sell.info.final_usd
+        allin_finalized -= pair.sell.info.final_fees
 
 # Read in pending orders
 spread_pending_btc: float = 0.0
 spread_pending_usd: float = 0.0
+allin_pending_btc: float = 0.0
+allin_pending_usd: float = 0.0
 for pair in ctx.order_book.order_pairs:
     if not pair.status in [
         OrderPair.Status.OnHoldSell,
@@ -76,10 +84,14 @@ for pair in ctx.order_book.order_pairs:
         spread_pending_btc += pair.buy.btc
         spread_pending_usd += pair.buy.info.final_usd
         #spread_pending_usd += pair.buy.info.final_fees
+    elif algorithm == "AllIn":
+        allin_pending_btc += pair.buy.btc
+        allin_pending_usd += pair.buy.info.final_usd
+        #allin_pending_usd += pair.buy.info.final_fees
 
 # Print HODL
 hodl_current: float = hodl_btc * market.bid
-hodl_fees: float = hodl_current * 0.0015
+hodl_fees: float = hodl_current * 0.0007
 hodl_final: float = hodl_current - hodl_usd - hodl_fees
 print("  <TR>")
 print("    <TD>HODL</TD>")
@@ -90,7 +102,7 @@ print("  </TR>")
 
 # Print spread
 spread_to_sell: float = spread_pending_btc * market.bid
-spread_to_sell_fees: float = spread_to_sell * 0.0015
+spread_to_sell_fees: float = spread_to_sell * 0.0007
 spread_pending: float = spread_to_sell - spread_pending_usd - spread_to_sell_fees
 print("  <TR>")
 print("    <TD>Spread</TD>")
@@ -99,11 +111,22 @@ print("    <TD>${:.2f}</TD>".format(spread_pending))
 print("    <TD>${:.2f}</TD>".format(spread_finalized + spread_pending))
 print("  </TR>")
 
+# Print AllIn
+allin_to_sell: float = allin_pending_btc * market.bid
+allin_to_sell_fees: float = allin_to_sell * 0.0007
+allin_pending: float = allin_to_sell - allin_pending_usd - allin_to_sell_fees
+print("  <TR>")
+print("    <TD>AllIn</TD>")
+print("    <TD>${:.2f}</TD>".format(allin_finalized))
+print("    <TD>${:.2f}</TD>".format(allin_pending))
+print("    <TD>${:.2f}</TD>".format(allin_finalized + allin_pending))
+print("  </TR>")
+
 print("  <TR>")
 print("    <TD>Total</TD>")
-print("    <TD>${:.2f}</TD>".format(hodl_final + spread_finalized))
-print("    <TD>${:.2f}</TD>".format(spread_pending))
-print("    <TD><B>${:.2f}</B></TD>".format(hodl_final + spread_finalized + spread_pending))
+print("    <TD>${:.2f}</TD>".format(hodl_final + spread_finalized + allin_finalized))
+print("    <TD>${:.2f}</TD>".format(spread_pending + allin_pending))
+print("    <TD><B>${:.2f}</B></TD>".format(hodl_final + spread_finalized + spread_pending + allin_pending))
 print("  </TR>")
 
 

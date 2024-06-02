@@ -46,7 +46,7 @@ class PhaseTracker(BotThread):
         extended_ago: datetime = datetime.now() - relativedelta(minutes=90)
         long_ago: datetime = datetime.now() - relativedelta(minutes=30)
         mid_ago: datetime = datetime.now() - relativedelta(minutes=10)
-        short_ago: datetime = datetime.now() - relativedelta(minutes=5)
+        short_ago: datetime = datetime.now() - relativedelta(minutes=2.5)
         acute_ago: datetime = datetime.now() - relativedelta(minutes=1)
 
         max_index: int = -1

@@ -139,13 +139,14 @@ class CurrentMarketThread(BotThread):
         return current + (current * delta * positive)
 
     def blend_top(self, when: datetime, new: float) -> None:
-        max_change_per_minute: float = 0.0002
+        max_change_per_minute: float = 0.0001
+        #max_change_per_minute: float = 0.00008
         current: float = self.ctx.market_top.price
         last_update: datetime = self.ctx.market_top.last_update
         positive: float = 1 if new > current else -1
         # Tracking top of market don't fall easily
         if positive < 0:
-            max_change_per_minute /= 10
+            max_change_per_minute /= 16
         delta: float = abs((current - new) / current)
 
         # Don't change too fast

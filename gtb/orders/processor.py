@@ -10,6 +10,7 @@ from gtb.core.settings import Settings
 from gtb.orders.order import Order, OrderInfo
 from gtb.orders.order_pair import OrderPair
 from gtb.orders.cancel import cancel_order
+from gtb.phases.phase import Phase
 from gtb.utils.logging import Log
 from gtb.utils.maths import floor_usd
 from gtb.utils.wallet import Wallet
@@ -163,17 +164,23 @@ class OrderProcessor(BotThread):
         final_price: float
         queue_price: float
         if order.order_type == Order.Type.Buy:
+            # Not while actively waning
+            if self.ctx.phases.acute == Phase.Waning:
+                return None
             queue = order_api.limit_order_gtc_buy
-            queue_price = floor_usd(self.ctx.current_market.ask - 40.0)
-            final_price = queue_price - 20.0
+            queue_price = floor_usd(self.ctx.current_market.ask - 10.0)
+            final_price = queue_price - 10.0
             if queue_price < order_price:
                 return None
             if final_price > order_price:
                 return None
         elif order.order_type == Order.Type.Sell:
+            # Not while actively waxing
+            if self.ctx.phases.acute == Phase.Waxing:
+                return None
             queue = order_api.limit_order_gtc_sell
-            queue_price = floor_usd(self.ctx.current_market.bid + 40.0)
-            final_price = queue_price + 20.0
+            queue_price = floor_usd(self.ctx.current_market.bid + 10.0)
+            final_price = queue_price + 10.0
             if final_price < order_price:
                 return None
 
@@ -211,6 +218,9 @@ class OrderProcessor(BotThread):
                 final_price,
                 order_info['error_response']['error'],
             ))
+            # Can't sell what we don't have
+            if order.order_type == Order.Type.Sell:
+                order.status = Order.Status.Canceled
 
     def check_allocation(self, algorithm: str, usd: float) -> bool:
         # Drop sub-identifier

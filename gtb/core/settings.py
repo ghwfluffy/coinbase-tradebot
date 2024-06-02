@@ -13,7 +13,7 @@ class Spread():
 class Settings():
     allocations: Dict[str, float] = {
         "HODL": 1.0,
-        "Spread": 0.9,
+        "Spread": 0.80,
         "Phased": 0.005,
     }
 
@@ -32,29 +32,50 @@ class Settings():
     ####################
 
     spreads: List[Spread] = [
+        #Spread(
+        #    name="SmallSpeed",
+        #    usd=222,
+        #    spread=0.001,
+        #),
+        #Spread(
+        #    name="Speed",
+        #    usd=1000,
+        #    spread=0.001,
+        #),
         Spread(
             name="Min",
-            usd=80,
-            spread=0.0032,
+            usd=20,
+            #usd=200,
+            spread=0.0014,
+        ),
+        Spread(
+            name="LowSmall",
+            usd=50,
+            spread=0.0016,
         ),
         Spread(
             name="Low",
-            usd=300,
-            spread=0.0036,
+            usd=500,
+            spread=0.0016,
+        ),
+        Spread(
+            name="MidSmall",
+            usd=50,
+            spread=0.0022,
         ),
         Spread(
             name="Mid",
-            usd=450,
-            spread=0.0046,
+            usd=500,
+            spread=0.0022,
         ),
         Spread(
             name="High",
             usd=500,
-            spread=0.0052,
+            spread=0.003,
         ),
         Spread(
-            name="Max",
-            usd=500,
-            spread=0.01,
+            name="HighSmall",
+            usd=50,
+            spread=0.003,
         ),
     ]
