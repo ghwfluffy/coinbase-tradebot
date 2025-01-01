@@ -5,4 +5,4 @@ all:
 	cd build && cmake -GNinja $(VERBOSE) .. && cmake --build .
 
 clean:
-	rm -rf build tensorflow-venv
+	rm -rf build

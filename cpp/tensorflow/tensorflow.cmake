@@ -1,7 +1,7 @@
 set(PYTHON_VERSION 3.12)
 
 # Paths to TensorFlow include and libraries
-set(TENSORFLOW_VENV_DIR "${CMAKE_SOURCE_DIR}/tensorflow-venv")
+set(TENSORFLOW_VENV_DIR "${CMAKE_BINARY_DIR}/tensorflow-venv")
 set(TENSORFLOW_LIB_DIR "${TENSORFLOW_VENV_DIR}/lib/python${PYTHON_VERSION}/site-packages/tensorflow")
 set(TENSORFLOW_INCLUDE_DIR "${TENSORFLOW_VENV_DIR}/lib/python${PYTHON_VERSION}/site-packages/tensorflow/include")
 
@@ -18,10 +18,10 @@ add_custom_command(
     BYPRODUCTS ${TENSORFLOW_CC_LIB_2} ${TENSORFLOW_FRAMEWORK_LIB_2}
     COMMAND bash -c "[ -f \"${TENSORFLOW_CC_LIB}\" -a -f \"${TENSORFLOW_FRAMEWORK_LIB}\" ] || (
         python${PYTHON_VERSION} -m venv ${TENSORFLOW_VENV_DIR} &&
-        ${TENSORFLOW_VENV_DIR}/bin/pip install tensorflow &&
+        ${TENSORFLOW_VENV_DIR}/bin/pip install tensorflow[and-cuda] &&
         ln -sf \"${TENSORFLOW_CC_LIB_2}\" \"${TENSORFLOW_CC_LIB}\" &&
         ln -sf \"${TENSORFLOW_FRAMEWORK_LIB_2}\" \"${TENSORFLOW_FRAMEWORK_LIB}\" )"
-    COMMENT "Setting up Python virtual environment and installing TensorFlow"
+    COMMENT "Building TensorFlow (w/ CUDA)"
     VERBATIM
 )
 
