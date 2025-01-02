@@ -11,4 +11,5 @@ include(tensorflow.cmake)
 
 # Test binary
 add_subdirectory(rl-test)
+add_subdirectory(simple-test)
 add_subdirectory(trading-test)
