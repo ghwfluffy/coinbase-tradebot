@@ -21,7 +21,7 @@
         { \
             output.resize(static_cast<size_t>(size)); \
             va_start(varArgs, format); \
-            vsnprintf(&output[0], output.size(), format, varArgs); \
+            vsnprintf(&output[0], output.size() + 1, format, varArgs); \
             va_end(varArgs); \
         } \
     }

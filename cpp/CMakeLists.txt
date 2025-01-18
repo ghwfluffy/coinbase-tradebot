@@ -3,6 +3,10 @@ project(gtb)
 
 set(CMAKE_CXX_STANDARD 17)
 
+set(WEBSOCKETPP_INCLUDE websocketpp)
+find_package(OpenSSL REQUIRED)
+find_package(Boost REQUIRED system thread)
+
 set(SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src")
 
 # Find all source files
@@ -56,10 +60,16 @@ target_include_directories(
     tradebot
     PRIVATE
         ${HEADER_BASEDIR}
+        ${WEBSOCKETPP_INCLUDE}
+        ${Boost_INCLUDE_DIRS}
 )
 
 target_link_libraries(
     tradebot
     PRIVATE
         pthread
+        Boost::system
+        Boost::thread
+        OpenSSL::SSL
+        OpenSSL::Crypto
 )

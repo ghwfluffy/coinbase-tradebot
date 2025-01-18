@@ -1,6 +1,8 @@
 #include <gtb/PeriodicPrinter.h>
 #include <gtb/Log.h>
 
+#include <gtb/BtcPrice.h>
+
 using namespace gtb;
 
 PeriodicPrinter::PeriodicPrinter(
@@ -17,7 +19,11 @@ void PeriodicPrinter::process(
     std::lock_guard<std::mutex> lock(mtx);
     if (now >= nextPrint)
     {
-        log::info("Time is %llu", (unsigned long long)time.getTime());
-        nextPrint = now + std::chrono::seconds(10);
+        uint32_t cents = ctx.data.get<BtcPrice>().getCents();
+        if (cents)
+        {
+            log::info("BTC price: $%u.%02u.", cents / 100, cents % 100);
+            nextPrint = now + std::chrono::seconds(10);
+        }
     }
 }

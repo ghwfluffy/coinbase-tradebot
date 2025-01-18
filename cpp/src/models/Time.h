@@ -20,6 +20,8 @@ class Time : public DataModel
         uint64_t getTime() const;
         void setTime(uint64_t time);
 
+        void setNow();
+
     private:
         uint64_t microseconds;
 };

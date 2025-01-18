@@ -1,8 +1,11 @@
 #include <gtb/Version1.h>
-#include <gtb/PeriodicTimeUpdater.h>
-#include <gtb/PeriodicPrinter.h>
 #include <gtb/Time.h>
 #include <gtb/Log.h>
+
+#include <gtb/PeriodicTimeUpdater.h>
+#include <gtb/PeriodicPrinter.h>
+
+#include <gtb/CoinbaseMarket.h>
 
 using namespace gtb;
 
@@ -14,10 +17,17 @@ void Version1::init(TradeBot &bot)
 
     // Initial state
     ctx.data.get<Time>().setTime(1337);
+    ctx.data.get<BtcPrice>();
 
     // Source: Time updater
     {
         auto source = std::make_unique<PeriodicTimeUpdater>(ctx);
+        bot.addSource(std::move(source));
+    }
+
+    // Source: Coinbase market
+    {
+        auto source = std::make_unique<CoinbaseMarket>(ctx);
         bot.addSource(std::move(source));
     }
 
