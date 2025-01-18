@@ -1,0 +1,74 @@
+C++ Coinbase Bitcoin trading bot
+
+Context
+    Message logging interface
+    Time interface (for mock testing)
+        Live implementation
+        Mocked implementation
+    Market logging interface
+        To file
+        To stdout
+    Market info interface
+        Live implementation
+            Wrapped in cached implementation
+        Read from file implementation
+
+Algorithm Interface
+    - Allocation
+        - Percent of total
+        - Max $
+    - Algorithms-specific settings interface
+    - Name
+    - Information for logging
+        - 
+    - State serializer?
+
+Algorithm Implementations
+    - HODL
+    - Tensorflow
+
+Entrypoints
+    main
+    Google test
+
+
+Stages:
+    - Data collection
+        - Steady timers
+        - OR read next datapoint from DB
+    - Data serialization (Postgres)
+        - triggered by dependent data collection
+    - Data calculation
+        - triggered by dependent data collection
+    - Decision
+        - triggered by dependent data collection / calculation
+
+Utilities:
+    - Stage infrastructure
+    - REST API
+    - Websocket API
+    - Coinbase ifx
+    - Tastyworks ifx
+
+Interfaces:
+    - Data source
+        - Req loop
+        - Websocket subscription
+    - Data model
+        - Time
+        - BTC
+        - RIG
+        - Orderbook
+        - Trading volume, tensorflow network, etc
+    - Data processor (Triggered on data model updates)
+        - Calculators
+        - Decision Makers
+        - Serializers
+    - Actor
+    - Processing Pool
+
+Notes:
+    - Config as a DataModel read from json
+
+TODO:
+    - ActionPool
