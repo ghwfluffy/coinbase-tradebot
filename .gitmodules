@@ -1,3 +1,6 @@
 [submodule "cpp/websocketpp"]
 	path = cpp/websocketpp
 	url = https://github.com/zaphoyd/websocketpp.git
+[submodule "cpp/jwt-cpp"]
+	path = cpp/jwt-cpp
+	url = https://github.com/Thalhammer/jwt-cpp.git
