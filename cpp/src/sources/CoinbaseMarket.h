@@ -1,12 +1,10 @@
 #pragma once
 
 #include <gtb/ThreadedDataSource.h>
+#include <gtb/WebsocketClient.h>
 #include <gtb/BotContext.h>
 #include <gtb/BtcPrice.h>
 #include <gtb/Time.h>
-
-#include <websocketpp/client.hpp>
-#include <websocketpp/config/asio_client.hpp>
 
 namespace gtb
 {
@@ -31,26 +29,14 @@ class CoinbaseMarket : public ThreadedDataSource
         void shutdown() final;
 
     private:
-        typedef websocketpp::client<websocketpp::config::asio_tls_client> WebsockClient;
-
-        void handleOpen(
-            websocketpp::connection_hdl hdl);
-        void handleClose(
-            websocketpp::connection_hdl hdl);
-        void handleFail(
-            websocketpp::connection_hdl hdl);
-        std::shared_ptr<boost::asio::ssl::context> handleTlsInit(
-            websocketpp::connection_hdl hdl);
         void handleMessage(
-            websocketpp::connection_hdl hdl,
-            WebsockClient::message_ptr msg);
+            nlohmann::json json);
 
         BotContext &ctx;
         BtcPrice &btc;
         Time &time;
 
-        websocketpp::connection_hdl conn;
-        WebsockClient client;
+        WebsocketClient client;
 };
 
 }
