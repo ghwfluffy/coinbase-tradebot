@@ -6,6 +6,7 @@
 #include <gtb/PeriodicPrinter.h>
 
 #include <gtb/CoinbaseMarket.h>
+#include <gtb/CoinbaseUserTrades.h>
 
 using namespace gtb;
 
@@ -28,6 +29,12 @@ void Version1::init(TradeBot &bot)
     // Source: Coinbase market
     {
         auto source = std::make_unique<CoinbaseMarket>(ctx);
+        bot.addSource(std::move(source));
+    }
+
+    // Source: Coinbase user trades
+    {
+        auto source = std::make_unique<CoinbaseUserTrades>(ctx);
         bot.addSource(std::move(source));
     }
 
