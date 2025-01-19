@@ -6,28 +6,30 @@ System Dependencies:
     OpenSSL
     SQLite3
     nlohmann JSON for modern C++
+    cURL
 
 Submodule Dependencies:
     websockpp
     jwt-cpp
+    cpr
 
 TODOs
     Misc
     [ ] Thread pool for data model subscribers
     [ ] Action pool
+    [ ] C++ warnings
     Trading Algorithms
     [ ] HODL
     [ ] Spread
     [ ] Phased
     [ ] Tensorflow
     Utilities
-    [ ] REST API
     [ ] Create new trade
     Data Sources
     [ ] Tastyworks
     [ ] Config
     Data models
-    [ ] Wallet balance
+    [ ] Is Init
     [ ] Order pairs
     [ ] RIG
     Data Processors

@@ -7,6 +7,7 @@
 
 #include <gtb/CoinbaseMarket.h>
 #include <gtb/CoinbaseUserTrades.h>
+#include <gtb/CoinbaseUserInfo.h>
 
 #include <gtb/BtcHistoricalWriter.h>
 
@@ -41,6 +42,14 @@ void Version1::init(TradeBot &bot)
     {
         auto source = std::make_unique<CoinbaseUserTrades>(ctx);
         bot.addSource(std::move(source));
+    }
+
+    // Source: Coinbase user info
+    {
+        auto info = std::make_unique<CoinbaseUserInfo>(ctx);
+        // Reload user info on orderbook changes
+        ctx.data.subscribe<CoinbaseOrderBook>(*info);
+        bot.addSource(std::move(info));
     }
 
     // Processor: Record BTC prices

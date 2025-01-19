@@ -12,10 +12,10 @@ class CoinbaseCredential
 {
     public:
         CoinbaseCredential();
-        CoinbaseCredential(CoinbaseCredential &&) = delete;
-        CoinbaseCredential(const CoinbaseCredential &) = delete;
-        CoinbaseCredential &operator=(CoinbaseCredential &&) = delete;
-        CoinbaseCredential &operator=(const CoinbaseCredential &) = delete;
+        CoinbaseCredential(CoinbaseCredential &&) = default;
+        CoinbaseCredential(const CoinbaseCredential &) = default;
+        CoinbaseCredential &operator=(CoinbaseCredential &&) = default;
+        CoinbaseCredential &operator=(const CoinbaseCredential &) = default;
         ~CoinbaseCredential() = default;
 
         std::string createJwt(

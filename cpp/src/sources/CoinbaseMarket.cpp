@@ -1,4 +1,5 @@
 #include <gtb/CoinbaseMarket.h>
+#include <gtb/IntegerUtils.h>
 #include <gtb/Log.h>
 
 #include <nlohmann/json.hpp>
@@ -59,11 +60,7 @@ void CoinbaseMarket::handleMessage(
                 continue;
 
             std::string price = trade["price"].get<std::string>();
-            size_t period = price.find('.');
-            uint32_t cents = atoi(price.c_str()) * 100;
-            if (period != std::string::npos)
-                cents += atoi(price.c_str() + period + 1);
-            total += cents;
+            total += IntegerUtils::usdToCents(price);
             count++;
         }
     }

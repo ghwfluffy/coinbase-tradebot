@@ -9,6 +9,9 @@ find_package(OpenSSL REQUIRED)
 find_package(Boost REQUIRED system thread)
 find_package(SQLite3 REQUIRED)
 
+option(CPR_USE_SYSTEM_CURL "" ON)
+add_subdirectory(cpr)
+
 set(SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src")
 
 # Find all source files
@@ -72,6 +75,7 @@ target_link_libraries(
     tradebot
     PRIVATE
         pthread
+        cpr::cpr
         Boost::system
         Boost::thread
         OpenSSL::SSL
