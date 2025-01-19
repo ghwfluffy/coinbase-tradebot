@@ -8,7 +8,7 @@
 #include <gtb/CoinbaseMarket.h>
 #include <gtb/CoinbaseUserTrades.h>
 
-#include <gtb/Database.h>
+#include <gtb/BtcHistoricalWriter.h>
 
 using namespace gtb;
 
@@ -16,11 +16,10 @@ void Version1::init(TradeBot &bot)
 {
     log::info("Initializing Ghw Trade Bot version 1.");
 
-    Database::setFile("version1.sqlite");
-    Database::setSchema("schema.sql");
-    Database::init();
-
     BotContext &ctx = bot.getCtx();
+
+    // Database schema
+    ctx.algoDb.init("version1.sqlite", "./schema/version1.sql");
 
     // Initial state
     ctx.data.get<Time>().setTime(1337);
@@ -42,6 +41,13 @@ void Version1::init(TradeBot &bot)
     {
         auto source = std::make_unique<CoinbaseUserTrades>(ctx);
         bot.addSource(std::move(source));
+    }
+
+    // Processor: Record BTC prices
+    {
+        auto proc = std::make_unique<BtcHistoricalWriter>(ctx);
+        ctx.data.subscribe<BtcPrice>(*proc);
+        bot.addProcessor(std::move(proc));
     }
 
     // Processor: Printer

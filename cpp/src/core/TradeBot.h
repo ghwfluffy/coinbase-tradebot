@@ -13,7 +13,7 @@ namespace gtb
 class TradeBot
 {
     public:
-        TradeBot() = default;
+        TradeBot();
         TradeBot(TradeBot &&) = delete;
         TradeBot(const TradeBot &) = delete;
         TradeBot &operator=(TradeBot &&) = delete;

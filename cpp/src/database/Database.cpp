@@ -7,21 +7,13 @@
 
 using namespace gtb;
 
-namespace
-{
-
-constexpr const char *DB_FILE = "./data.sqlite";
-constexpr const char *SCHEMA_FILE = "./schema.sql";
-
-std::string dbFile;
-std::string schemaFile;
-
-}
-
 DatabaseConnection Database::newConn()
 {
     if (dbFile.empty())
-        dbFile = DB_FILE;
+    {
+        log::error("Database not initialized.");
+        return DatabaseConnection();
+    }
 
     sqlite3 *conn = nullptr;
     int res = sqlite3_open(dbFile.c_str(), &conn);
@@ -41,10 +33,11 @@ DatabaseConnection Database::newConn()
     return DatabaseConnection(conn);
 }
 
-void Database::init()
+void Database::init(
+    std::string dbFileIn,
+    std::string schemaFile)
 {
-    if (schemaFile.empty())
-        schemaFile = SCHEMA_FILE;
+    this->dbFile = std::move(dbFileIn);
 
     std::ifstream schemaStream(schemaFile);
     if (!schemaStream.is_open())
@@ -65,16 +58,4 @@ void Database::init()
 
     if (!conn.execute(schema.str()))
         log::error("Failed to initialize database schema.");
-}
-
-void Database::setFile(
-    std::string file)
-{
-    dbFile = std::move(file);
-}
-
-void Database::setSchema(
-    std::string file)
-{
-    schemaFile = std::move(file);
 }

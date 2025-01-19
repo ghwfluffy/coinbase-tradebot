@@ -5,15 +5,24 @@
 namespace gtb
 {
 
-namespace Database
+class Database
 {
-    DatabaseConnection newConn();
+    public:
+        Database() = default;
+        Database(Database &&) = default;
+        Database(const Database &) = default;
+        Database &operator=(Database &&) = default;
+        Database &operator=(const Database &) = default;
+        ~Database() = default;
 
-    void init();
-    void setFile(
-        std::string file);
-    void setSchema(
-        std::string file);
-}
+        DatabaseConnection newConn();
+
+        void init(
+            std::string dbFile,
+            std::string schemaFile);
+
+    private:
+        std::string dbFile;
+};
 
 }

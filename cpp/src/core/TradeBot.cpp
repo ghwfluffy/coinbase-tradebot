@@ -5,6 +5,11 @@
 
 using namespace gtb;
 
+TradeBot::TradeBot()
+{
+    ctx.historicalDb.init("historical.sqlite", "./schema/historical.sql");
+}
+
 BotContext &TradeBot::getCtx()
 {
     return ctx;
