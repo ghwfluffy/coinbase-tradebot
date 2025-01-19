@@ -4,3 +4,6 @@
 [submodule "cpp/jwt-cpp"]
 	path = cpp/jwt-cpp
 	url = https://github.com/Thalhammer/jwt-cpp.git
+[submodule "cpp/cpr"]
+	path = cpp/cpr
+	url = https://github.com/libcpr/cpr.git
