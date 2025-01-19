@@ -8,11 +8,17 @@
 #include <gtb/CoinbaseMarket.h>
 #include <gtb/CoinbaseUserTrades.h>
 
+#include <gtb/Database.h>
+
 using namespace gtb;
 
 void Version1::init(TradeBot &bot)
 {
     log::info("Initializing Ghw Trade Bot version 1.");
+
+    Database::setFile("version1.sqlite");
+    Database::setSchema("schema.sql");
+    Database::init();
 
     BotContext &ctx = bot.getCtx();
 

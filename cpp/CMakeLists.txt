@@ -7,6 +7,7 @@ set(WEBSOCKETPP_INCLUDE websocketpp)
 set(JWTCPP_INCLUDE jwt-cpp/include)
 find_package(OpenSSL REQUIRED)
 find_package(Boost REQUIRED system thread)
+find_package(SQLite3 REQUIRED)
 
 set(SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src")
 
@@ -64,6 +65,7 @@ target_include_directories(
         ${WEBSOCKETPP_INCLUDE}
         ${JWTCPP_INCLUDE}
         ${Boost_INCLUDE_DIRS}
+        ${SQLite3_INCLUDE_DIRS}
 )
 
 target_link_libraries(
@@ -74,4 +76,5 @@ target_link_libraries(
         Boost::thread
         OpenSSL::SSL
         OpenSSL::Crypto
+        ${SQLite3_LIBRARIES}
 )
