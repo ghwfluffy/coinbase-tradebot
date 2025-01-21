@@ -2,13 +2,62 @@
 #include <gtb/Log.h>
 
 #include <unistd.h>
+#include <signal.h>
 
 using namespace gtb;
+
+namespace
+{
+
+struct SignalState
+{
+    unsigned int &interrupts;
+    std::function<void()> stop;
+
+    SignalState(
+        unsigned int &interrupts,
+        std::function<void()> stop)
+            : interrupts(interrupts)
+            , stop(std::move(stop))
+    {}
+};
+
+std::unique_ptr<SignalState> signalState;
+void handleSignal(int signal)
+{
+    constexpr const unsigned int MAX_INTERRUPTS = 5;
+    if (signal == SIGINT)
+    {
+        if (signalState->interrupts++ == 0)
+        {
+            log::info("Interrupt signature received. Shutting down gracefully.");
+            signalState->stop();
+        }
+        else if (signalState->interrupts >= MAX_INTERRUPTS)
+        {
+            log::info("Immediate shutdown requested. Terminating immediately.");
+            _Exit(128);
+        }
+    }
+    else
+    {
+        log::info("Terminate signal received. Shutting down gracefully.");
+        signalState->stop();
+    }
+}
+
+}
 
 TradeBot::TradeBot()
 {
     running = false;
+    initSignals();
     ctx.historicalDb.init("historical.sqlite", "./schema/historical.sql");
+}
+
+TradeBot::~TradeBot()
+{
+    cleanupSignals();
 }
 
 BotContext &TradeBot::getCtx()
@@ -28,11 +77,10 @@ int TradeBot::run()
     running = true;
 
     ctx.actionPool.start();
-
     for (auto &source : sources)
         source->start();
 
-    // TODO: Hook into SIGINT/TERM
+    // Wait for signal
     while (running)
     {
         std::unique_lock<std::mutex> lock(mtx);
@@ -42,10 +90,47 @@ int TradeBot::run()
 
     log::info("Stopping Ghw Trade Bot.");
 
+    ctx.actionPool.stop();
     for (auto &source : sources)
-        source->start();
+        source->stop();
 
     log::info("Ghw Trade Bot Shutdown.");
 
     return 0;
+}
+
+void TradeBot::stop()
+{
+    running = false;
+    cond.notify_one();
+}
+
+void TradeBot::initSignals()
+{
+    interrupts = 0;
+    signalState = std::make_unique<SignalState>(
+        interrupts,
+        std::bind(&TradeBot::stop, this));
+
+    // Catch SIGTERM/SIGINT
+    struct sigaction handler = {};
+    handler.sa_handler = handleSignal;
+    sigaction(SIGTERM, &handler, nullptr);
+    sigaction(SIGINT, &handler, nullptr);
+
+    // Ignore SIGPIPE
+    handler.sa_handler = SIG_IGN;
+    sigaction(SIGPIPE, &handler, nullptr);
+}
+
+void TradeBot::cleanupSignals()
+{
+    struct sigaction handler = {};
+    handler.sa_handler = SIG_DFL;
+
+    sigaction(SIGTERM, &handler, nullptr);
+    sigaction(SIGINT, &handler, nullptr);
+    sigaction(SIGPIPE, &handler, nullptr);
+
+    signalState.reset();
 }

@@ -14,9 +14,6 @@ Submodule Dependencies:
     cpr
 
 TODOs
-    Misc
-    [\] C++ warnings
-    [ ] Hook into SIGINT/SIGTERM
     Trading Algorithms
     [ ] HODL
     [ ] Spread

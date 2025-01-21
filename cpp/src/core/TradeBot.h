@@ -22,7 +22,7 @@ class TradeBot
         TradeBot(const TradeBot &) = delete;
         TradeBot &operator=(TradeBot &&) = delete;
         TradeBot &operator=(const TradeBot &) = delete;
-        ~TradeBot() = default;
+        ~TradeBot();
 
         BotContext &getCtx();
 
@@ -35,8 +35,12 @@ class TradeBot
         }
 
         int run();
+        void stop();
 
     private:
+        void initSignals();
+        void cleanupSignals();
+
         BotContext ctx;
         std::list<std::unique_ptr<DataSource>> sources;
         std::map<size_t, Any> processors;
@@ -44,6 +48,8 @@ class TradeBot
         std::mutex mtx;
         std::atomic<bool> running;
         std::condition_variable cond;
+
+        unsigned int interrupts;
 };
 
 }
