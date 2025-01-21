@@ -68,6 +68,6 @@ void CoinbaseMarket::handleMessage(
     if (count > 0)
     {
         time.setNow();
-        btc.setCents(total / count);
+        btc.setCents(static_cast<uint32_t>(total / count));
     }
 }

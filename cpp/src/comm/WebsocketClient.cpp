@@ -56,8 +56,11 @@ void WebsocketClient::shutdown()
     }
 }
 
-std::shared_ptr<boost::asio::ssl::context> WebsocketClient::handleTlsInit(websocketpp::connection_hdl hdl)
+std::shared_ptr<boost::asio::ssl::context> WebsocketClient::handleTlsInit(
+    websocketpp::connection_hdl hdl)
 {
+    (void)hdl;
+
     auto ctx = std::make_shared<boost::asio::ssl::context>(boost::asio::ssl::context::tls_client);
     try {
         // Use the system's default trusted CA certificates
@@ -69,7 +72,8 @@ std::shared_ptr<boost::asio::ssl::context> WebsocketClient::handleTlsInit(websoc
     return ctx;
 }
 
-void WebsocketClient::handleOpen(websocketpp::connection_hdl hdl)
+void WebsocketClient::handleOpen(
+    websocketpp::connection_hdl hdl)
 {
     log::info("Websocket '%s' connection opened.", name.c_str());
     this->conn = std::move(hdl);
@@ -77,13 +81,19 @@ void WebsocketClient::handleOpen(websocketpp::connection_hdl hdl)
     client.send(conn, subscribeMsg, websocketpp::frame::opcode::text);
 }
 
-void WebsocketClient::handleClose(websocketpp::connection_hdl hdl)
+void WebsocketClient::handleClose(
+    websocketpp::connection_hdl hdl)
 {
+    (void)hdl;
+
     log::info("Websocket '%s' connection closed.", name.c_str());
 }
 
-void WebsocketClient::handleFail(websocketpp::connection_hdl hdl)
+void WebsocketClient::handleFail(
+    websocketpp::connection_hdl hdl)
 {
+    (void)hdl;
+
     log::error("Websocket '%s' connection error.", name.c_str());
 }
 
@@ -91,6 +101,8 @@ void WebsocketClient::handleMessage(
     websocketpp::connection_hdl hdl,
     WebsockClient::message_ptr msg)
 {
+    (void)hdl;
+
     nlohmann::json json;
     try {
         json = nlohmann::json::parse(msg->get_payload());

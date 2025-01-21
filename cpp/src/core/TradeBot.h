@@ -6,7 +6,10 @@
 
 #include <map>
 #include <list>
+#include <mutex>
+#include <atomic>
 #include <memory>
+#include <condition_variable>
 
 namespace gtb
 {
@@ -37,6 +40,10 @@ class TradeBot
         BotContext ctx;
         std::list<std::unique_ptr<DataSource>> sources;
         std::map<size_t, Any> processors;
+
+        std::mutex mtx;
+        std::atomic<bool> running;
+        std::condition_variable cond;
 };
 
 }

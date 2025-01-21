@@ -8,7 +8,7 @@ CoinbaseWallet::CoinbaseWallet()
     btc = 0;
 }
 
-uint64_t CoinbaseWallet::getUsdCents() const
+uint32_t CoinbaseWallet::getUsdCents() const
 {
     return usd;
 }
@@ -19,7 +19,7 @@ uint64_t CoinbaseWallet::getBtcSatoshi() const
 }
 
 void CoinbaseWallet::update(
-    uint64_t usd,
+    uint32_t usd,
     uint64_t btc)
 {
     if (usd != this->usd || btc != this->btc)

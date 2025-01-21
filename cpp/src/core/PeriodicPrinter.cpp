@@ -16,6 +16,8 @@ PeriodicPrinter::PeriodicPrinter(
 void PeriodicPrinter::process(
     const Time &time)
 {
+    (void)time;
+
     auto now = std::chrono::steady_clock::now();
 
     std::lock_guard<std::mutex> lock(mtx);

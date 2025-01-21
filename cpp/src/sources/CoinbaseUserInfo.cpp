@@ -22,6 +22,8 @@ void CoinbaseUserInfo::process()
 void CoinbaseUserInfo::process(
     const CoinbaseOrderBook &book)
 {
+    (void)book;
+
     try {
         query();
     } catch (const std::exception &e) {

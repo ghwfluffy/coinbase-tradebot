@@ -5,6 +5,28 @@
 
 using namespace gtb;
 
+namespace
+{
+
+HttpResponse parseResponse(
+    cpr::Response response)
+{
+    HttpResponse ret;
+    ret.code = response.status_code < 0 ? 0 : static_cast<unsigned int>(response.status_code);
+    if (response.status_code == 0)
+        log::error("Failed HTTP query: %s", response.error.message.c_str());
+
+    try {
+        ret.data = nlohmann::json::parse(response.text);
+    } catch (const std::exception &e) {
+        // Ignore
+    }
+
+    return ret;
+}
+
+}
+
 HttpResponse::operator bool() const
 {
     return code == 200;
@@ -46,19 +68,7 @@ HttpResponse RestClient::post(
     cpr::Response response = conn.session->Post();
     saveConn(std::move(conn));
 
-    // Parse response
-    HttpResponse ret;
-    ret.code = response.status_code;
-    if (response.status_code == 0)
-        log::error("Failed HTTP query: %s", response.error.message.c_str());
-
-    try {
-        ret.data = nlohmann::json::parse(response.text);
-    } catch (const std::exception &e) {
-        // Ignore
-    }
-
-    return ret;
+    return parseResponse(response);
 }
 
 HttpResponse RestClient::get(
@@ -93,19 +103,7 @@ HttpResponse RestClient::get(
     cpr::Response response = conn.session->Get();
     saveConn(std::move(conn));
 
-    // Parse response
-    HttpResponse ret;
-    ret.code = response.status_code;
-    if (response.status_code == 0)
-        log::error("Failed HTTP query: %s", response.error.message.c_str());
-
-    try {
-        ret.data = nlohmann::json::parse(response.text);
-    } catch (const std::exception &e) {
-        // Ignore
-    }
-
-    return ret;
+    return parseResponse(response);
 }
 
 RestClient::Connection RestClient::getConn()

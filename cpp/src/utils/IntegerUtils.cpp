@@ -13,9 +13,9 @@ uint32_t IntegerUtils::usdToCents(
     if (period != std::string::npos)
     {
         if ((period + 1) < usd.length() && usd[period + 1] >= '0' && usd[period + 1] <= '9')
-            cents += (usd[period + 1] - '0') * 10;
+            cents += static_cast<uint32_t>((usd[period + 1] - '0') * 10);
         if ((period + 2) < usd.length() && usd[period + 2] >= '0' && usd[period + 2] <= '9')
-            cents += (usd[period + 1] - '0');
+            cents += static_cast<uint32_t>((usd[period + 1] - '0'));
     }
 
     return cents;
@@ -32,10 +32,11 @@ uint64_t IntegerUtils::btcToSatoshi(
     if (period != std::string::npos)
     {
         size_t pos = period + 1;
-        uint64_t order = 100'000'000 / 10;
+        int64_t order = 100'000'000 / 10;
         while (order > 0 && pos < btc.length())
         {
-            satoshi += (btc[pos] - '0') * order;
+            if (btc[pos] >= '0' && btc[pos] <= '9')
+                satoshi += static_cast<uint64_t>((btc[pos] - '0') * order);
             order /= 10;
             pos++;
         }

@@ -15,7 +15,7 @@ Submodule Dependencies:
 
 TODOs
     Misc
-    [ ] C++ warnings
+    [\] C++ warnings
     [ ] Hook into SIGINT/SIGTERM
     Trading Algorithms
     [ ] HODL

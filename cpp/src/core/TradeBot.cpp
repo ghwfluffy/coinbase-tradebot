@@ -7,6 +7,7 @@ using namespace gtb;
 
 TradeBot::TradeBot()
 {
+    running = false;
     ctx.historicalDb.init("historical.sqlite", "./schema/historical.sql");
 }
 
@@ -24,6 +25,7 @@ void TradeBot::addSource(std::unique_ptr<DataSource> source)
 int TradeBot::run()
 {
     log::info("Starting Ghw Trade Bot.");
+    running = true;
 
     ctx.actionPool.start();
 
@@ -31,8 +33,12 @@ int TradeBot::run()
         source->start();
 
     // TODO: Hook into SIGINT/TERM
-    while (true)
-        sleep(10);
+    while (running)
+    {
+        std::unique_lock<std::mutex> lock(mtx);
+        if (running)
+            cond.wait_for(lock, std::chrono::seconds(60));
+    }
 
     log::info("Stopping Ghw Trade Bot.");
 

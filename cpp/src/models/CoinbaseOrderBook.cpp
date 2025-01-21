@@ -61,6 +61,8 @@ void CoinbaseOrderBook::update(
 void CoinbaseOrderBook::cleanup(
     const std::lock_guard<std::mutex> &lock)
 {
+    (void)lock;
+
     auto now = std::chrono::steady_clock::now();
 
     auto iter = orders.begin();

@@ -17,15 +17,15 @@ class CoinbaseWallet : public DataModel
         CoinbaseWallet &operator=(const CoinbaseWallet &) = delete;
         ~CoinbaseWallet() final = default;
 
-        uint64_t getUsdCents() const;
+        uint32_t getUsdCents() const;
         uint64_t getBtcSatoshi() const;
 
         void update(
-            uint64_t usd,
+            uint32_t usd,
             uint64_t btc);
 
     private:
-        uint64_t usd;
+        uint32_t usd;
         uint64_t btc;
 };
 

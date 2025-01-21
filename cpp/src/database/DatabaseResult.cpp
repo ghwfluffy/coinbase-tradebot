@@ -51,12 +51,14 @@ DatabaseResult::operator bool() const
 
 unsigned int DatabaseResult::numResults() const
 {
-    return stmt ? sqlite3_data_count(stmt) : 0;
+    int ret = stmt ? sqlite3_data_count(stmt) : 0;
+    return ret > 0 ? static_cast<unsigned int>(ret) : 0;
 }
 
 unsigned int DatabaseResult::numColumns() const
 {
-    return stmt ? sqlite3_column_count(stmt) : 0;
+    int ret = stmt ? sqlite3_column_count(stmt) : 0;
+    return ret > 0 ? static_cast<unsigned int>(ret) : 0;
 }
 
 bool DatabaseResult::next()
@@ -73,6 +75,6 @@ DatabaseValue DatabaseResult::operator[](size_t index)
     if (!stmt || index >= numColumns())
         return DatabaseValue();
 
-    const char *text = reinterpret_cast<const char *>(sqlite3_column_text(stmt, index));
+    const char *text = reinterpret_cast<const char *>(sqlite3_column_text(stmt, static_cast<int>(index)));
     return DatabaseValue(text ? text : "");
 }

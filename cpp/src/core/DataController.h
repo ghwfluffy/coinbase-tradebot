@@ -66,7 +66,7 @@ class DataController
         void updated()
         {
             size_t type = TypeInfo::getId<DataType>();
-            for (const auto sub : subscriptions[type])
+            for (const auto &sub : subscriptions[type])
                 actions.queue(sub);
         }
 
