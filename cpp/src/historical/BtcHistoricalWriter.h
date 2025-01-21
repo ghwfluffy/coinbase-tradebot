@@ -1,6 +1,5 @@
 #pragma once
 
-#include <gtb/DataProcessor.h>
 #include <gtb/BotContext.h>
 
 #include <gtb/BtcPrice.h>
@@ -13,7 +12,7 @@ namespace gtb
 /**
  * Write BTC price updates to the database
  */
-class BtcHistoricalWriter : public DataProcessor
+class BtcHistoricalWriter
 {
     public:
         BtcHistoricalWriter(
@@ -22,7 +21,7 @@ class BtcHistoricalWriter : public DataProcessor
         BtcHistoricalWriter(const BtcHistoricalWriter &) = delete;
         BtcHistoricalWriter &operator=(BtcHistoricalWriter &&) = delete;
         BtcHistoricalWriter &operator=(const BtcHistoricalWriter &) = delete;
-        ~BtcHistoricalWriter() final = default;
+        ~BtcHistoricalWriter() = default;
 
         void process(
             const BtcPrice &price);

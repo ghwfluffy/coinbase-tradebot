@@ -1,6 +1,5 @@
 #pragma once
 
-#include <gtb/DataProcessor.h>
 #include <gtb/Time.h>
 #include <gtb/BotContext.h>
 
@@ -10,7 +9,7 @@
 namespace gtb
 {
 
-class PeriodicPrinter : public DataProcessor
+class PeriodicPrinter
 {
     public:
         PeriodicPrinter(
@@ -19,7 +18,7 @@ class PeriodicPrinter : public DataProcessor
         PeriodicPrinter(const PeriodicPrinter &) = delete;
         PeriodicPrinter &operator=(PeriodicPrinter &&) = delete;
         PeriodicPrinter &operator=(const PeriodicPrinter &) = delete;
-        ~PeriodicPrinter() final = default;
+        ~PeriodicPrinter() = default;
 
         void process(
             const Time &time);

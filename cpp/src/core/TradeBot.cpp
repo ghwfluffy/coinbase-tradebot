@@ -21,15 +21,11 @@ void TradeBot::addSource(std::unique_ptr<DataSource> source)
         sources.push_back(std::move(source));
 }
 
-void TradeBot::addProcessor(std::unique_ptr<DataProcessor> processor)
-{
-    if (processor)
-        processors.push_back(std::move(processor));
-}
-
 int TradeBot::run()
 {
     log::info("Starting Ghw Trade Bot.");
+
+    ctx.actionPool.start();
 
     for (auto &source : sources)
         source->start();

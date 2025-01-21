@@ -2,6 +2,7 @@
 
 #include <gtb/DataSource.h>
 
+#include <mutex>
 #include <atomic>
 #include <chrono>
 #include <memory>

@@ -1,9 +1,10 @@
 #pragma once
 
 #include <gtb/DataSource.h>
-#include <gtb/DataProcessor.h>
 #include <gtb/BotContext.h>
+#include <gtb/Any.h>
 
+#include <map>
 #include <list>
 #include <memory>
 
@@ -23,14 +24,19 @@ class TradeBot
         BotContext &getCtx();
 
         void addSource(std::unique_ptr<DataSource> source);
-        void addProcessor(std::unique_ptr<DataProcessor> processor);
+
+        template<typename T>
+        void addProcessor(std::unique_ptr<T> processor)
+        {
+            processors[TypeInfo::getId<T>()].set(std::move(processor));
+        }
 
         int run();
 
     private:
         BotContext ctx;
         std::list<std::unique_ptr<DataSource>> sources;
-        std::list<std::unique_ptr<DataProcessor>> processors;
+        std::map<size_t, Any> processors;
 };
 
 }

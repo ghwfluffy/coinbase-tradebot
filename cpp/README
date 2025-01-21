@@ -15,9 +15,8 @@ Submodule Dependencies:
 
 TODOs
     Misc
-    [ ] Thread pool for data model subscribers
-    [ ] Action pool
     [ ] C++ warnings
+    [ ] Hook into SIGINT/SIGTERM
     Trading Algorithms
     [ ] HODL
     [ ] Spread

@@ -1,3 +1,5 @@
+#pragma once
+
 #include <gtb/DatabaseResult.h>
 
 #include <sqlite3.h>
