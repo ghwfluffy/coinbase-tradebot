@@ -1,6 +1,7 @@
 #include <gtb/CoinbaseUserTrades.h>
 #include <gtb/CoinbaseCredential.h>
 #include <gtb/CoinbaseOrderBook.h>
+#include <gtb/CoinbaseInit.h>
 #include <gtb/Time.h>
 #include <gtb/Log.h>
 
@@ -117,6 +118,8 @@ void CoinbaseUserTrades::handleMessage(
                 reset();
             else
                 update(event["orders"], true);
+
+            ctx.data.get<CoinbaseInit>().setOrderBookInit();
         }
         else if (type == "update")
         {

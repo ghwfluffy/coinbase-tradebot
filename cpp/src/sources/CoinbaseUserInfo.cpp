@@ -1,5 +1,6 @@
 #include <gtb/CoinbaseUserInfo.h>
 #include <gtb/CoinbaseWallet.h>
+#include <gtb/CoinbaseInit.h>
 #include <gtb/IntegerUtils.h>
 #include <gtb/Log.h>
 
@@ -62,4 +63,5 @@ void CoinbaseUserInfo::query()
     ctx.data.get<CoinbaseWallet>().update(
         IntegerUtils::usdToCents(usdBalance),
         IntegerUtils::btcToSatoshi(btcBalance));
+    ctx.data.get<CoinbaseInit>().setWalletInit();
 }

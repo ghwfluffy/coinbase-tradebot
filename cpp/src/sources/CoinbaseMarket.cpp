@@ -1,4 +1,5 @@
 #include <gtb/CoinbaseMarket.h>
+#include <gtb/CoinbaseInit.h>
 #include <gtb/IntegerUtils.h>
 #include <gtb/Log.h>
 
@@ -69,5 +70,6 @@ void CoinbaseMarket::handleMessage(
     {
         time.setNow();
         btc.setCents(static_cast<uint32_t>(total / count));
+        ctx.data.get<CoinbaseInit>().setBtcInit();
     }
 }
