@@ -1,10 +1,11 @@
 CREATE TABLE IF NOT EXISTS order_pairs (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    uuid VARCHAR PRIMARY KEY,
     algorithm VARCHAR,
+    state VARCHAR,
     buy_order_uuid VARCHAR,
     sell_order_uuid VARCHAR,
     buy_price INTEGER,
     sell_price INTEGER,
     quantity INTEGER,
-    created VARCHAR
+    created INTEGER
 );

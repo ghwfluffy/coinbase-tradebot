@@ -100,6 +100,7 @@ void ActionThreadPool::runThread(size_t id)
         actions.pop_front();
 
         // Run it
+        lock.unlock();
         if (action.action)
             action.action();
         else

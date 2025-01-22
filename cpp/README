@@ -14,18 +14,20 @@ Submodule Dependencies:
     cpr
 
 TODOs
+    Misc
+    [ ] Move Any to utils
+    [ ] Move CoinbaseCredential to conf
+    [ ] Track P/L over time
+    [ ] Track fees
     Trading Algorithms
+    [ ] Spread cleanup
     [ ] HODL
-    [ ] Spread
     [ ] Phased
     [ ] Tensorflow
-    Utilities
-    [ ] Create new trade
     Data Sources
     [ ] Tastyworks
-    [ ] Config
+    [\] Config
     Data models
-    [ ] Order pairs
     [ ] RIG
     Data Processors
     [ ] Smooth value

@@ -2,30 +2,41 @@
 
 using namespace gtb;
 
-CoinbaseWallet::CoinbaseWallet()
+CoinbaseWallet::Data::operator bool() const
 {
-    usd = 0;
-    btc = 0;
+    return usd > 0 || btc > 0;
+}
+
+CoinbaseWallet::operator bool() const
+{
+    return bool(values);
 }
 
 uint32_t CoinbaseWallet::getUsdCents() const
 {
-    return usd;
+    return values.usd;
 }
 
 uint64_t CoinbaseWallet::getBtcSatoshi() const
 {
-    return btc;
+    return values.btc;
 }
 
 void CoinbaseWallet::update(
     uint32_t usd,
     uint64_t btc)
 {
-    if (usd != this->usd || btc != this->btc)
+    if (usd != values.usd || btc != values.btc)
     {
-        this->usd = usd;
-        this->btc = btc;
+        values.usd = usd;
+        values.btc = btc;
         updated();
     }
+}
+
+void CoinbaseWallet::update(
+    Data data)
+{
+    if (data.usd > 0 || data.btc > 0)
+        update(data.usd, data.btc);
 }

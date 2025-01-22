@@ -2,6 +2,7 @@
 #include <gtb/CoinbaseCredential.h>
 #include <gtb/CoinbaseOrderBook.h>
 #include <gtb/CoinbaseInit.h>
+#include <gtb/CoinbaseApi.h>
 #include <gtb/Time.h>
 #include <gtb/Log.h>
 
@@ -13,57 +14,6 @@ namespace
 {
 
 constexpr const char *USER_URI = "wss://advanced-trade-ws-user.coinbase.com";
-
-CoinbaseOrder parseOrder(
-    const nlohmann::json &orders)
-{
-    CoinbaseOrder order;
-
-    if (orders.contains("order_id") && orders["order_id"].is_string()) {
-        order.uuid = orders["order_id"].get<std::string>();
-    }
-
-    // Parse State
-    if (orders.contains("status") && orders["status"].is_string()) {
-        const std::string status = orders["status"].get<std::string>();
-        if (status == "OPEN") {
-            order.state = CoinbaseOrder::State::Open;
-        } else if (status == "FILLED") {
-            order.state = CoinbaseOrder::State::Filled;
-        } else if (status == "CANCELLED") {
-            order.state = CoinbaseOrder::State::Canceled;
-        } else {
-            order.state = CoinbaseOrder::State::Error;
-        }
-    }
-
-    // Parse Buy/Sell
-    if (orders.contains("order_side") && orders["order_side"].is_string()) {
-        order.buy = (orders["order_side"].get<std::string>() == "BUY");
-    }
-
-    // Parse Price (convert to cents)
-    if (orders.contains("limit_price") && orders["limit_price"].is_string()) {
-        double price = std::stod(orders["limit_price"].get<std::string>());
-        order.priceCents = static_cast<uint32_t>(price * 100);
-    }
-
-    // Parse Quantity (convert to 100-millions of a Bitcoin)
-    if (orders.contains("leaves_quantity") && orders["leaves_quantity"].is_string()) {
-        double quantity = std::stod(orders["leaves_quantity"].get<std::string>());
-        order.quantity = static_cast<uint64_t>(quantity * 100'000'000ULL);
-    }
-
-    // Parse Created Time
-    if (orders.contains("created_at") && orders["created_at"].is_string()) {
-        order.createdTime = orders["created_at"].get<std::string>();
-    }
-
-    // We will remove non-OPEN orders from the orderbook cache after 2 minutes
-    order.cleanupTime = std::chrono::steady_clock::now() + std::chrono::minutes(2);
-
-    return order;
-}
 
 }
 
@@ -146,7 +96,7 @@ void CoinbaseUserTrades::update(
     std::list<CoinbaseOrder> updates;
     for (const nlohmann::json &data : orders)
     {
-        CoinbaseOrder order = parseOrder(data);
+        CoinbaseOrder order = CoinbaseApi::parseOrder(data);
         if (order)
             updates.push_back(std::move(order));
     }

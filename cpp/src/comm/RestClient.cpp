@@ -54,12 +54,8 @@ HttpResponse RestClient::post(
 {
     // Setup request
     Connection conn = getConn();
-    conn.session->SetUrl(baseUrl + "/" + path);
-
-    if (jwt.empty())
-        conn.clearHeader("Authorization");
-    else
-        conn.setHeader("Authorization", "Bearer " + jwt);
+    conn.session->SetUrl(baseUrl + path);
+    conn.setJwt(jwt);
 
     if (data != nullptr)
         conn.session->SetBody(data.dump());
@@ -79,12 +75,8 @@ HttpResponse RestClient::get(
 {
     // Setup request
     Connection conn = getConn();
-    conn.session->SetUrl(baseUrl + "/" + path);
-
-    if (jwt.empty())
-        conn.clearHeader("Authorization");
-    else
-        conn.setHeader("Authorization", "Bearer " + jwt);
+    conn.session->SetUrl(baseUrl + path);
+    conn.setJwt(jwt);
 
     if (data != nullptr)
     {
@@ -101,6 +93,22 @@ HttpResponse RestClient::get(
 
     // Send
     cpr::Response response = conn.session->Get();
+    saveConn(std::move(conn));
+
+    return parseResponse(response);
+}
+
+HttpResponse RestClient::del(
+    const std::string &path,
+    const std::string &jwt)
+{
+    // Setup request
+    Connection conn = getConn();
+    conn.session->SetUrl(baseUrl + path);
+    conn.setJwt(jwt);
+
+    // Send
+    cpr::Response response = conn.session->Delete();
     saveConn(std::move(conn));
 
     return parseResponse(response);
@@ -176,4 +184,13 @@ void RestClient::Connection::clearHeader(
         headers.erase(key);
         session->SetHeader(headers);
     }
+}
+
+void RestClient::Connection::setJwt(
+    const std::string &jwt)
+{
+    if (jwt.empty())
+        clearHeader("Authorization");
+    else
+        setHeader("Authorization", "Bearer " + jwt);
 }

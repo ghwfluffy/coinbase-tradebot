@@ -30,7 +30,7 @@ void handleSignal(int signal)
     {
         if (signalState->interrupts++ == 0)
         {
-            log::info("Interrupt signature received. Shutting down gracefully.");
+            log::info("Interrupt signal received. Shutting down gracefully.");
             signalState->stop();
         }
         else if (signalState->interrupts >= MAX_INTERRUPTS)

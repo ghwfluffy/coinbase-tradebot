@@ -39,6 +39,10 @@ class RestClient
             const nlohmann::json &data = nlohmann::json(),
             bool query = true);
 
+        HttpResponse del(
+            const std::string &path,
+            const std::string &jwt);
+
     private:
         struct Connection
         {
@@ -54,6 +58,9 @@ class RestClient
 
             void clearHeader(
                 const std::string &key);
+
+            void setJwt(
+                const std::string &jwt);
 
             cpr::Header headers;
         };

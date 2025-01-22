@@ -1,7 +1,7 @@
 #VERBOSE=-DCMAKE_VERBOSE_MAKEFILE:BOOL=ON
 THREADS=12
-#BUILD_TYPE=Debug
-BUILD_TYPE=Release
+BUILD_TYPE=Debug
+#BUILD_TYPE=Release
 
 all:
 	mkdir -p build

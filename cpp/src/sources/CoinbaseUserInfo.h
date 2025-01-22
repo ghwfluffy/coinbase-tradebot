@@ -1,7 +1,6 @@
 #pragma once
 
 #include <gtb/ThreadedDataSource.h>
-#include <gtb/CoinbaseRestClient.h>
 #include <gtb/CoinbaseOrderBook.h>
 #include <gtb/BotContext.h>
 
@@ -22,16 +21,16 @@ class CoinbaseUserInfo : public ThreadedDataSource
         CoinbaseUserInfo &operator=(const CoinbaseUserInfo &) = delete;
         ~CoinbaseUserInfo() final = default;
 
-        void process() final;
         void process(
             const CoinbaseOrderBook &book);
+
+    protected:
+        void process() final;
 
     private:
         void query();
 
         BotContext &ctx;
-
-        CoinbaseRestClient client;
 };
 
 }

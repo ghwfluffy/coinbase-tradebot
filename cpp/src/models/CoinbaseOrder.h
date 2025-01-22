@@ -1,5 +1,7 @@
 #pragma once
 
+#include <gtb/IntegerUtils.h>
+
 #include <string>
 #include <chrono>
 
@@ -26,7 +28,7 @@ struct CoinbaseOrder
     uint32_t priceCents = 0;
     // 100-millions of a bitcoin (Satoshi)
     uint64_t quantity = 0;
-    std::string createdTime;
+    uint64_t createdTime = 0;
     std::chrono::steady_clock::time_point cleanupTime;
 
     operator bool() const
@@ -36,7 +38,22 @@ struct CoinbaseOrder
 
     uint32_t valueCents() const
     {
-        return static_cast<uint32_t>((quantity * priceCents) / 100'000'000ULL);
+        return IntegerUtils::getValueCents(priceCents, quantity);
+    }
+
+    void setQuantity(
+        uint32_t priceCents,
+        uint32_t amountCents)
+    {
+        if (priceCents == 0 || amountCents == 0)
+        {
+            this->quantity = 0;
+            this->priceCents = 0;
+            return;
+        }
+
+        this->priceCents = priceCents;
+        this->quantity = IntegerUtils::getSatoshiForPrice(priceCents, amountCents);
     }
 };
 

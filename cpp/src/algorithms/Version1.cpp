@@ -6,10 +6,14 @@
 #include <gtb/PeriodicPrinter.h>
 
 #include <gtb/CoinbaseMarket.h>
-#include <gtb/CoinbaseUserTrades.h>
+#include <gtb/CoinbaseOrderBook.h>
+#include <gtb/CoinbaseRestClient.h>
 #include <gtb/CoinbaseUserInfo.h>
+#include <gtb/CoinbaseUserTrades.h>
 
 #include <gtb/BtcHistoricalWriter.h>
+
+#include <gtb/SpreadTrader.h>
 
 using namespace gtb;
 
@@ -19,8 +23,7 @@ void Version1::init(TradeBot &bot)
 
     BotContext &ctx = bot.getCtx();
 
-    // Database schema
-    ctx.algoDb.init("version1.sqlite", "./schema/version1.sql");
+    ctx.setCoinbase(std::make_unique<CoinbaseRestClient>());
 
     // Initial state
     ctx.data.get<Time>().setTime(1337);
@@ -64,5 +67,20 @@ void Version1::init(TradeBot &bot)
         auto printer = std::make_unique<PeriodicPrinter>(ctx);
         ctx.data.subscribe<Time>(*printer);
         bot.addProcessor(std::move(printer));
+    }
+
+    // Processor: 0.1% Spread Trader
+    {
+        SpreadTrader::Config conf;
+        conf.name = "BreakEven";
+        conf.spread = 10;
+        conf.cents = 20'00;
+        conf.num_pairs = 4;
+        conf.buffer_percent = 25;
+
+        auto trader = std::make_unique<SpreadTrader>(ctx, conf);
+        ctx.data.subscribe<BtcPrice>(*trader);
+        ctx.data.subscribe<CoinbaseOrderBook>(*trader);
+        bot.addProcessor(std::move(trader));
     }
 }

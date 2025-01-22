@@ -1,6 +1,7 @@
 #pragma once
 
 #include <gtb/RestClient.h>
+#include <gtb/CoinbaseInterface.h>
 #include <gtb/CoinbaseCredential.h>
 
 namespace gtb
@@ -9,7 +10,7 @@ namespace gtb
 /**
  * Wrapper for RestClient that autofills coinbase-specific values
  */
-class CoinbaseRestClient
+class CoinbaseRestClient : public CoinbaseInterface
 {
     public:
         CoinbaseRestClient();
@@ -26,6 +27,23 @@ class CoinbaseRestClient
         HttpResponse get(
             const std::string &path,
             const nlohmann::json &data = nlohmann::json());
+
+        HttpResponse del(
+            const std::string &path);
+
+        CoinbaseOrder getOrder(
+            const std::string &uuid) final;
+
+        CoinbaseOrder getOrderByClientUuid(
+            const std::string &uuid);
+
+        bool submitOrder(
+            CoinbaseOrder &order) final;
+
+        bool cancelOrder(
+            const std::string &uuid) final;
+
+        CoinbaseWallet::Data getWallet() final;
 
     private:
         RestClient client;

@@ -44,3 +44,38 @@ uint64_t IntegerUtils::btcToSatoshi(
 
     return satoshi;
 }
+
+std::string IntegerUtils::centsToUsd(
+    uint32_t cents)
+{
+    char usd[64] = {};
+    snprintf(usd, sizeof(usd), "%u.%02u", cents / 100U, cents % 100U);
+    return std::string(usd);
+}
+
+std::string IntegerUtils::satoshiToBtc(
+    uint64_t satoshi)
+{
+    char btc[64] = {};
+    snprintf(btc, sizeof(btc), "%llu.%08llu", satoshi / 100'000'000ULL, satoshi % 100'000'000ULL);
+    return std::string(btc);
+}
+
+uint32_t IntegerUtils::getValueCents(
+    uint32_t priceCents,
+    uint64_t satoshi)
+{
+    return static_cast<uint32_t>((satoshi * priceCents) / 100'000'000ULL);
+}
+
+uint64_t IntegerUtils::getSatoshiForPrice(
+    uint32_t priceCents,
+    uint32_t amountCents)
+{
+    if (priceCents == 0 || amountCents == 0)
+        return 0;
+
+    uint64_t satoshiCents = amountCents * 100'000'000ULL;
+    // Round up
+    return (satoshiCents + priceCents - 1) / priceCents;
+}
