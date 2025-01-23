@@ -15,7 +15,7 @@ namespace OrderPairDb
 {
     std::list<OrderPair> select(
         Database &db,
-        const std::string &algorithm,
+        const std::string &algorithm = std::string(),
         bool activeOnly = true);
 
     bool remove(

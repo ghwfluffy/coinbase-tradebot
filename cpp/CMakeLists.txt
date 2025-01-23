@@ -19,23 +19,25 @@ file(
     SOURCE_FILES
     "${SRC_DIR}/*.cpp"
 )
+list(FILTER SOURCE_FILES EXCLUDE REGEX ".*main.cpp$")
+list(FILTER SOURCE_FILES EXCLUDE REGEX ".*cli/*.cpp$")
 
 # Create header symlinks
 include(cmake/headers.cmake)
 
-# Executable
-add_executable(tradebot ${SOURCE_FILES})
-add_dependencies(tradebot gtb-headers)
+# Library
+add_library(gtb STATIC ${SOURCE_FILES})
+add_dependencies(gtb gtb-headers)
 
 target_include_directories(
-    tradebot
-    PRIVATE
+    gtb
+    PUBLIC
         ${HEADER_BASEDIR}
 )
 
 target_include_directories(
-    tradebot
-    SYSTEM PRIVATE
+    gtb
+    SYSTEM PUBLIC
         ${CPR_INCLUDE}
         ${WEBSOCKETPP_INCLUDE}
         ${JWTCPP_INCLUDE}
@@ -44,8 +46,8 @@ target_include_directories(
 )
 
 target_link_libraries(
-    tradebot
-    PRIVATE
+    gtb
+    PUBLIC
         pthread
         cpr::cpr
         Boost::system
@@ -54,3 +56,10 @@ target_link_libraries(
         OpenSSL::Crypto
         ${SQLite3_LIBRARIES}
 )
+
+# Executables
+add_executable(tradebot "src/core/main.cpp")
+target_link_libraries(tradebot PRIVATE gtb)
+
+add_executable(order-pairs "src/cli/order_pairs.cpp")
+target_link_libraries(order-pairs PRIVATE gtb)

@@ -15,10 +15,15 @@ Submodule Dependencies:
 
 TODOs
     Misc
+    [ ] Memory leak (10 hours till OOM)
+    [\] CLI tools
+    [ ] Watchdog
     [ ] Move Any to utils
     [ ] Move CoinbaseCredential to conf
     [ ] Track P/L over time
     [ ] Track fees
+    [ ] Better INVALID_LIMIT_PRICE_POST_ONLY handling
+    [ ] Remove or officialize 'nextTrade'
     Trading Algorithms
     [ ] Spread cleanup
     [ ] HODL

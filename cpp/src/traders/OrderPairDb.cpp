@@ -28,7 +28,9 @@ std::list<OrderPair> OrderPairDb::select(
     query += "SELECT ";
     query += COLUMNS;
     query += " FROM order_pairs";
-    query += " WHERE algorithm='" + algorithm + "'";
+    query += " WHERE 1=1";
+    if (!algorithm.empty())
+        query += " AND algorithm='" + algorithm + "'";
     if (activeOnly)
         query += " AND state IN (" + getActiveStates() + ")";
 
