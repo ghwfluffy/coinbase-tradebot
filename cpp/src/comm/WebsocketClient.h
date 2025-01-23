@@ -47,6 +47,7 @@ class WebsocketClient
             WebsockClient::message_ptr msg);
 
         websocketpp::connection_hdl conn;
+        boost::asio::io_context io;
         WebsockClient client;
 
         std::string name;

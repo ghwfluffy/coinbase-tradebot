@@ -7,7 +7,7 @@ WebsocketClient::WebsocketClient(
     std::string name)
         : name(std::move(name))
 {
-    client.init_asio();
+    client.init_asio(&io);
 }
 
 WebsocketClient::~WebsocketClient()
