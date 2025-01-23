@@ -11,7 +11,7 @@ namespace
 {
 
 // If an order fails to post, wait this long before retrying the spread
-constexpr const unsigned int FAILURE_RETRY_SECONDS = 20;
+constexpr const unsigned int FAILURE_RETRY_SECONDS = 10;
 
 // Keep orders active if they're within $100 of our target price
 constexpr const uint32_t KEEP_ACTIVE_ORDER_WINDOW_CENTS = 100'00;

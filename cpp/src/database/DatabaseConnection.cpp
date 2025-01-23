@@ -8,15 +8,24 @@ DatabaseConnection::DatabaseConnection()
     conn = nullptr;
 }
 
-DatabaseConnection::DatabaseConnection(sqlite3 *conn)
+DatabaseConnection::DatabaseConnection(
+    sqlite3 *conn,
+    std::function<void(DatabaseConnection)> release)
 {
     this->conn = conn;
+    this->release = std::move(release);
 }
 
-DatabaseConnection::DatabaseConnection(DatabaseConnection &&rhs)
+DatabaseConnection::DatabaseConnection(
+    DatabaseConnection &&rhs,
+    std::function<void(DatabaseConnection)> newRelease)
 {
     this->conn = rhs.conn;
+    this->release = rhs.release;
     rhs.conn = nullptr;
+    rhs.release = std::function<void(DatabaseConnection)>();
+    if (newRelease)
+        this->release = std::move(newRelease);
 }
 
 DatabaseConnection &DatabaseConnection::operator=(DatabaseConnection &&rhs)
@@ -25,7 +34,9 @@ DatabaseConnection &DatabaseConnection::operator=(DatabaseConnection &&rhs)
     {
         close();
         this->conn = rhs.conn;
+        this->release = std::move(rhs.release);
         rhs.conn = nullptr;
+        rhs.release = std::function<void(DatabaseConnection)>();
     }
 
     return (*this);
@@ -40,7 +51,10 @@ void DatabaseConnection::close()
 {
     if (conn)
     {
-        sqlite3_close(conn);
+        if (release)
+            release(DatabaseConnection(conn));
+        else
+            sqlite3_close(conn);
         conn = nullptr;
     }
 }

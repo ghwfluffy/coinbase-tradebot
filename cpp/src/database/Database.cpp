@@ -1,11 +1,62 @@
 #include <gtb/Database.h>
 #include <gtb/Log.h>
 
-#include <iostream>
+#include <sqlite3.h>
+
+#include <atomic>
 #include <fstream>
 #include <sstream>
+#include <iostream>
 
 using namespace gtb;
+
+namespace
+{
+
+std::atomic<int> refs = 0;
+
+void initSqlite()
+{
+    if (refs++ == 0)
+        sqlite3_initialize();
+}
+
+void cleanupSqlite()
+{
+    if (--refs == 0)
+        sqlite3_shutdown();
+}
+
+}
+
+Database::Database()
+{
+    initSqlite();
+}
+
+Database::~Database()
+{
+    cleanupSqlite();
+}
+
+DatabaseConnection Database::getConn()
+{
+    // Find existing connection in pool
+    {
+        std::lock_guard<std::mutex> lock(mtx);
+        if (!pool.empty())
+        {
+            DatabaseConnection conn = std::move(pool.front());
+            pool.pop_front();
+            return DatabaseConnection(
+                std::move(conn),
+                std::bind(&Database::releaseDb, this, std::placeholders::_1));
+        }
+    }
+
+    // Else new connection
+    return newConn();
+}
 
 DatabaseConnection Database::newConn()
 {
@@ -30,7 +81,7 @@ DatabaseConnection Database::newConn()
         }
     }
 
-    return DatabaseConnection(conn);
+    return DatabaseConnection(conn, std::bind(&Database::releaseDb, this, std::placeholders::_1));
 }
 
 void Database::init(
@@ -58,4 +109,11 @@ void Database::init(
 
     if (!conn.execute(schema.str()))
         log::error("Failed to initialize database schema.");
+}
+
+void Database::releaseDb(
+    DatabaseConnection conn)
+{
+    std::lock_guard<std::mutex> lock(mtx);
+    pool.push_back(std::move(conn));
 }

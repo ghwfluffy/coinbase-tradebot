@@ -34,7 +34,7 @@ std::list<OrderPair> OrderPairDb::select(
     if (activeOnly)
         query += " AND state IN (" + getActiveStates() + ")";
 
-    DatabaseResult result = db.newConn().query(query);
+    DatabaseResult result = db.getConn().query(query);
     if (!result)
         log::error("Failed to query order pairs for algorithm '%s'.", algorithm.c_str());
 
@@ -65,7 +65,7 @@ bool OrderPairDb::remove(
 {
     std::string query;
     query += "DELETE FROM order_pairs WHERE uuid='" + uuid + "'";
-    if (!db.newConn().execute(query))
+    if (!db.getConn().execute(query))
     {
         log::error("Failed to remove order pair '%s' from DB.", uuid.c_str());
         return false;
@@ -94,7 +94,7 @@ bool OrderPairDb::insert(
         << pair.sellPrice << ","
         << pair.quantity << ","
         << pair.created << ")";
-    if (!db.newConn().execute(oss.str()))
+    if (!db.getConn().execute(oss.str()))
     {
         log::error("Failed to insert order pair '%s' in DB.", pair.uuid.c_str());
         return false;
@@ -118,7 +118,7 @@ bool OrderPairDb::update(
         << "quantity=" << pair.quantity << ","
         << "created=" << pair.created << " "
         << "WHERE uuid='" << pair.uuid << "'";
-    if (!db.newConn().execute(oss.str()))
+    if (!db.getConn().execute(oss.str()))
     {
         log::error("Failed to update order pair '%s' in DB.", pair.uuid.c_str());
         return false;

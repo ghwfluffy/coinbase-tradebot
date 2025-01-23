@@ -25,7 +25,7 @@ void BtcHistoricalWriter::process(
         prevTime = curTime;
         std::stringstream query;
         query << "INSERT INTO btc_price (time, price) VALUES (" << curTime << "," << cents << ")";
-        if (!ctx.historicalDb.newConn().execute(query.str()))
+        if (!ctx.historicalDb.getConn().execute(query.str()))
             log::error("Failed to record BTC historical data.");
     }
 }

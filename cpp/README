@@ -15,8 +15,9 @@ Submodule Dependencies:
 
 TODOs
     Misc
-    [ ] Memory leak (10 hours till OOM)
+    [\] Memory leak (10 hours till OOM)
     [\] CLI tools
+    [ ] Interrupt down before websockets connect deadlocks
     [ ] Watchdog
     [ ] Move Any to utils
     [ ] Move CoinbaseCredential to conf
