@@ -157,6 +157,7 @@ void SpreadTrader::handleNewPair(
     pair.algo = conf.name;
     pair.uuid = Uuid::generate();
     pair.state = OrderPair::State::Pending;
+    pair.created = ctx.data.get<Time>().getTime();
     uint32_t half_spread = (spread_cents + 1) / 2;
     pair.buyPrice = price.getCents() - half_spread;
     pair.sellPrice = price.getCents() + half_spread;
@@ -165,17 +166,18 @@ void SpreadTrader::handleNewPair(
     // We need to make sure the sell price isn't too far outside today's estimated value of BTC
     // TODO: Make this based on config file
     // TODO: Give some leeway for making a single trade slightly over estimated value
-    constexpr const uint32_t BTC_VALUE = 107'000'00;
+    constexpr const uint32_t BTC_VALUE = 105'000'00;
     if (pair.sellPrice > BTC_VALUE)
         return;
 
     // We need to decide if we can cancel something first
-    if (conf.num_pairs <= orderPairs.size())
-    {
-        // Try to cancel the furthest pending pair
-        if (!cancelPending(price))
-            return;
-    }
+    // Try to cancel the furthest pending pair
+    while (conf.num_pairs >= orderPairs.size() && cancelPending(price))
+    { }
+
+    // We have too many orders already and we haven't been patient enough to exceed max
+    if (conf.num_pairs <= orderPairs.size() && !patientOverride())
+        return;
 
     // Add the pair
     if (!OrderPairDb::insert(db, pair))
@@ -188,6 +190,20 @@ void SpreadTrader::handleNewPair(
     log::info("Created new pair for spread '%s'.", conf.name.c_str());
     logChange(OrderPair::State::None, pair);
     orderPairs.push_back(std::move(pair));
+}
+
+bool SpreadTrader::patientOverride() const
+{
+    uint64_t mostRecentTime = 0;
+    for (const OrderPair &pair : orderPairs)
+    {
+        if (pair.created > mostRecentTime)
+            mostRecentTime = pair.created;
+    }
+
+    // Can put in 1 new trade every half hour over our limit
+    constexpr const uint64_t PATIENCE_MICROSECONDS = 30ULL * 60ULL * 1'000'000ULL;
+    return mostRecentTime + PATIENCE_MICROSECONDS <= ctx.data.get<Time>().getTime();
 }
 
 bool SpreadTrader::cancelPending(

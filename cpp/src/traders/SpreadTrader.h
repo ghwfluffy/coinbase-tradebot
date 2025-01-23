@@ -85,6 +85,8 @@ class SpreadTrader
             OrderPair::State startState,
             const OrderPair &pair);
 
+        bool patientOverride() const;
+
         BotContext &ctx;
         Config conf;
         Database db;
