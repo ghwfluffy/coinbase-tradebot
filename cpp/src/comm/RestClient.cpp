@@ -142,6 +142,8 @@ RestClient::Connection RestClient::getConn()
 
 RestClient::Connection RestClient::newConn() const
 {
+    log::info("Creating new REST API connection to '%s'.", baseUrl.c_str());
+
     Connection conn;
     conn.session = std::make_unique<cpr::Session>();
     conn.setHeader("Connection", "keep-alive");

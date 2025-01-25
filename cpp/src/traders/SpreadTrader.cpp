@@ -324,7 +324,8 @@ void SpreadTrader::process(
 }
 
 void SpreadTrader::checkBuyState(
-    OrderPair &pair)
+    OrderPair &pair,
+    bool force)
 {
     if (pair.state != OrderPair::State::BuyActive)
         return;
@@ -332,7 +333,7 @@ void SpreadTrader::checkBuyState(
     CoinbaseOrderBook &orderbook = ctx.data.get<CoinbaseOrderBook>();
 
     CoinbaseOrder buyOrder = orderbook.getOrder(pair.buyOrder);
-    if (!buyOrder)
+    if (!buyOrder || force)
     {
         buyOrder = ctx.coinbase().getOrder(pair.buyOrder);
         if (buyOrder)
@@ -486,7 +487,7 @@ void SpreadTrader::handleBuyActive(
         pair.state = OrderPair::State::Pending;
     // Failed to cancel, let's see if something about the order state changed
     else
-        checkBuyState(pair);
+        checkBuyState(pair, true);
 }
 
 void SpreadTrader::handleHolding(

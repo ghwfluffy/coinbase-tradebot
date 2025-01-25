@@ -1,10 +1,13 @@
 #pragma once
 
+#include <gtb/LoggerStreambuf.h>
+
 #include <websocketpp/client.hpp>
 #include <websocketpp/config/asio_client.hpp>
 
 #include <nlohmann/json.hpp>
 
+#include <mutex>
 #include <functional>
 
 namespace gtb
@@ -33,6 +36,15 @@ class WebsocketClient
 
     private:
         typedef websocketpp::client<websocketpp::config::asio_tls_client> WebsockClient;
+        typedef std::shared_ptr<websocketpp::connection<websocketpp::config::asio_tls_client>> WebsockConn;
+
+        void init();
+        void shutdown(
+            const std::unique_lock<std::mutex> &lock);
+
+        void log(
+            bool error,
+            std::string msg);
 
         void handleOpen(
             websocketpp::connection_hdl hdl);
@@ -46,13 +58,18 @@ class WebsocketClient
             websocketpp::connection_hdl hdl,
             WebsockClient::message_ptr msg);
 
-        websocketpp::connection_hdl conn;
         boost::asio::io_context io;
         WebsockClient client;
+        WebsockConn conn;
+        std::shared_ptr<boost::asio::ssl::context> tlsCtx;
 
+        std::mutex mtx;
         std::string name;
         std::string subscribeMsg;
         std::function<void(nlohmann::json message)> handler;
+
+        LoggerStreambuf errorLogger;
+        LoggerStreambuf accessLogger;
 };
 
 }

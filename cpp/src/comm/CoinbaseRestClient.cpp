@@ -184,10 +184,16 @@ bool CoinbaseRestClient::cancelOrder(
     HttpResponse resp = del(path);
 
     // Retry at least once to handle transient issues
-    if (!resp)
+    if (!resp && resp.code != 404)
     {
         log::error("Retrying failed order cancellation for '%s'.", uuid.c_str());
         resp = del(path);
+    }
+
+    if (resp.code == 404)
+    {
+        log::error("Tried to cancel order '%s' that wasn't active.", uuid.c_str());
+        return false;
     }
 
     // Check response

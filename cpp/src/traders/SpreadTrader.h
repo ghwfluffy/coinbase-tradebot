@@ -51,7 +51,8 @@ class SpreadTrader
         void loadDatabase();
 
         void checkBuyState(
-            OrderPair &pair);
+            OrderPair &pair,
+            bool force = false);
 
         void checkSellState(
             OrderPair &pair);

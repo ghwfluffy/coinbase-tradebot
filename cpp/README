@@ -16,6 +16,16 @@ Submodule Dependencies:
 TODOs
     Misc
     [\] Memory leak (10 hours till OOM)
+        CoinbaseUserTrades web socket getting into state where user trades not updating
+        - SSL_new
+        - BIO_ctrl
+        - 219.7 MiB: websocketpp::endpoint<websocketpp::connection<websocketpp::config::asio_tls_client>, websocketpp::config::asio_tls_client>::create_connection() (endpoint_impl.hpp:86)
+            - WebSocketClient::run
+            - websockpp::client::get_connection
+            - websockpp::client::create_connection
+        - 219.7 MiB: websocketpp::transport::asio::tls_socket::connection::init_asio(boost::asio::io_context*, std::shared_ptr<boost::asio::io_context::strand>, bool) (tls.hpp:196)
+    [ ] File logger
+    [ ] curl_global_init / curl_global_cleanup on ref
     [\] CLI tools
     [ ] Interrupt down before websockets connect deadlocks
     [ ] Watchdog

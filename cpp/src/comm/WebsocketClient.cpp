@@ -7,7 +7,7 @@ WebsocketClient::WebsocketClient(
     std::string name)
         : name(std::move(name))
 {
-    client.init_asio(&io);
+    init();
 }
 
 WebsocketClient::~WebsocketClient()
@@ -15,44 +15,89 @@ WebsocketClient::~WebsocketClient()
     shutdown();
 }
 
-void WebsocketClient::run(
-    const std::string &uri,
-    const nlohmann::json &subscribeRequest,
-    std::function<void(nlohmann::json message)> handler)
+void WebsocketClient::init()
 {
-    this->handler = std::move(handler);
-    subscribeMsg = subscribeRequest.dump();
+    // Use dedicated ASIO event context
+    client.init_asio(&io);
 
-    // Disable all logs
-    client.clear_access_channels(websocketpp::log::alevel::all);
+    // Log connect/disconnect and errors only
     client.clear_error_channels(websocketpp::log::elevel::all);
+    client.set_error_channels(websocketpp::log::elevel::rerror | websocketpp::log::elevel::fatal);
 
+    client.clear_access_channels(websocketpp::log::alevel::all);
+    client.set_access_channels(websocketpp::log::alevel::connect | websocketpp::log::alevel::disconnect);
+
+    // Forward to our logger
+    errorLogger = LoggerStreambuf(std::bind(&WebsocketClient::log, this, true, std::placeholders::_1));
+    accessLogger = LoggerStreambuf(std::bind(&WebsocketClient::log, this, false, std::placeholders::_1));
+    client.get_elog().set_ostream(errorLogger);
+    client.get_alog().set_ostream(accessLogger);
+
+    // Setup callbacks
     client.set_tls_init_handler(std::bind(&WebsocketClient::handleTlsInit, this, std::placeholders::_1));
     client.set_open_handler(std::bind(&WebsocketClient::handleOpen, this, std::placeholders::_1));
     client.set_message_handler(std::bind(&WebsocketClient::handleMessage, this, std::placeholders::_1, std::placeholders::_2));
     client.set_fail_handler(std::bind(&WebsocketClient::handleFail, this, std::placeholders::_1));
     client.set_close_handler(std::bind(&WebsocketClient::handleClose, this, std::placeholders::_1));
+}
 
+void WebsocketClient::run(
+    const std::string &uri,
+    const nlohmann::json &subscribeRequest,
+    std::function<void(nlohmann::json message)> handler)
+{
+    std::unique_lock<std::mutex> lock(mtx);
+
+    this->handler = std::move(handler);
+    subscribeMsg = subscribeRequest.dump();
+
+    // Cleanup old connection
+    shutdown(lock);
+
+    // Create new connection
     websocketpp::lib::error_code ec;
-    auto con = client.get_connection(uri, ec);
+    conn = client.get_connection(uri, ec);
     if (ec)
     {
+        log::error("Websocket '%s' setup error: %s",
+            name.c_str(),
+            ec.message().c_str());
+        shutdown();
+        return;
+    }
+
+    // TCP/TLS connect
+    try {
+        client.connect(conn);
+    } catch (const std::exception &e) {
         log::error("Websocket '%s' connection error: %s",
             name.c_str(),
             ec.message().c_str());
         return;
     }
 
-    client.connect(con);
+    // Run websocket (blocks and triggers callbacks)
+    lock.unlock();
     client.run();
 }
 
 void WebsocketClient::shutdown()
 {
-    if (conn.lock())
+    std::unique_lock<std::mutex> lock(mtx);
+    shutdown(lock);
+}
+
+void WebsocketClient::shutdown(
+    const std::unique_lock<std::mutex> &lock)
+{
+    (void)lock;
+
+    if (conn)
     {
         log::info("Shutting down '%s' websocket.", name.c_str());
-        client.close(conn, websocketpp::close::status::going_away, "Client shutdown");
+        websocketpp::connection_hdl handle = conn->get_handle();
+        client.close(handle, websocketpp::close::status::going_away, "Client shutdown");
+        conn.reset();
     }
 }
 
@@ -61,24 +106,27 @@ std::shared_ptr<boost::asio::ssl::context> WebsocketClient::handleTlsInit(
 {
     (void)hdl;
 
-    auto ctx = std::make_shared<boost::asio::ssl::context>(boost::asio::ssl::context::tls_client);
-    try {
-        // Use the system's default trusted CA certificates
-        ctx->set_default_verify_paths();
-    } catch (const std::exception &e) {
-        log::error("Failed to setup '%s' websocket TLS: %s", name.c_str(), e.what());
+    if (!tlsCtx)
+    {
+        tlsCtx = std::make_shared<boost::asio::ssl::context>(boost::asio::ssl::context::tls_client);
+        try {
+            // Use the system's default trusted CA certificates
+            tlsCtx->set_default_verify_paths();
+        } catch (const std::exception &e) {
+            log::error("Failed to setup '%s' websocket TLS: %s", name.c_str(), e.what());
+            tlsCtx.reset();
+        }
     }
 
-    return ctx;
+    return tlsCtx;
 }
 
 void WebsocketClient::handleOpen(
     websocketpp::connection_hdl hdl)
 {
     log::info("Websocket '%s' connection opened.", name.c_str());
-    this->conn = std::move(hdl);
 
-    client.send(conn, subscribeMsg, websocketpp::frame::opcode::text);
+    client.send(hdl, subscribeMsg, websocketpp::frame::opcode::text);
 }
 
 void WebsocketClient::handleClose(
@@ -120,4 +168,21 @@ void WebsocketClient::handleMessage(
             name.c_str(),
             e.what());
     }
+}
+
+void WebsocketClient::log(
+    bool error,
+    std::string msg)
+{
+    // Remove timestamp
+    size_t pos = msg.find(']');
+    if (pos != std::string::npos)
+        msg.erase(0, pos + 1);
+    if (msg[0] == ' ')
+        msg.erase(0, 1);
+
+    if (error)
+        log::error("WebSocket++: %s", msg.c_str());
+    else
+        log::info("WebSocket++: %s", msg.c_str());
 }
