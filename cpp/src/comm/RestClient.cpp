@@ -9,7 +9,8 @@ namespace
 {
 
 HttpResponse parseResponse(
-    cpr::Response response)
+    cpr::Response response,
+    bool verbose)
 {
     HttpResponse ret;
     ret.code = response.status_code < 0 ? 0 : static_cast<unsigned int>(response.status_code);
@@ -21,6 +22,9 @@ HttpResponse parseResponse(
     } catch (const std::exception &e) {
         // Ignore
     }
+
+    if (verbose)
+        printf("Recv (%u): %s\n", ret.code, response.text.c_str());
 
     return ret;
 }
@@ -42,8 +46,10 @@ std::string HttpResponse::text() const
 }
 
 RestClient::RestClient(
-    std::string baseUrl)
+    std::string baseUrl,
+    bool verbose)
         : baseUrl(std::move(baseUrl))
+        , verbose(verbose)
 {
 }
 
@@ -58,13 +64,17 @@ HttpResponse RestClient::post(
     conn.setJwt(jwt);
 
     if (data != nullptr)
+    {
+        if (verbose)
+            printf("Send: %s\n", data.dump().c_str());
         conn.session->SetBody(data.dump());
+    }
 
     // Send
     cpr::Response response = conn.session->Post();
     saveConn(std::move(conn));
 
-    return parseResponse(response);
+    return parseResponse(response, verbose);
 }
 
 HttpResponse RestClient::get(
@@ -80,6 +90,9 @@ HttpResponse RestClient::get(
 
     if (data != nullptr)
     {
+        if (verbose)
+            printf("Send: %s\n", data.dump().c_str());
+
         if (!query)
             conn.session->SetBody(data.dump());
         else
@@ -95,7 +108,7 @@ HttpResponse RestClient::get(
     cpr::Response response = conn.session->Get();
     saveConn(std::move(conn));
 
-    return parseResponse(response);
+    return parseResponse(response, verbose);
 }
 
 HttpResponse RestClient::del(
@@ -111,7 +124,7 @@ HttpResponse RestClient::del(
     cpr::Response response = conn.session->Delete();
     saveConn(std::move(conn));
 
-    return parseResponse(response);
+    return parseResponse(response, verbose);
 }
 
 RestClient::Connection RestClient::getConn()
@@ -154,7 +167,7 @@ RestClient::Connection RestClient::newConn() const
     conn.setHeader("Content-Type", "application/json");
     conn.session->SetTimeout(cpr::Timeout{30'000});
     conn.session->SetOption(cpr::HttpVersion(cpr::HttpVersionCode::VERSION_1_1));
-    //conn.session->SetOption(cpr::Verbose{true});
+    conn.session->SetOption(cpr::Verbose{verbose});
     return conn;
 }
 

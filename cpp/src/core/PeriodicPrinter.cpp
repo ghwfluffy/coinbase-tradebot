@@ -1,7 +1,9 @@
 #include <gtb/PeriodicPrinter.h>
 #include <gtb/CoinbaseInit.h>
+#include <gtb/IntegerUtils.h>
 #include <gtb/Log.h>
 
+#include <gtb/Profits.h>
 #include <gtb/BtcPrice.h>
 #include <gtb/CoinbaseWallet.h>
 
@@ -37,7 +39,9 @@ void PeriodicPrinter::process(
     uint32_t btcCents = static_cast<uint32_t>((btc * cents) / 100'000'000);
     uint32_t totalCents = btcCents + usd;
 
-    log::info("STATUS | BTC: %u.%02u | Wallet: $%u.%02u USD + $%u.%02u BTC = $%u.%02u.",
+    int32_t profit = ctx.data.get<Profits>().getProfit();
+
+    log::info("STATUS | BTC: %u.%02u | Wallet: $%u.%02u USD + $%u.%02u BTC = $%u.%02u | Profit: $%s",
         cents / 100,
         cents % 100,
         usd / 100,
@@ -45,7 +49,8 @@ void PeriodicPrinter::process(
         btcCents / 100,
         btcCents % 100,
         totalCents / 100,
-        totalCents % 100);
+        totalCents % 100,
+        IntegerUtils::centsToUsd(profit).c_str());
 
     nextPrint = now + std::chrono::seconds(10);
 }

@@ -120,6 +120,8 @@ void OrderPairStateMachine::checkBuyState(
         // Record the price it filled at
         pair.buyPrice = buyOrder.priceCents;
         pair.quantity = buyOrder.quantity;
+        pair.profit.purchased = buyOrder.beforeFees;
+        pair.profit.buyFees = buyOrder.fees;
     }
     else if (buyOrder.state == CoinbaseOrder::State::Canceled)
     {
@@ -169,6 +171,10 @@ void OrderPairStateMachine::checkSellState(
         pair.state = OrderPair::State::Complete;
         // Record the price it filled at
         pair.sellPrice = sellOrder.priceCents;
+        pair.profit.sold = sellOrder.beforeFees;
+        pair.profit.sellFees = sellOrder.fees;
+        // Track total profits
+        ctx.data.get<Profits>().addOrderPair(pair.profit);
     }
     else if (sellOrder.state == CoinbaseOrder::State::Canceled)
     {

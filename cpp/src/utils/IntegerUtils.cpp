@@ -53,6 +53,21 @@ std::string IntegerUtils::centsToUsd(
     return std::string(usd);
 }
 
+std::string IntegerUtils::centsToUsd(
+    int32_t cents)
+{
+    std::string str;
+    if (cents >= 0)
+        str = centsToUsd(static_cast<uint32_t>(cents));
+    else
+    {
+        str = centsToUsd(static_cast<uint32_t>(cents * -1));
+        str.insert(0, "-");
+    }
+
+    return str;
+}
+
 std::string IntegerUtils::satoshiToBtc(
     uint64_t satoshi)
 {
@@ -78,4 +93,23 @@ uint64_t IntegerUtils::getSatoshiForPrice(
     uint64_t satoshiCents = amountCents * 100'000'000ULL;
     // Round up
     return (satoshiCents + priceCents - 1) / priceCents;
+}
+
+uint64_t IntegerUtils::usdToPico(
+    const std::string &usd)
+{
+    if (usd.empty() || usd[0] == '-')
+        return 0;
+
+    size_t period = usd.find('.');
+    uint32_t dollars = static_cast<uint32_t>(std::stoull(usd.c_str()));
+    uint64_t picos = dollars * 10'000'000'000'000ULL;
+    if (period != std::string::npos)
+    {
+        std::string strPicos = usd.substr(period + 1);
+        strPicos.resize(13, '0');
+        picos += std::stoull(strPicos.c_str());
+    }
+
+    return picos;
 }

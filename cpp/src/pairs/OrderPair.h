@@ -1,6 +1,7 @@
 #pragma once
 
 #include <gtb/IntegerUtils.h>
+#include <gtb/Profits.h>
 
 #include <string>
 #include <chrono>
@@ -34,6 +35,8 @@ struct OrderPair
     uint64_t created = 0;
     State state = State::None;
     std::chrono::steady_clock::time_point nextTry;
+
+    Profits::Data profit;
 
     uint32_t buyValue() const
     {

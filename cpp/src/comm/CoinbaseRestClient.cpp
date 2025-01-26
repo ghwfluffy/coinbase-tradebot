@@ -39,8 +39,9 @@ std::string getError(
 
 }
 
-CoinbaseRestClient::CoinbaseRestClient()
-    : client("https://" + std::string(BASE_URL))
+CoinbaseRestClient::CoinbaseRestClient(
+    bool verbose)
+        : client("https://" + std::string(BASE_URL), verbose)
 {
 }
 
@@ -268,4 +269,38 @@ CoinbaseWallet::Data CoinbaseRestClient::getWallet()
     ret.usd = IntegerUtils::usdToCents(usdBalance) + IntegerUtils::usdToCents(usdReserved);
     ret.btc = IntegerUtils::btcToSatoshi(btcBalance) + IntegerUtils::btcToSatoshi(btcReserved);
     return ret;
+}
+
+uint32_t CoinbaseRestClient::getFeeTier()
+{
+    HttpResponse resp = get("brokerage/transaction_summary");
+    // Retry at least once to handle transient issues
+    if (!resp)
+    {
+        log::error("Retrying transaction summary query.");
+        resp = get("brokerage/transaction_summary");
+    }
+
+    if (!resp)
+    {
+        log::error("Failed to query Coinbase transactions summary: %s",
+            getError(resp).c_str());
+        return 0;
+    }
+
+    if (!resp.data.contains("fee_tier"))
+    {
+        log::error("Coinbase transaction summary malformed.");
+        return 0;
+    }
+
+    // Parse response
+    std::string fee = resp.data["fee_tier"]["maker_fee_rate"].get<std::string>();
+    size_t pos = fee.find(".");
+    if (pos == std::string::npos)
+        return 0;
+
+    fee.erase(0, pos + 1);
+    fee.resize(4, '0');
+    return static_cast<uint32_t>(atoi(fee.c_str()));
 }

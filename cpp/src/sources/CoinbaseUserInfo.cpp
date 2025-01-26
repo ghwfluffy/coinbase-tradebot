@@ -16,7 +16,7 @@ CoinbaseUserInfo::CoinbaseUserInfo(
 void CoinbaseUserInfo::process()
 {
     query();
-    sleep(std::chrono::seconds(10));
+    sleep(std::chrono::seconds(30));
 }
 
 void CoinbaseUserInfo::process(

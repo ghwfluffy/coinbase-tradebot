@@ -8,5 +8,9 @@ CREATE TABLE IF NOT EXISTS order_pairs (
     buy_price INTEGER,
     sell_price INTEGER,
     quantity INTEGER,
-    created INTEGER
+    created INTEGER,
+    final_purchased INTEGER,
+    final_buy_fees INTEGER,
+    final_sold INTEGER,
+    final_sell_fees INTEGER
 );

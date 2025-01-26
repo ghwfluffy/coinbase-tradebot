@@ -12,6 +12,8 @@
 #include <gtb/CoinbaseUserTrades.h>
 
 #include <gtb/BtcHistoricalWriter.h>
+#include <gtb/ProfitsReader.h>
+#include <gtb/ProfitsWriter.h>
 
 #include <gtb/SpreadTrader.h>
 #include <gtb/StaticTrader.h>
@@ -27,8 +29,7 @@ void Version1::init(TradeBot &bot)
     ctx.setCoinbase(std::make_unique<CoinbaseRestClient>());
 
     // Initial state
-    ctx.data.get<Time>().setTime(1337);
-    ctx.data.get<BtcPrice>();
+    ProfitsReader::initProfits(ctx);
 
     // Source: Time updater
     bot.addSource(std::make_unique<PeriodicTimeUpdater>(ctx));
@@ -44,6 +45,9 @@ void Version1::init(TradeBot &bot)
 
     // Processor: Record BTC prices
     bot.addProcessor(std::make_unique<BtcHistoricalWriter>(ctx));
+
+    // Processor: Record profits
+    bot.addProcessor(std::make_unique<ProfitsWriter>(ctx));
 
     // Processor: Print periodic status updates
     bot.addProcessor(std::make_unique<PeriodicPrinter>(ctx));

@@ -17,6 +17,9 @@ namespace IntegerUtils
     std::string centsToUsd(
         uint32_t cents);
 
+    std::string centsToUsd(
+        int32_t cents);
+
     std::string satoshiToBtc(
         uint64_t satoshi);
 
@@ -27,6 +30,9 @@ namespace IntegerUtils
     uint64_t getSatoshiForPrice(
         uint32_t btcPriceCents,
         uint32_t amountCents);
+
+    uint64_t usdToPico(
+        const std::string &str);
 }
 
 }

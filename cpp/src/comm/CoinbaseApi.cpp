@@ -113,6 +113,16 @@ CoinbaseOrder CoinbaseApi::parseOrder(
         }
     }
 
+    if (data.contains("total_fees"))
+        order.fees = IntegerUtils::usdToPico(data["total_fees"].get<std::string>());
+
+    if (data.contains("filled_value"))
+    {
+        order.beforeFees = IntegerUtils::usdToPico(data["filled_value"].get<std::string>());
+        if (order.buy)
+            order.beforeFees += order.fees;
+    }
+
     return order;
 }
 

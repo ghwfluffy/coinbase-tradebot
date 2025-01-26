@@ -21,7 +21,8 @@ class RestClient
 {
     public:
         RestClient(
-            std::string baseUrl);
+            std::string baseUrl,
+            bool verbose = false);
         RestClient(RestClient &&) = delete;
         RestClient(const RestClient &) = delete;
         RestClient &operator=(RestClient &&) = delete;
@@ -71,6 +72,7 @@ class RestClient
 
         std::mutex mtx;
         std::string baseUrl;
+        bool verbose;
         std::list<Connection> sessionPool;
 };
 

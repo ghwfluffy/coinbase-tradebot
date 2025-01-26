@@ -63,3 +63,6 @@ target_link_libraries(tradebot PRIVATE gtb)
 
 add_executable(order-pairs "src/cli/order_pairs.cpp")
 target_link_libraries(order-pairs PRIVATE gtb)
+
+add_executable(query-order "src/cli/query_order.cpp")
+target_link_libraries(query-order PRIVATE gtb)

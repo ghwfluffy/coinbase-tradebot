@@ -13,7 +13,8 @@ namespace gtb
 class CoinbaseRestClient : public CoinbaseInterface
 {
     public:
-        CoinbaseRestClient();
+        CoinbaseRestClient(
+            bool verbose = false);
         CoinbaseRestClient(CoinbaseRestClient &&) = delete;
         CoinbaseRestClient(const CoinbaseRestClient &) = delete;
         CoinbaseRestClient &operator=(CoinbaseRestClient &&) = delete;
@@ -44,6 +45,8 @@ class CoinbaseRestClient : public CoinbaseInterface
             const std::string &uuid) final;
 
         CoinbaseWallet::Data getWallet() final;
+
+        uint32_t getFeeTier() final;
 
     private:
         RestClient client;

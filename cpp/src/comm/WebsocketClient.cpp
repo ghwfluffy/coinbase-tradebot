@@ -112,6 +112,7 @@ void WebsocketClient::shutdown(
             conn.reset();
         } catch (const std::exception &e) {
             log::error("Erorr while shutting down websocket '%s': %s", name.c_str(), e.what());
+            conn.reset();
         }
     }
 }

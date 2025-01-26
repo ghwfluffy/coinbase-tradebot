@@ -10,7 +10,8 @@ namespace
 {
 
 constexpr const char *COLUMNS =
-    "uuid, algorithm, state, buy_order_uuid, sell_order_uuid, bet, buy_price, sell_price, quantity, created";
+    "uuid, algorithm, state, buy_order_uuid, sell_order_uuid, bet, buy_price, sell_price, quantity, created, "
+        "final_purchased, final_buy_fees, final_sold, final_sell_fees";
 
 std::string getActiveStates()
 {
@@ -53,6 +54,10 @@ std::list<OrderPair> OrderPairDb::select(
         pair.sellPrice = result[col++].getUInt32();
         pair.quantity = result[col++].getUInt64();
         pair.created = result[col++].getUInt64();
+        pair.profit.purchased = result[col++].getUInt64();
+        pair.profit.buyFees = result[col++].getUInt64();
+        pair.profit.sold = result[col++].getUInt64();
+        pair.profit.sellFees = result[col++].getUInt64();
 
         pairs.push_back(std::move(pair));
     }
@@ -95,7 +100,11 @@ bool OrderPairDb::insert(
         << pair.buyPrice << ","
         << pair.sellPrice << ","
         << pair.quantity << ","
-        << pair.created << ")";
+        << pair.created << ","
+        << pair.profit.purchased << ","
+        << pair.profit.buyFees << ","
+        << pair.profit.sold << ","
+        << pair.profit.sellFees << ")";
     if (!db.getConn().execute(oss.str()))
     {
         log::error("Failed to insert order pair '%s' in DB.", pair.uuid.c_str());
@@ -119,7 +128,11 @@ bool OrderPairDb::update(
         << "buy_price=" << pair.buyPrice << ","
         << "sell_price=" << pair.sellPrice << ","
         << "quantity=" << pair.quantity << ","
-        << "created=" << pair.created << " "
+        << "created=" << pair.created << ","
+        << "final_purchased=" << pair.profit.purchased << ","
+        << "final_buy_fees=" << pair.profit.buyFees << ","
+        << "final_sold=" << pair.profit.sold << ","
+        << "final_sell_fees=" << pair.profit.sellFees << " "
         << "WHERE uuid='" << pair.uuid << "'";
     if (!db.getConn().execute(oss.str()))
     {

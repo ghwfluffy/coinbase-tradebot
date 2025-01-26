@@ -31,6 +31,10 @@ struct CoinbaseOrder
     uint64_t createdTime = 0;
     std::chrono::steady_clock::time_point cleanupTime;
 
+    // In picodollars
+    uint64_t beforeFees = 0;
+    uint64_t fees = 0;
+
     operator bool() const
     {
         return !uuid.empty() && state != State::None && priceCents > 0 && quantity > 0;

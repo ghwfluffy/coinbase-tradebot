@@ -29,11 +29,9 @@ TODOs
     [ ] curl_global_init / curl_global_cleanup on ref
     [\] CLI tools
     [ ] Interrupt down before websockets connect deadlocks
-    [ ] Watchdog
     [ ] Move CoinbaseCredential to conf
-    [ ] Track P/L over time
-    [ ] Track fees
-        [ ] Get fee tier from coinbase
+    [ ] PendingProfits class
+    [\] FeeTier
     [ ] Better INVALID_LIMIT_PRICE_POST_ONLY handling
     [ ] Remove or officialize 'nextTrade'
     Trading Algorithms
