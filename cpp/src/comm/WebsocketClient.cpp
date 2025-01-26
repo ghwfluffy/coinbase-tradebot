@@ -55,14 +55,19 @@ void WebsocketClient::run(
     shutdown(lock);
 
     // Create new connection
-    websocketpp::lib::error_code ec;
-    conn = client.get_connection(uri, ec);
-    if (ec)
-    {
-        log::error("Websocket '%s' setup error: %s",
-            name.c_str(),
-            ec.message().c_str());
-        shutdown();
+    try {
+        websocketpp::lib::error_code ec;
+        conn = client.get_connection(uri, ec);
+        if (ec)
+        {
+            log::error("Websocket '%s' setup error: %s",
+                name.c_str(),
+                ec.message().c_str());
+            shutdown(lock);
+            return;
+        }
+    } catch (const std::exception &e) {
+        log::error("Erorr while initializing websocket '%s': %s", name.c_str(), e.what());
         return;
     }
 
@@ -72,13 +77,19 @@ void WebsocketClient::run(
     } catch (const std::exception &e) {
         log::error("Websocket '%s' connection error: %s",
             name.c_str(),
-            ec.message().c_str());
+            e.what());
+        shutdown(lock);
         return;
     }
 
     // Run websocket (blocks and triggers callbacks)
     lock.unlock();
-    client.run();
+    try {
+        client.run();
+    } catch (const std::exception &e) {
+        log::error("Erorr while processing websocket '%s': %s", name.c_str(), e.what());
+        shutdown();
+    }
 }
 
 void WebsocketClient::shutdown()
@@ -95,9 +106,13 @@ void WebsocketClient::shutdown(
     if (conn)
     {
         log::info("Shutting down '%s' websocket.", name.c_str());
-        websocketpp::connection_hdl handle = conn->get_handle();
-        client.close(handle, websocketpp::close::status::going_away, "Client shutdown");
-        conn.reset();
+        try {
+            websocketpp::connection_hdl handle = conn->get_handle();
+            client.close(handle, websocketpp::close::status::going_away, "Client shutdown");
+            conn.reset();
+        } catch (const std::exception &e) {
+            log::error("Erorr while shutting down websocket '%s': %s", name.c_str(), e.what());
+        }
     }
 }
 
@@ -126,7 +141,11 @@ void WebsocketClient::handleOpen(
 {
     log::info("Websocket '%s' connection opened.", name.c_str());
 
-    client.send(hdl, subscribeMsg, websocketpp::frame::opcode::text);
+    try {
+        client.send(hdl, subscribeMsg, websocketpp::frame::opcode::text);
+    } catch (const std::exception &e) {
+        log::error("Erorr while subscribing websocket '%s': %s", name.c_str(), e.what());
+    }
 }
 
 void WebsocketClient::handleClose(
