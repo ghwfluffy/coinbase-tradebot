@@ -4,7 +4,6 @@
 #include <gtb/BotContext.h>
 #include <gtb/Any.h>
 
-#include <map>
 #include <list>
 #include <mutex>
 #include <atomic>
@@ -31,7 +30,7 @@ class TradeBot
         template<typename T>
         void addProcessor(std::unique_ptr<T> processor)
         {
-            processors[TypeInfo::getId<T>()].set(std::move(processor));
+            processors.emplace_back(std::move(processor));
         }
 
         int run();
@@ -43,7 +42,7 @@ class TradeBot
 
         BotContext ctx;
         std::list<std::unique_ptr<DataSource>> sources;
-        std::map<size_t, Any> processors;
+        std::list<Any> processors;
 
         std::mutex mtx;
         std::atomic<bool> running;

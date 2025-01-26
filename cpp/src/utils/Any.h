@@ -11,6 +11,11 @@ class Any
 {
     public:
         Any() = default;
+        template<typename T>
+        Any(std::unique_ptr<T> pt)
+        {
+            set(std::move(pt));
+        }
         Any(Any &&) = default;
         Any(const Any &) = delete;
         Any &operator=(Any &&) = default;

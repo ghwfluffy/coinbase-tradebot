@@ -52,14 +52,13 @@ int main(int argc, const char *argv[])
             return lhs.buyPrice < rhs.buyPrice;
         });
 
-    printf("Algorithm      Status      Created          Bet       Buy         Sell\n");
+    printf("Algorithm      Status      Created          Bet        Buy         Sell\n");
     for (const OrderPair &pair : orders)
     {
-        std::string bet = IntegerUtils::centsToUsd(
-            IntegerUtils::getValueCents(pair.buyPrice, pair.quantity));
+        std::string bet = IntegerUtils::centsToUsd(pair.betCents);
         std::string created = formatTime(pair.created);
 
-        printf("%-14s %-9s   %-14s  $%-6s   $%-9s  $%-9s\n",
+        printf("%-14s %-9s   %-14s  $%-8s  $%-9s  $%-9s\n",
             pair.algo.c_str(),
             gtb::to_string(pair.state).c_str(),
             created.c_str(),

@@ -14,6 +14,7 @@
 #include <gtb/BtcHistoricalWriter.h>
 
 #include <gtb/SpreadTrader.h>
+#include <gtb/StaticTrader.h>
 
 using namespace gtb;
 
@@ -69,7 +70,7 @@ void Version1::init(TradeBot &bot)
         bot.addProcessor(std::move(printer));
     }
 
-    // Processor: 0.1% Spread Trader
+    // Trader: 0.1% Spread
     {
         SpreadTrader::Config conf;
         conf.name = "BreakEven";
@@ -79,6 +80,34 @@ void Version1::init(TradeBot &bot)
         conf.buffer_percent = 25;
 
         auto trader = std::make_unique<SpreadTrader>(ctx, conf);
+        ctx.data.subscribe<BtcPrice>(*trader);
+        ctx.data.subscribe<CoinbaseOrderBook>(*trader);
+        bot.addProcessor(std::move(trader));
+    }
+
+    // Trader: 103k -> 107k ($1000)
+    {
+        StaticTrader::Config conf;
+        conf.name = "Static4k";
+        conf.cents = 1'000'00;
+        conf.buyCents = 103'000'00;
+        conf.sellCents = 107'000'00;
+
+        auto trader = std::make_unique<StaticTrader>(ctx, conf);
+        ctx.data.subscribe<BtcPrice>(*trader);
+        ctx.data.subscribe<CoinbaseOrderBook>(*trader);
+        bot.addProcessor(std::move(trader));
+    }
+
+    // Trader: 104k -> 105k ($400)
+    {
+        StaticTrader::Config conf;
+        conf.name = "Static1k";
+        conf.cents = 400'00;
+        conf.buyCents = 104'000'00;
+        conf.sellCents = 105'000'00;
+
+        auto trader = std::make_unique<StaticTrader>(ctx, conf);
         ctx.data.subscribe<BtcPrice>(*trader);
         ctx.data.subscribe<CoinbaseOrderBook>(*trader);
         bot.addProcessor(std::move(trader));

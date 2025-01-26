@@ -15,6 +15,7 @@ Submodule Dependencies:
 
 TODOs
     Misc
+    [ ] Move order pairs to its own directory
     [\] Memory leak (10 hours till OOM)
         CoinbaseUserTrades web socket getting into state where user trades not updating
         - SSL_new
@@ -24,20 +25,20 @@ TODOs
             - websockpp::client::get_connection
             - websockpp::client::create_connection
         - 219.7 MiB: websocketpp::transport::asio::tls_socket::connection::init_asio(boost::asio::io_context*, std::shared_ptr<boost::asio::io_context::strand>, bool) (tls.hpp:196)
+    [ ] Make traders subscribe themselves?
+    [ ] Coinbase wallet updater move to separate class
     [ ] File logger
     [ ] curl_global_init / curl_global_cleanup on ref
     [\] CLI tools
     [ ] Interrupt down before websockets connect deadlocks
     [ ] Watchdog
-    [ ] Move Any to utils
     [ ] Move CoinbaseCredential to conf
     [ ] Track P/L over time
     [ ] Track fees
+        [ ] Get fee tier from coinbase
     [ ] Better INVALID_LIMIT_PRICE_POST_ONLY handling
     [ ] Remove or officialize 'nextTrade'
     Trading Algorithms
-    [ ] Static spread
-    [ ] Spread cleanup
     [ ] HODL
     [ ] Phased
     [ ] Tensorflow

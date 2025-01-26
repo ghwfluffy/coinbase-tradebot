@@ -1,16 +1,6 @@
 #pragma once
 
-#include <gtb/Database.h>
-#include <gtb/BotContext.h>
-
-#include <gtb/BtcPrice.h>
-#include <gtb/CoinbaseOrderBook.h>
-
-#include <gtb/OrderPair.h>
-#include <gtb/OrderPairStateMachine.h>
-
-#include <list>
-#include <mutex>
+#include <gtb/OrderPairTrader.h>
 
 namespace gtb
 {
@@ -18,7 +8,7 @@ namespace gtb
 /**
  * Waits for bitcoin to fluctuate and tries to buy low and sell high
  */
-class SpreadTrader
+class SpreadTrader : public OrderPairTrader
 {
     public:
         struct Config
@@ -44,34 +34,17 @@ class SpreadTrader
         SpreadTrader &operator=(const SpreadTrader &) = delete;
         ~SpreadTrader() = default;
 
-        void process(
-            const BtcPrice &price);
-
-        void process(
-            const CoinbaseOrderBook &orderbook);
+    protected:
+        void handleNewPair(
+            const BtcPrice &price) final;
 
     private:
-        void loadDatabase();
-
-        void handleExistingPairs(
-            bool force = false);
-
-        void handleNewPair(
-            const BtcPrice &price);
-
         bool cancelPending(
             const BtcPrice &price);
 
         bool patientOverride() const;
 
-        BotContext &ctx;
         Config conf;
-        Database db;
-        OrderPairStateMachine stateMachine;
-
-        std::mutex mtx;
-        std::list<OrderPair> orderPairs;
-        std::chrono::steady_clock::time_point nextTrade;
 };
 
 }

@@ -10,7 +10,7 @@ namespace
 {
 
 constexpr const char *COLUMNS =
-    "uuid, algorithm, state, buy_order_uuid, sell_order_uuid, buy_price, sell_price, quantity, created";
+    "uuid, algorithm, state, buy_order_uuid, sell_order_uuid, bet, buy_price, sell_price, quantity, created";
 
 std::string getActiveStates()
 {
@@ -48,6 +48,7 @@ std::list<OrderPair> OrderPairDb::select(
         from_string(result[col++].getString(), pair.state);
         pair.buyOrder = result[col++].getString();
         pair.sellOrder = result[col++].getString();
+        pair.betCents = result[col++].getUInt32();
         pair.buyPrice = result[col++].getUInt32();
         pair.sellPrice = result[col++].getUInt32();
         pair.quantity = result[col++].getUInt64();
@@ -90,6 +91,7 @@ bool OrderPairDb::insert(
         << "'" << to_string(pair.state) << "',"
         << "'" << pair.buyOrder << "',"
         << "'" << pair.sellOrder << "',"
+        << pair.betCents << ","
         << pair.buyPrice << ","
         << pair.sellPrice << ","
         << pair.quantity << ","
@@ -113,6 +115,7 @@ bool OrderPairDb::update(
         << "state='" << to_string(pair.state) << "',"
         << "buy_order_uuid='" << pair.buyOrder << "',"
         << "sell_order_uuid='" << pair.sellOrder << "',"
+        << "bet=" << pair.betCents << ","
         << "buy_price=" << pair.buyPrice << ","
         << "sell_price=" << pair.sellPrice << ","
         << "quantity=" << pair.quantity << ","

@@ -1,5 +1,4 @@
 #include <gtb/SpreadTrader.h>
-#include <gtb/CoinbaseInit.h>
 #include <gtb/OrderPairDb.h>
 #include <gtb/Time.h>
 #include <gtb/Uuid.h>
@@ -10,79 +9,9 @@ using namespace gtb;
 SpreadTrader::SpreadTrader(
     BotContext &ctx,
     Config confIn)
-        : ctx(ctx)
+        : OrderPairTrader(ctx, confIn.name)
         , conf(std::move(confIn))
-        , stateMachine(ctx, db, conf.name)
 {
-    loadDatabase();
-}
-
-void SpreadTrader::loadDatabase()
-{
-    db.init("spread_trader.sqlite", "./schema/spread_trader.sql");
-    orderPairs = OrderPairDb::select(db, conf.name);
-    log::info("Read %zu pairs for spread '%s' from database.",
-        orderPairs.size(),
-        conf.name.c_str());
-
-    for (OrderPair &pair : orderPairs)
-        pair.betCents = conf.cents;
-}
-
-void SpreadTrader::process(
-    const BtcPrice &price)
-{
-    if (!ctx.data.get<CoinbaseInit>())
-        return;
-
-    std::lock_guard<std::mutex> lock(mtx);
-
-    // Check if we need to do anything for the existing pairs
-    handleExistingPairs();
-
-    // Check if we want to create a new pair (which might make us drop a pending one)
-    handleNewPair(price);
-}
-
-void SpreadTrader::process(
-    const CoinbaseOrderBook &orderbook)
-{
-    (void)orderbook;
-
-    // Update wallet on orderbook change
-    // TODO: Don't do this 'n' times (once per trader)
-    ctx.data.get<CoinbaseWallet>().update(ctx.coinbase().getWallet());
-
-    // Check state of each pair
-    // Force querying order information from Coinbase (don't trust orderbook cache)
-    std::lock_guard<std::mutex> lock(mtx);
-    handleExistingPairs(true);
-}
-
-void SpreadTrader::handleExistingPairs(
-    bool force)
-{
-    // Handle each order pair
-    stateMachine.churn(orderPairs, force);
-
-    // Stop tracking completed states
-    auto iter = orderPairs.begin();
-    while (iter != orderPairs.end())
-    {
-        OrderPair &pair = (*iter);
-
-        if (pair.state >= OrderPair::State::Complete)
-        {
-            log::info("Removing completed order pair '%s' from spread trader '%s'.",
-                pair.uuid.c_str(),
-                conf.name.c_str());
-            iter = orderPairs.erase(iter);
-        }
-        else
-        {
-            ++iter;
-        }
-    }
 }
 
 void SpreadTrader::handleNewPair(
