@@ -9,6 +9,8 @@ CoinbaseUserInfo::CoinbaseUserInfo(
         : ThreadedDataSource("coinbase-wallet")
         , ctx(ctx)
 {
+    // Reload user info on orderbook changes
+    ctx.data.subscribe<CoinbaseOrderBook>(*this);
 }
 
 void CoinbaseUserInfo::process()

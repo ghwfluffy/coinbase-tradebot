@@ -11,6 +11,7 @@ BtcHistoricalWriter::BtcHistoricalWriter(
         : ctx(ctx)
 {
     prevTime = 0;
+    ctx.data.subscribe<BtcPrice>(*this);
 }
 
 void BtcHistoricalWriter::process(

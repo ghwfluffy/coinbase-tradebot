@@ -13,6 +13,9 @@ OrderPairTrader::OrderPairTrader(
         , stateMachine(ctx, db, name)
 {
     loadDatabase();
+
+    ctx.data.subscribe<BtcPrice>(*this);
+    ctx.data.subscribe<CoinbaseOrderBook>(*this);
 }
 
 void OrderPairTrader::loadDatabase()
