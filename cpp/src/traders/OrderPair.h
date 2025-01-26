@@ -27,6 +27,7 @@ struct OrderPair
     std::string algo;
     std::string buyOrder;
     std::string sellOrder;
+    uint32_t betCents = 0;
     uint32_t buyPrice = 0;
     uint32_t sellPrice = 0;
     uint64_t quantity = 0;

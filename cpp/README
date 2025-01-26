@@ -36,6 +36,7 @@ TODOs
     [ ] Better INVALID_LIMIT_PRICE_POST_ONLY handling
     [ ] Remove or officialize 'nextTrade'
     Trading Algorithms
+    [ ] Static spread
     [ ] Spread cleanup
     [ ] HODL
     [ ] Phased

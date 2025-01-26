@@ -2,9 +2,12 @@
 
 #include <gtb/Database.h>
 #include <gtb/BotContext.h>
+
 #include <gtb/BtcPrice.h>
-#include <gtb/OrderPair.h>
 #include <gtb/CoinbaseOrderBook.h>
+
+#include <gtb/OrderPair.h>
+#include <gtb/OrderPairStateMachine.h>
 
 #include <list>
 #include <mutex>
@@ -50,31 +53,8 @@ class SpreadTrader
     private:
         void loadDatabase();
 
-        void checkBuyState(
-            OrderPair &pair,
-            bool force = false);
-
-        void checkSellState(
-            OrderPair &pair);
-
-        void handlePending(
-            OrderPair &pair,
-            const BtcPrice &price);
-
-        void handleBuyActive(
-            OrderPair &pair,
-            const BtcPrice &price);
-
-        void handleHolding(
-            OrderPair &pair,
-            const BtcPrice &price);
-
-        void handleSellActive(
-            OrderPair &pair,
-            const BtcPrice &price);
-
         void handleExistingPairs(
-            const BtcPrice &price);
+            bool force = false);
 
         void handleNewPair(
             const BtcPrice &price);
@@ -82,15 +62,12 @@ class SpreadTrader
         bool cancelPending(
             const BtcPrice &price);
 
-        void logChange(
-            OrderPair::State startState,
-            const OrderPair &pair);
-
         bool patientOverride() const;
 
         BotContext &ctx;
         Config conf;
         Database db;
+        OrderPairStateMachine stateMachine;
 
         std::mutex mtx;
         std::list<OrderPair> orderPairs;

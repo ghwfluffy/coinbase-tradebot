@@ -7,22 +7,12 @@
 
 using namespace gtb;
 
-namespace
-{
-
-// If an order fails to post, wait this long before retrying the spread
-constexpr const unsigned int FAILURE_RETRY_SECONDS = 10;
-
-// Keep orders active if they're within $100 of our target price
-constexpr const uint32_t KEEP_ACTIVE_ORDER_WINDOW_CENTS = 100'00;
-
-}
-
 SpreadTrader::SpreadTrader(
     BotContext &ctx,
-    Config conf)
+    Config confIn)
         : ctx(ctx)
-        , conf(std::move(conf))
+        , conf(std::move(confIn))
+        , stateMachine(ctx, db, conf.name)
 {
     loadDatabase();
 }
@@ -34,6 +24,9 @@ void SpreadTrader::loadDatabase()
     log::info("Read %zu pairs for spread '%s' from database.",
         orderPairs.size(),
         conf.name.c_str());
+
+    for (OrderPair &pair : orderPairs)
+        pair.betCents = conf.cents;
 }
 
 void SpreadTrader::process(
@@ -45,59 +38,39 @@ void SpreadTrader::process(
     std::lock_guard<std::mutex> lock(mtx);
 
     // Check if we need to do anything for the existing pairs
-    handleExistingPairs(price);
+    handleExistingPairs();
 
     // Check if we want to create a new pair (which might make us drop a pending one)
     handleNewPair(price);
 }
 
-void SpreadTrader::handleExistingPairs(
-    const BtcPrice &price)
+void SpreadTrader::process(
+    const CoinbaseOrderBook &orderbook)
 {
-    // Decide if it's time to act on an existing order pair
+    (void)orderbook;
+
+    // Update wallet on orderbook change
+    // TODO: Don't do this 'n' times (once per trader)
+    ctx.data.get<CoinbaseWallet>().update(ctx.coinbase().getWallet());
+
+    // Check state of each pair
+    // Force querying order information from Coinbase (don't trust orderbook cache)
+    std::lock_guard<std::mutex> lock(mtx);
+    handleExistingPairs(true);
+}
+
+void SpreadTrader::handleExistingPairs(
+    bool force)
+{
+    // Handle each order pair
+    stateMachine.churn(orderPairs, force);
+
+    // Stop tracking completed states
     auto iter = orderPairs.begin();
     while (iter != orderPairs.end())
     {
         OrderPair &pair = (*iter);
-        OrderPair::State startState = pair.state;
 
-        // This pair is not ready to act yet
-        if (pair.nextTry > std::chrono::steady_clock::now())
-        {
-            ++iter;
-            continue;
-        }
-
-        switch (pair.state)
-        {
-            case OrderPair::State::Pending:
-                handlePending(pair, price);
-                break;
-            case OrderPair::State::BuyActive:
-                handleBuyActive(pair, price);
-                break;
-            case OrderPair::State::Holding:
-                handleHolding(pair, price);
-                break;
-            case OrderPair::State::SellActive:
-                handleSellActive(pair, price);
-                break;
-            default:
-            case OrderPair::State::None:
-            case OrderPair::State::Complete:
-            case OrderPair::State::Canceled:
-            case OrderPair::State::Error:
-                break;
-        }
-
-        // Update database
-        if (pair.state != startState)
-        {
-            logChange(startState, pair);
-            OrderPairDb::update(db, pair);
-        }
-
-        // Stop tracking completed states
         if (pair.state >= OrderPair::State::Complete)
         {
             log::info("Removing completed order pair '%s' from spread trader '%s'.",
@@ -161,7 +134,8 @@ void SpreadTrader::handleNewPair(
     uint32_t half_spread = (spread_cents + 1) / 2;
     pair.buyPrice = price.getCents() - half_spread;
     pair.sellPrice = price.getCents() + half_spread;
-    pair.quantity = IntegerUtils::getSatoshiForPrice(pair.buyPrice, conf.cents);
+    pair.betCents = conf.cents;
+    pair.quantity = IntegerUtils::getSatoshiForPrice(pair.buyPrice, pair.betCents);
 
     // We need to make sure the sell price isn't too far outside today's estimated value of BTC
     // TODO: Make this based on config file
@@ -188,7 +162,7 @@ void SpreadTrader::handleNewPair(
     }
 
     log::info("Created new pair for spread '%s'.", conf.name.c_str());
-    logChange(OrderPair::State::None, pair);
+    stateMachine.logChange(OrderPair::State::None, pair);
     orderPairs.push_back(std::move(pair));
 }
 
@@ -276,304 +250,4 @@ bool SpreadTrader::cancelPending(
     }
 
     return false;
-}
-
-void SpreadTrader::process(
-    const CoinbaseOrderBook &orderbook)
-{
-    (void)orderbook;
-
-    // Update wallet on orderbook change
-    ctx.data.get<CoinbaseWallet>().update(ctx.coinbase().getWallet());
-
-    std::lock_guard<std::mutex> lock(mtx);
-
-    // Update order pairs with any changes
-    auto iter = orderPairs.begin();
-    while (iter != orderPairs.end())
-    {
-        OrderPair &pair = (*iter);
-        OrderPair::State startState = pair.state;
-
-        // Check active buys are in the expected state
-        checkBuyState(pair);
-
-        // Check active sells are in the expected state
-        checkSellState(pair);
-
-        // Update database
-        if (pair.state != startState)
-        {
-            logChange(startState, pair);
-            OrderPairDb::update(db, pair);
-        }
-
-        // Stop tracking completed states
-        if (pair.state >= OrderPair::State::Complete)
-        {
-            log::info("Removing completed order pair '%s' from spread trader '%s'.",
-                pair.uuid.c_str(),
-                conf.name.c_str());
-            iter = orderPairs.erase(iter);
-        }
-        else
-        {
-            ++iter;
-        }
-    }
-}
-
-void SpreadTrader::checkBuyState(
-    OrderPair &pair,
-    bool force)
-{
-    if (pair.state != OrderPair::State::BuyActive)
-        return;
-
-    CoinbaseOrderBook &orderbook = ctx.data.get<CoinbaseOrderBook>();
-
-    CoinbaseOrder buyOrder = orderbook.getOrder(pair.buyOrder);
-    if (!buyOrder || force)
-    {
-        buyOrder = ctx.coinbase().getOrder(pair.buyOrder);
-        if (buyOrder)
-            orderbook.update(buyOrder);
-    }
-
-    if (!buyOrder)
-    {
-        pair.state = OrderPair::State::Error;
-        log::error("Failed to find buy order '%s' for order pair '%s'.",
-            pair.buyOrder.c_str(),
-            pair.uuid.c_str());
-    }
-    else if (buyOrder.state == CoinbaseOrder::State::Open)
-    {
-        // Still buy active
-    }
-    else if (buyOrder.state == CoinbaseOrder::State::Filled)
-    {
-        // Complete, now holding
-        pair.state = OrderPair::State::Holding;
-        // Record the price it filled at
-        pair.buyPrice = buyOrder.priceCents;
-        pair.quantity = buyOrder.quantity;
-    }
-    else if (buyOrder.state == CoinbaseOrder::State::Canceled)
-    {
-        // Buy canceled
-        pair.state = OrderPair::State::Canceled;
-    }
-    else //if (buyOrder.state == CoinbaseOrder::state::None || buyOrder.state == CoinbaseOrder::state::Error)
-    {
-        pair.state = OrderPair::State::Error;
-        log::error("Buy order '%s' for order pair '%s' in error state.",
-            pair.buyOrder.c_str(),
-            pair.uuid.c_str());
-    }
-}
-
-void SpreadTrader::checkSellState(
-    OrderPair &pair)
-{
-    if (pair.state != OrderPair::State::SellActive)
-        return;
-
-    CoinbaseOrderBook &orderbook = ctx.data.get<CoinbaseOrderBook>();
-
-    CoinbaseOrder sellOrder = orderbook.getOrder(pair.sellOrder);
-    if (!sellOrder)
-    {
-        sellOrder = ctx.coinbase().getOrder(pair.sellOrder);
-        if (sellOrder)
-            orderbook.update(sellOrder);
-    }
-
-    if (!sellOrder)
-    {
-        pair.state = OrderPair::State::Error;
-        log::error("Failed to find sell order '%s' for order pair '%s'.",
-            pair.sellOrder.c_str(),
-            pair.uuid.c_str());
-    }
-    else if (sellOrder.state == CoinbaseOrder::State::Open)
-    {
-        // Still active sell
-    }
-    else if (sellOrder.state == CoinbaseOrder::State::Filled)
-    {
-        // Complete
-        pair.state = OrderPair::State::Complete;
-        // Record the price it filled at
-        pair.sellPrice = sellOrder.priceCents;
-    }
-    else if (sellOrder.state == CoinbaseOrder::State::Canceled)
-    {
-        // Sell canceled -> Back to holding
-        pair.state = OrderPair::State::Holding;
-    }
-    else //if (sellOrder.state == CoinbaseOrder::state::None || sellOrder.state == CoinbaseOrder::state::Error)
-    {
-        pair.state = OrderPair::State::Error;
-        log::error("Sell order '%s' for order pair '%s' in error state.",
-            pair.sellOrder.c_str(),
-            pair.uuid.c_str());
-    }
-}
-
-void SpreadTrader::handlePending(
-    OrderPair &pair,
-    const BtcPrice &price)
-{
-    // Wait for price to go down
-    if (pair.buyPrice < price.getCents())
-        return;
-
-    // Too soon?
-    // XXX: Going to make sure we only run 1 trade per 30 seconds while testing
-    if (nextTrade > std::chrono::steady_clock::now())
-    {
-        log::info("Can't buy: too soon.");
-        return;
-    }
-
-    // Try to place new order
-    CoinbaseOrder order;
-    order.buy = true;
-    order.setQuantity(price.getCents() - 200, conf.cents);
-    order.createdTime = ctx.data.get<Time>().getTime();
-
-    if (ctx.coinbase().submitOrder(order))
-    {
-        pair.state = OrderPair::State::BuyActive;
-        pair.buyOrder = order.uuid;
-
-        log::info("Created new '%s' buy order '%s' for pair '%s'.",
-            conf.name.c_str(),
-            pair.buyOrder.c_str(),
-            pair.uuid.c_str());
-
-        // Update wallet after order created
-        ctx.data.get<CoinbaseWallet>().update(ctx.coinbase().getWallet());
-
-        // XXX: Going to make sure we only run 1 trade per 30 seconds while testing
-        nextTrade = std::chrono::steady_clock::now() + std::chrono::seconds(30);
-    }
-    else
-    {
-        // TODO: Different retry times for INVALID_LIMIT_PRICE_POST_ONLY and other errors
-        pair.nextTry = std::chrono::steady_clock::now() + std::chrono::seconds(FAILURE_RETRY_SECONDS);
-        log::error("Failed to create buy order for spread '%s' pair '%s' ($%s).",
-            conf.name.c_str(),
-            pair.uuid.c_str(),
-            IntegerUtils::centsToUsd(order.valueCents()).c_str());
-    }
-}
-
-void SpreadTrader::handleBuyActive(
-    OrderPair &pair,
-    const BtcPrice &price)
-{
-    // It should fill any time now...
-    if (pair.buyPrice > price.getCents())
-        return;
-
-    // Still close enough to the desired buy price
-    if (pair.buyPrice + KEEP_ACTIVE_ORDER_WINDOW_CENTS > price.getCents())
-        return;
-
-    // If price has risen too much, cancel buy order so we get the liquidity back
-    if (ctx.coinbase().cancelOrder(pair.buyOrder))
-        pair.state = OrderPair::State::Pending;
-    // Failed to cancel, let's see if something about the order state changed
-    else
-        checkBuyState(pair, true);
-}
-
-void SpreadTrader::handleHolding(
-    OrderPair &pair,
-    const BtcPrice &price)
-{
-    // Wait for price to to up
-    if (pair.sellPrice > price.getCents())
-        return;
-
-    // Too soon?
-    // XXX: Going to make sure we only run 1 trade per 30 seconds while testing
-    if (nextTrade > std::chrono::steady_clock::now())
-    {
-        log::info("Can't buy: too soon.");
-        return;
-    }
-
-    // Try to place new order
-    CoinbaseOrder order;
-    order.buy = false;
-    order.priceCents = price.getCents() + 200;
-    order.quantity = pair.quantity;
-    order.createdTime = ctx.data.get<Time>().getTime();
-
-    if (ctx.coinbase().submitOrder(order))
-    {
-        pair.state = OrderPair::State::SellActive;
-        pair.sellOrder = order.uuid;
-
-        log::info("Created new '%s' sell order '%s' for pair '%s'.",
-            conf.name.c_str(),
-            pair.sellOrder.c_str(),
-            pair.uuid.c_str());
-
-        // Update wallet after order created
-        ctx.data.get<CoinbaseWallet>().update(ctx.coinbase().getWallet());
-
-        // XXX: Going to make sure we only run 1 trade per 30 seconds while testing
-        nextTrade = std::chrono::steady_clock::now() + std::chrono::seconds(30);
-    }
-    else
-    {
-        pair.nextTry = std::chrono::steady_clock::now() + std::chrono::seconds(FAILURE_RETRY_SECONDS);
-        log::error("Failed to create sell order for spread '%s' pair '%s' ($%s).",
-            conf.name.c_str(),
-            pair.uuid.c_str(),
-            IntegerUtils::centsToUsd(order.valueCents()).c_str());
-    }
-}
-
-void SpreadTrader::handleSellActive(
-    OrderPair &pair,
-    const BtcPrice &price)
-{
-    // It should fill any time now...
-    if (pair.sellPrice < price.getCents())
-        return;
-
-    // Still close enough to the desired sell price
-    if (pair.sellPrice < price.getCents() + KEEP_ACTIVE_ORDER_WINDOW_CENTS)
-        return;
-
-    // If price has fallen too much, cancel sell order so we get the liquidity back
-    if (ctx.coinbase().cancelOrder(pair.sellOrder))
-        pair.state = OrderPair::State::Holding;
-    // Failed to cancel, let's see if something about the order state changed
-    else
-        checkSellState(pair);
-}
-
-void SpreadTrader::logChange(
-    OrderPair::State startState,
-    const OrderPair &pair)
-{
-    log::info("Spread '%s' pair '%s' updated '%s' => '%s' ($%s -> $%s) @ ($%s -> $%s).",
-        conf.name.c_str(),
-        pair.uuid.c_str(),
-        to_string(startState).c_str(),
-        to_string(pair.state).c_str(),
-        // $ investment
-        IntegerUtils::centsToUsd(conf.cents).c_str(),
-        // Final sale value
-        IntegerUtils::centsToUsd(pair.sellValue()).c_str(),
-        // Buy BTC price
-        IntegerUtils::centsToUsd(pair.buyPrice).c_str(),
-        // Sell BTC price
-        IntegerUtils::centsToUsd(pair.sellPrice).c_str());
 }
