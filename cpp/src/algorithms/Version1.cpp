@@ -12,6 +12,7 @@
 #include <gtb/CoinbaseUserTrades.h>
 
 #include <gtb/BtcHistoricalWriter.h>
+#include <gtb/WalletHistoricalWriter.h>
 #include <gtb/ProfitsReader.h>
 #include <gtb/ProfitsWriter.h>
 
@@ -46,6 +47,9 @@ void Version1::init(TradeBot &bot)
     // Processor: Record BTC prices
     bot.addProcessor(std::make_unique<BtcHistoricalWriter>(ctx));
 
+    // Processor: Record wallet value
+    bot.addProcessor(std::make_unique<WalletHistoricalWriter>(ctx));
+
     // Processor: Record profits
     bot.addProcessor(std::make_unique<ProfitsWriter>(ctx));
 
@@ -60,6 +64,7 @@ void Version1::init(TradeBot &bot)
         conf.cents = 20'00;
         conf.num_pairs = 4;
         conf.buffer_percent = 25;
+        conf.maxValue = 102'000'00;
 
         auto trader = std::make_unique<SpreadTrader>(ctx, conf);
         bot.addProcessor(std::move(trader));
@@ -72,6 +77,7 @@ void Version1::init(TradeBot &bot)
         conf.cents = 1'000'00;
         conf.buyCents = 103'000'00;
         conf.sellCents = 107'000'00;
+        conf.enabled = false;
 
         auto trader = std::make_unique<StaticTrader>(ctx, conf);
         bot.addProcessor(std::move(trader));
@@ -84,6 +90,7 @@ void Version1::init(TradeBot &bot)
         conf.cents = 400'00;
         conf.buyCents = 104'000'00;
         conf.sellCents = 105'000'00;
+        conf.enabled = false;
 
         auto trader = std::make_unique<StaticTrader>(ctx, conf);
         bot.addProcessor(std::move(trader));

@@ -67,10 +67,7 @@ void SpreadTrader::handleNewPair(
     pair.quantity = IntegerUtils::getSatoshiForPrice(pair.buyPrice, pair.betCents);
 
     // We need to make sure the sell price isn't too far outside today's estimated value of BTC
-    // TODO: Make this based on config file
-    // TODO: Give some leeway for making a single trade slightly over estimated value
-    constexpr const uint32_t BTC_VALUE = 105'000'00;
-    if (pair.sellPrice > BTC_VALUE)
+    if (pair.sellPrice > conf.maxValue)
         return;
 
     // We need to decide if we can cancel something first

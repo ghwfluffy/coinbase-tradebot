@@ -206,6 +206,10 @@ void OrderPairStateMachine::handlePending(
         return;
     }
 
+    // Not enough money to buy
+    if (pair.betCents > ctx.data.get<CoinbaseWallet>().getUsdCents())
+        return;
+
     // Try to place new order
     CoinbaseOrder order;
     order.buy = true;
@@ -226,7 +230,7 @@ void OrderPairStateMachine::handlePending(
         ctx.data.get<CoinbaseWallet>().update(ctx.coinbase().getWallet());
 
         // XXX: Going to make sure we only run 1 trade per 30 seconds while testing
-        nextTrade = std::chrono::steady_clock::now() + std::chrono::seconds(30);
+        nextTrade = std::chrono::steady_clock::now() + std::chrono::seconds(2);
     }
     else
     {
@@ -271,7 +275,7 @@ void OrderPairStateMachine::handleHolding(
     // XXX: Going to make sure we only run 1 trade per 30 seconds while testing
     if (nextTrade > std::chrono::steady_clock::now())
     {
-        log::info("Can't buy: too soon.");
+        log::info("Can't sell: too soon.");
         return;
     }
 
@@ -296,7 +300,7 @@ void OrderPairStateMachine::handleHolding(
         ctx.data.get<CoinbaseWallet>().update(ctx.coinbase().getWallet());
 
         // XXX: Going to make sure we only run 1 trade per 30 seconds while testing
-        nextTrade = std::chrono::steady_clock::now() + std::chrono::seconds(30);
+        nextTrade = std::chrono::steady_clock::now() + std::chrono::seconds(2);
     }
     else
     {

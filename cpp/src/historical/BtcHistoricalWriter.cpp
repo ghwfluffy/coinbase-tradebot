@@ -17,7 +17,7 @@ BtcHistoricalWriter::BtcHistoricalWriter(
 void BtcHistoricalWriter::process(
     const BtcPrice &price)
 {
-    uint64_t cents = price.getCents();
+    uint32_t cents = price.getCents();
     uint64_t curTime = ctx.data.get<Time>().getTime();
 
     std::lock_guard<std::mutex> lock(mtx);

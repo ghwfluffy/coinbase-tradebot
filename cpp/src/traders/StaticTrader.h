@@ -21,6 +21,8 @@ class StaticTrader : public OrderPairTrader
             uint32_t buyCents = 100'000'00;
             // Static sell price
             uint32_t sellCents = 200'000'00;
+            // Whether or not to trigger new buys
+            bool enabled = true;
         };
 
         StaticTrader(

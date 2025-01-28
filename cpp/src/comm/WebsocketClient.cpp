@@ -55,20 +55,23 @@ void WebsocketClient::run(
     shutdown(lock);
 
     // Create new connection
-    try {
-        websocketpp::lib::error_code ec;
-        conn = client.get_connection(uri, ec);
-        if (ec)
-        {
-            log::error("Websocket '%s' setup error: %s",
-                name.c_str(),
-                ec.message().c_str());
-            shutdown(lock);
+    if (!conn)
+    {
+        try {
+            websocketpp::lib::error_code ec;
+            conn = client.get_connection(uri, ec);
+            if (ec)
+            {
+                log::error("Websocket '%s' setup error: %s",
+                    name.c_str(),
+                    ec.message().c_str());
+                shutdown(lock);
+                return;
+            }
+        } catch (const std::exception &e) {
+            log::error("Erorr while initializing websocket '%s': %s", name.c_str(), e.what());
             return;
         }
-    } catch (const std::exception &e) {
-        log::error("Erorr while initializing websocket '%s': %s", name.c_str(), e.what());
-        return;
     }
 
     // TCP/TLS connect
@@ -109,10 +112,8 @@ void WebsocketClient::shutdown(
         try {
             websocketpp::connection_hdl handle = conn->get_handle();
             client.close(handle, websocketpp::close::status::going_away, "Client shutdown");
-            conn.reset();
         } catch (const std::exception &e) {
             log::error("Erorr while shutting down websocket '%s': %s", name.c_str(), e.what());
-            conn.reset();
         }
     }
 }

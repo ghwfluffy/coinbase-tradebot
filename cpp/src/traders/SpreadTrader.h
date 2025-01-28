@@ -23,6 +23,8 @@ class SpreadTrader : public OrderPairTrader
             uint32_t num_pairs = 1;
             // How much to buffer between each spred (25 = 25% of spread value)
             uint32_t buffer_percent = 25;
+            // The maximum price we will queue a sale for
+            uint32_t maxValue = 105'000'00;
         };
 
         SpreadTrader(

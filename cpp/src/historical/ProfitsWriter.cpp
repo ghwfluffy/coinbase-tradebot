@@ -29,6 +29,7 @@ void ProfitsWriter::process(
         query << "INSERT INTO profits_and_losses "
             << "(time, purchased, sold, buy_fees, sell_fees, profit) "
             << "VALUES ("
+            << curTime << ","
             << data.purchased << ","
             << data.sold << ","
             << data.buyFees << ","

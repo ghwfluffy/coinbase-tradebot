@@ -11,3 +11,10 @@ CREATE TABLE IF NOT EXISTS profits_and_losses (
     sell_fees INTEGER,
     profit INTEGER
 );
+
+CREATE TABLE IF NOT EXISTS wallet (
+    time INTEGER PRIMARY KEY,
+    usd INTEGER,
+    btc INTEGER,
+    value INTEGER
+);
