@@ -7,7 +7,6 @@ WebsocketClient::WebsocketClient(
     std::string name)
         : name(std::move(name))
 {
-    init();
 }
 
 WebsocketClient::~WebsocketClient()
@@ -17,28 +16,30 @@ WebsocketClient::~WebsocketClient()
 
 void WebsocketClient::init()
 {
+    client = std::make_shared<WebsockClient>();
+
     // Use dedicated ASIO event context
-    client.init_asio(&io);
+    client->init_asio(&io);
 
     // Log connect/disconnect and errors only
-    client.clear_error_channels(websocketpp::log::elevel::all);
-    client.set_error_channels(websocketpp::log::elevel::rerror | websocketpp::log::elevel::fatal);
+    client->clear_error_channels(websocketpp::log::elevel::all);
+    client->set_error_channels(websocketpp::log::elevel::rerror | websocketpp::log::elevel::fatal);
 
-    client.clear_access_channels(websocketpp::log::alevel::all);
-    client.set_access_channels(websocketpp::log::alevel::connect | websocketpp::log::alevel::disconnect);
+    client->clear_access_channels(websocketpp::log::alevel::all);
+    client->set_access_channels(websocketpp::log::alevel::connect | websocketpp::log::alevel::disconnect);
 
     // Forward to our logger
     errorLogger = LoggerStreambuf(std::bind(&WebsocketClient::log, this, true, std::placeholders::_1));
     accessLogger = LoggerStreambuf(std::bind(&WebsocketClient::log, this, false, std::placeholders::_1));
-    client.get_elog().set_ostream(errorLogger);
-    client.get_alog().set_ostream(accessLogger);
+    client->get_elog().set_ostream(errorLogger);
+    client->get_alog().set_ostream(accessLogger);
 
     // Setup callbacks
-    client.set_tls_init_handler(std::bind(&WebsocketClient::handleTlsInit, this, std::placeholders::_1));
-    client.set_open_handler(std::bind(&WebsocketClient::handleOpen, this, std::placeholders::_1));
-    client.set_message_handler(std::bind(&WebsocketClient::handleMessage, this, std::placeholders::_1, std::placeholders::_2));
-    client.set_fail_handler(std::bind(&WebsocketClient::handleFail, this, std::placeholders::_1));
-    client.set_close_handler(std::bind(&WebsocketClient::handleClose, this, std::placeholders::_1));
+    client->set_tls_init_handler(std::bind(&WebsocketClient::handleTlsInit, this, std::placeholders::_1));
+    client->set_open_handler(std::bind(&WebsocketClient::handleOpen, this, client, std::placeholders::_1));
+    client->set_message_handler(std::bind(&WebsocketClient::handleMessage, this, std::placeholders::_1, std::placeholders::_2));
+    client->set_fail_handler(std::bind(&WebsocketClient::handleFail, this, std::placeholders::_1));
+    client->set_close_handler(std::bind(&WebsocketClient::handleClose, this, std::placeholders::_1));
 }
 
 void WebsocketClient::run(
@@ -48,35 +49,35 @@ void WebsocketClient::run(
 {
     std::unique_lock<std::mutex> lock(mtx);
 
+    // Save old pointers to free outside of mutex
+    WebsockConn oldConn(std::move(conn));
+    std::shared_ptr<WebsockClient> oldMem(std::move(client));
+
+    // Setup new instance
+    init();
     this->handler = std::move(handler);
     subscribeMsg = subscribeRequest.dump();
 
-    // Cleanup old connection
-    shutdown(lock);
-
     // Create new connection
-    if (!conn)
-    {
-        try {
-            websocketpp::lib::error_code ec;
-            conn = client.get_connection(uri, ec);
-            if (ec)
-            {
-                log::error("Websocket '%s' setup error: %s",
-                    name.c_str(),
-                    ec.message().c_str());
-                shutdown(lock);
-                return;
-            }
-        } catch (const std::exception &e) {
-            log::error("Erorr while initializing websocket '%s': %s", name.c_str(), e.what());
+    try {
+        websocketpp::lib::error_code ec;
+        conn = client->get_connection(uri, ec);
+        if (ec)
+        {
+            log::error("Websocket '%s' setup error: %s",
+                name.c_str(),
+                ec.message().c_str());
+            shutdown(lock);
             return;
         }
+    } catch (const std::exception &e) {
+        log::error("Erorr while initializing websocket '%s': %s", name.c_str(), e.what());
+        return;
     }
 
     // TCP/TLS connect
     try {
-        client.connect(conn);
+        client->connect(conn);
     } catch (const std::exception &e) {
         log::error("Websocket '%s' connection error: %s",
             name.c_str(),
@@ -88,7 +89,7 @@ void WebsocketClient::run(
     // Run websocket (blocks and triggers callbacks)
     lock.unlock();
     try {
-        client.run();
+        client->run();
     } catch (const std::exception &e) {
         log::error("Erorr while processing websocket '%s': %s", name.c_str(), e.what());
         shutdown();
@@ -106,16 +107,19 @@ void WebsocketClient::shutdown(
 {
     (void)lock;
 
-    if (conn)
+    if (client && conn)
     {
         log::info("Shutting down '%s' websocket.", name.c_str());
         try {
             websocketpp::connection_hdl handle = conn->get_handle();
-            client.close(handle, websocketpp::close::status::going_away, "Client shutdown");
+            client->close(handle, websocketpp::close::status::going_away, "Client shutdown");
         } catch (const std::exception &e) {
             log::error("Erorr while shutting down websocket '%s': %s", name.c_str(), e.what());
         }
     }
+
+    conn.reset();
+    client.reset();
 }
 
 std::shared_ptr<boost::asio::ssl::context> WebsocketClient::handleTlsInit(
@@ -139,14 +143,18 @@ std::shared_ptr<boost::asio::ssl::context> WebsocketClient::handleTlsInit(
 }
 
 void WebsocketClient::handleOpen(
+    std::shared_ptr<WebsockClient> client,
     websocketpp::connection_hdl hdl)
 {
-    log::info("Websocket '%s' connection opened.", name.c_str());
+    if (client)
+    {
+        log::info("Websocket '%s' connection opened.", name.c_str());
 
-    try {
-        client.send(hdl, subscribeMsg, websocketpp::frame::opcode::text);
-    } catch (const std::exception &e) {
-        log::error("Erorr while subscribing websocket '%s': %s", name.c_str(), e.what());
+        try {
+            client->send(hdl, subscribeMsg, websocketpp::frame::opcode::text);
+        } catch (const std::exception &e) {
+            log::error("Erorr while subscribing websocket '%s': %s", name.c_str(), e.what());
+        }
     }
 }
 

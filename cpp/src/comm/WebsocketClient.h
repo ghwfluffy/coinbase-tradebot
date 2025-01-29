@@ -47,6 +47,7 @@ class WebsocketClient
             std::string msg);
 
         void handleOpen(
+            std::shared_ptr<WebsockClient> client,
             websocketpp::connection_hdl hdl);
         void handleClose(
             websocketpp::connection_hdl hdl);
@@ -59,8 +60,8 @@ class WebsocketClient
             WebsockClient::message_ptr msg);
 
         boost::asio::io_context io;
-        WebsockClient client;
         WebsockConn conn;
+        std::shared_ptr<WebsockClient> client;
         std::shared_ptr<boost::asio::ssl::context> tlsCtx;
 
         std::mutex mtx;
