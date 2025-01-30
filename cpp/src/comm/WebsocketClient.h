@@ -59,9 +59,9 @@ class WebsocketClient
             websocketpp::connection_hdl hdl,
             WebsockClient::message_ptr msg);
 
-        boost::asio::io_context io;
         WebsockConn conn;
         std::shared_ptr<WebsockClient> client;
+        std::shared_ptr<boost::asio::io_context> io;
         std::shared_ptr<boost::asio::ssl::context> tlsCtx;
 
         std::mutex mtx;

@@ -17,9 +17,10 @@ WebsocketClient::~WebsocketClient()
 void WebsocketClient::init()
 {
     client = std::make_shared<WebsockClient>();
+    io = std::make_shared<boost::asio::io_context>();
 
     // Use dedicated ASIO event context
-    client->init_asio(&io);
+    client->init_asio(io.get());
 
     // Log connect/disconnect and errors only
     client->clear_error_channels(websocketpp::log::elevel::all);
@@ -52,6 +53,7 @@ void WebsocketClient::run(
     // Save old pointers to free outside of mutex
     WebsockConn oldConn(std::move(conn));
     std::shared_ptr<WebsockClient> oldMem(std::move(client));
+    std::shared_ptr<boost::asio::io_context> oldIo(std::move(io));
 
     // Setup new instance
     init();
