@@ -260,7 +260,10 @@ void OrderPairStateMachine::handleBuyActive(
         pair.state = OrderPair::State::Pending;
     // Failed to cancel, let's see if something about the order state changed
     else
+    {
+        pair.nextTry = std::chrono::steady_clock::now() + std::chrono::seconds(FAILURE_RETRY_SECONDS);
         checkBuyState(pair, true);
+    }
 }
 
 void OrderPairStateMachine::handleHolding(
@@ -329,7 +332,10 @@ void OrderPairStateMachine::handleSellActive(
         pair.state = OrderPair::State::Holding;
     // Failed to cancel, let's see if something about the order state changed
     else
+    {
+        pair.nextTry = std::chrono::steady_clock::now() + std::chrono::seconds(FAILURE_RETRY_SECONDS);
         checkSellState(pair);
+    }
 }
 
 void OrderPairStateMachine::logChange(

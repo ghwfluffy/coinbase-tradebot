@@ -6,7 +6,7 @@ namespace gtb
 {
 
 /**
- * Waits for bitcoin to fluctuate and tries to buy low and sell high
+ * Buys at a specific price and sells at a specific price
  */
 class StaticTrader : public OrderPairTrader
 {

@@ -1,4 +1,5 @@
 #include <gtb/SpreadTrader.h>
+#include <gtb/OrderPairUtils.h>
 #include <gtb/OrderPairDb.h>
 #include <gtb/Time.h>
 #include <gtb/Uuid.h>
@@ -72,8 +73,11 @@ void SpreadTrader::handleNewPair(
 
     // We need to decide if we can cancel something first
     // Try to cancel the furthest pending pair
-    while (conf.num_pairs >= orderPairs.size() && cancelPending(price))
-    { }
+    while (conf.num_pairs >= orderPairs.size())
+    {
+        if (!OrderPairUtils::cancelPending(db, price.getCents(), conf.name, orderPairs))
+            break;
+    }
 
     // We have too many orders already and we haven't been patient enough to exceed max
     if (conf.num_pairs <= orderPairs.size() && !patientOverride())
@@ -101,79 +105,8 @@ bool SpreadTrader::patientOverride() const
             mostRecentTime = pair.created;
     }
 
+    // TODO: Configurable
     // Can put in 1 new trade every half hour over our limit
     constexpr const uint64_t PATIENCE_MICROSECONDS = 30ULL * 60ULL * 1'000'000ULL;
     return mostRecentTime + PATIENCE_MICROSECONDS <= ctx.data.get<Time>().getTime();
-}
-
-bool SpreadTrader::cancelPending(
-    const BtcPrice &price)
-{
-    // Find the further away pair that's still pending
-    std::string furthestUuid;
-    uint32_t furthestDistance = 0;
-    for (const OrderPair &pair : orderPairs)
-    {
-        // Only pending
-        if (pair.state > OrderPair::State::Pending)
-            continue;
-
-        int32_t buyDistance = static_cast<int32_t>(pair.buyPrice - price.getCents());
-        if (buyDistance < 0)
-            buyDistance *= -1;
-
-        int32_t sellDistance = static_cast<int32_t>(pair.sellPrice - price.getCents());
-        if (sellDistance < 0)
-            sellDistance *= -1;
-
-        uint32_t distance = 0;
-        if (buyDistance < sellDistance)
-            distance = static_cast<uint32_t>(buyDistance);
-        else
-            distance = static_cast<uint32_t>(sellDistance);
-
-        if (furthestUuid.empty() || distance > furthestDistance)
-        {
-            furthestUuid = pair.uuid;
-            furthestDistance = distance;
-        }
-    }
-
-    // Nothing to cancel
-    if (furthestUuid.empty())
-        return false;
-
-    // Find in list to remove
-    auto iter = orderPairs.begin();
-    while (iter != orderPairs.end())
-    {
-        OrderPair &pair = (*iter);
-        if (pair.uuid != furthestUuid)
-        {
-            ++iter;
-            continue;
-        }
-
-        // Set to canceled
-        OrderPair clone(pair);
-        clone.state = OrderPair::State::Canceled;
-        if (!OrderPairDb::update(db, clone))
-        {
-            log::error("Failed to remove order pair '%s' for '%s' from database.",
-                pair.uuid.c_str(),
-                conf.name.c_str());
-            return false;
-        }
-
-        log::info("Removed stale pair '%s' for '%s'.",
-            pair.uuid.c_str(),
-            conf.name.c_str());
-
-        // Remove from tracking
-        orderPairs.erase(iter);
-
-        return true;
-    }
-
-    return false;
 }

@@ -18,6 +18,7 @@
 
 #include <gtb/SpreadTrader.h>
 #include <gtb/StaticTrader.h>
+#include <gtb/TimeTrader.h>
 
 using namespace gtb;
 
@@ -93,6 +94,22 @@ void Version1::init(TradeBot &bot)
         conf.enabled = false;
 
         auto trader = std::make_unique<StaticTrader>(ctx, conf);
+        bot.addProcessor(std::move(trader));
+    }
+
+    // Trader: 0.01% time spread
+    {
+        TimeTrader::Config conf;
+        conf.name = "SmallTime";
+        conf.cents = 20'00;
+        conf.seconds = 5 * 60;
+        conf.minSpread = 5;
+        conf.paddingSpread = 1;
+        conf.numPairs = 10;
+        conf.maxValue = 105'000'00;
+        conf.enabled = true;
+
+        auto trader = std::make_unique<TimeTrader>(ctx, conf);
         bot.addProcessor(std::move(trader));
     }
 }

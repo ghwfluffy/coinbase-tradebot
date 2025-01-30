@@ -193,6 +193,7 @@ bool CoinbaseRestClient::cancelOrder(
 
     if (resp.code == 404)
     {
+        // TODO: This seems to happen randomly
         log::error("Tried to cancel order '%s' that wasn't active.", uuid.c_str());
         return false;
     }

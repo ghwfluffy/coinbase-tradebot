@@ -41,9 +41,6 @@ class SpreadTrader : public OrderPairTrader
             const BtcPrice &price) final;
 
     private:
-        bool cancelPending(
-            const BtcPrice &price);
-
         bool patientOverride() const;
 
         Config conf;

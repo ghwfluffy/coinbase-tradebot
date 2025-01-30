@@ -1,5 +1,4 @@
 #include <gtb/StaticTrader.h>
-#include <gtb/CoinbaseInit.h>
 #include <gtb/IntegerUtils.h>
 #include <gtb/OrderPairDb.h>
 #include <gtb/Time.h>
