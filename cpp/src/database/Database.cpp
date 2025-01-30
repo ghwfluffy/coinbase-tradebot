@@ -81,6 +81,10 @@ DatabaseConnection Database::newConn()
         }
     }
 
+    // Set busy timeout to 1 second (1000 milliseconds)
+    if (conn)
+        sqlite3_busy_timeout(conn, 1'000);
+
     return DatabaseConnection(conn, std::bind(&Database::releaseDb, this, std::placeholders::_1));
 }
 
