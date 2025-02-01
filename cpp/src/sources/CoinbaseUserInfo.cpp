@@ -1,4 +1,5 @@
 #include <gtb/CoinbaseUserInfo.h>
+#include <gtb/CoinbaseFeeTier.h>
 #include <gtb/CoinbaseWallet.h>
 #include <gtb/CoinbaseInit.h>
 
@@ -33,5 +34,12 @@ void CoinbaseUserInfo::query()
     {
         ctx.data.get<CoinbaseWallet>().update(data);
         ctx.data.get<CoinbaseInit>().setWalletInit();
+    }
+
+    uint32_t fees = ctx.coinbase().getFeeTier();
+    if (fees > 0)
+    {
+        ctx.data.get<CoinbaseFeeTier>().setFeeTier(fees);
+        ctx.data.get<CoinbaseInit>().setFeeTierInit();
     }
 }

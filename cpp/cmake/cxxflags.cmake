@@ -31,6 +31,7 @@ string(APPEND
     " -Wcast-qual"
     " -Wconversion"
     " -Wdisabled-optimization"
+    " -Wduplicated-branches"
     " -Wfloat-equal"
     " -Wformat-nonliteral"
     " -Wformat-security"

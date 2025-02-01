@@ -5,13 +5,14 @@ using namespace gtb;
 CoinbaseInit::CoinbaseInit()
 {
     walletInit = false;
+    feeTierInit = false;
     btcPriceInit = false;
     orderBookInit = false;
 }
 
 CoinbaseInit::operator bool() const
 {
-    return btcPriceInit && walletInit && orderBookInit;
+    return btcPriceInit && walletInit && orderBookInit && feeTierInit;
 }
 
 void CoinbaseInit::setBtcInit()
@@ -19,6 +20,16 @@ void CoinbaseInit::setBtcInit()
     if (!btcPriceInit)
     {
         btcPriceInit = true;
+        if (*this)
+            updated();
+    }
+}
+
+void CoinbaseInit::setFeeTierInit()
+{
+    if (!feeTierInit)
+    {
+        feeTierInit = true;
         if (*this)
             updated();
     }

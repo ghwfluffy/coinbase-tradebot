@@ -15,26 +15,20 @@ Submodule Dependencies:
 
 TODOs
     Misc
-    [\] Memory leak (10 hours till OOM)
-        CoinbaseUserTrades web socket getting into state where user trades not updating
-        - SSL_new
-        - BIO_ctrl
-        - 219.7 MiB: websocketpp::endpoint<websocketpp::connection<websocketpp::config::asio_tls_client>, websocketpp::config::asio_tls_client>::create_connection() (endpoint_impl.hpp:86)
-            - WebSocketClient::run
-            - websockpp::client::get_connection
-            - websockpp::client::create_connection
-        - 219.7 MiB: websocketpp::transport::asio::tls_socket::connection::init_asio(boost::asio::io_context*, std::shared_ptr<boost::asio::io_context::strand>, bool) (tls.hpp:196)
+    [ ] Websocket re-subscribe was not getting new data
+        - Implement websocket timeout?
     [ ] Coinbase wallet updater move to separate class
-    [ ] File logger
     [ ] curl_global_init / curl_global_cleanup on ref
     [\] CLI tools
     [ ] Interrupt down before websockets connect deadlocks
     [ ] Move CoinbaseCredential to conf
     [ ] PendingProfits class
-    [\] FeeTier
     [ ] Better INVALID_LIMIT_PRICE_POST_ONLY handling
-    [ ] Remove or officialize 'nextTrade'
     Trading Algorithms
+    [ ] Updates
+        [ ] Remove or officialize 'nextTrade'
+        [ ] Codify patience
+        [ ] time trader weighted average multiple windows
     [ ] HODL
     [ ] Phased
     [ ] Tensorflow
@@ -48,5 +42,6 @@ TODOs
     Testing
     [ ] Mock 
     Feedback
+    [ ] File logger
     [ ] Web front-end
     [ ] Notifications

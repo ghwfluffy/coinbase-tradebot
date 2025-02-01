@@ -23,10 +23,12 @@ class CoinbaseInit : public DataModel
 
         void setBtcInit();
         void setWalletInit();
+        void setFeeTierInit();
         void setOrderBookInit();
 
     private:
         bool walletInit;
+        bool feeTierInit;
         bool btcPriceInit;
         bool orderBookInit;
 };
