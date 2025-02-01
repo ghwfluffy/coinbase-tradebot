@@ -18,28 +18,23 @@ std::string getActiveStates()
     return "'None', 'Pending', 'BuyActive', 'Holding', 'SellActive'";
 }
 
+std::string getBoughtStates()
+{
+    return "'Holding', 'SellActive'";
 }
 
-std::list<OrderPair> OrderPairDb::select(
+bool selectQuery(
     Database &db,
-    const std::string &algorithm,
-    bool activeOnly)
+    const std::string &query,
+    std::list<OrderPair> &pairs)
 {
-    std::string query;
-    query += "SELECT ";
-    query += COLUMNS;
-    query += " FROM order_pairs";
-    query += " WHERE 1=1";
-    if (!algorithm.empty())
-        query += " AND algorithm='" + algorithm + "'";
-    if (activeOnly)
-        query += " AND state IN (" + getActiveStates() + ")";
-
     DatabaseResult result = db.getConn().query(query);
     if (!result)
-        log::error("Failed to query order pairs for algorithm '%s'.", algorithm.c_str());
+    {
+        log::error("Failed to query order pairs.");
+        return false;
+    }
 
-    std::list<OrderPair> pairs;
     while (result.next())
     {
         size_t col = 0;
@@ -62,7 +57,43 @@ std::list<OrderPair> OrderPairDb::select(
         pairs.push_back(std::move(pair));
     }
 
-    return pairs;
+    return true;
+}
+
+}
+
+std::list<OrderPair> OrderPairDb::select(
+    Database &db,
+    const std::string &algorithm,
+    bool activeOnly)
+{
+    std::string query;
+    query += "SELECT ";
+    query += COLUMNS;
+    query += " FROM order_pairs";
+    query += " WHERE 1=1";
+    if (!algorithm.empty())
+        query += " AND algorithm='" + algorithm + "'";
+    if (activeOnly)
+        query += " AND state IN (" + getActiveStates() + ")";
+
+    std::list<OrderPair> orders;
+    if (!selectQuery(db, query, orders))
+        log::error("Failed to query order pairs for algorithm '%s'.", algorithm.c_str());
+
+    return orders;
+}
+
+bool OrderPairDb::selectBought(
+    Database &db,
+    std::list<OrderPair> &orders)
+{
+    std::string query;
+    query += "SELECT ";
+    query += COLUMNS;
+    query += " FROM order_pairs";
+    query += " WHERE state IN (" + getBoughtStates() + ")";
+    return selectQuery(db, query, orders);
 }
 
 bool OrderPairDb::remove(

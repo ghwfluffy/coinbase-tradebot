@@ -13,6 +13,7 @@
 
 #include <gtb/BtcHistoricalWriter.h>
 #include <gtb/WalletHistoricalWriter.h>
+#include <gtb/PendingProfitsCalc.h>
 #include <gtb/ProfitsReader.h>
 #include <gtb/ProfitsWriter.h>
 
@@ -57,6 +58,9 @@ void Version1::init(TradeBot &bot)
     // Processor: Print periodic status updates
     bot.addProcessor(std::make_unique<PeriodicPrinter>(ctx));
 
+    // Processor: Pending Profits
+    bot.addProcessor(std::make_unique<PendingProfitsCalc>(ctx));
+
     // Trader: 0.1% Spread
     {
         SpreadTrader::Config conf;
@@ -65,7 +69,7 @@ void Version1::init(TradeBot &bot)
         conf.cents = 20'00;
         conf.num_pairs = 4;
         conf.buffer_percent = 25;
-        conf.maxValue = 102'000'00;
+        conf.maxValue = 107'000'00;
 
         auto trader = std::make_unique<SpreadTrader>(ctx, conf);
         bot.addProcessor(std::move(trader));
@@ -75,10 +79,10 @@ void Version1::init(TradeBot &bot)
     {
         StaticTrader::Config conf;
         conf.name = "Static4k";
-        conf.cents = 1'000'00;
+        conf.cents = 500'00;
         conf.buyCents = 103'000'00;
         conf.sellCents = 107'000'00;
-        conf.enabled = false;
+        conf.enabled = true;
 
         auto trader = std::make_unique<StaticTrader>(ctx, conf);
         bot.addProcessor(std::move(trader));
@@ -90,8 +94,8 @@ void Version1::init(TradeBot &bot)
         conf.name = "Static1k";
         conf.cents = 400'00;
         conf.buyCents = 104'000'00;
-        conf.sellCents = 105'000'00;
-        conf.enabled = false;
+        conf.sellCents = 105'200'00;
+        conf.enabled = true;
 
         auto trader = std::make_unique<StaticTrader>(ctx, conf);
         bot.addProcessor(std::move(trader));
@@ -106,7 +110,7 @@ void Version1::init(TradeBot &bot)
         conf.minSpread = 5;
         conf.paddingSpread = 1;
         conf.numPairs = 10;
-        conf.maxValue = 105'000'00;
+        conf.maxValue = 107'000'00;
         conf.enabled = true;
 
         auto trader = std::make_unique<TimeTrader>(ctx, conf);

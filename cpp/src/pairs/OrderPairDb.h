@@ -18,6 +18,10 @@ namespace OrderPairDb
         const std::string &algorithm = std::string(),
         bool activeOnly = true);
 
+    bool selectBought(
+        Database &db,
+        std::list<OrderPair> &orders);
+
     bool remove(
         Database &db,
         const std::string &uuid);

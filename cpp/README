@@ -19,7 +19,6 @@ TODOs
     [ ] curl_global_init / curl_global_cleanup on ref
     [\] CLI tools
     [ ] Move CoinbaseCredential to conf
-    [ ] PendingProfits class
     [ ] Better INVALID_LIMIT_PRICE_POST_ONLY handling
     Trading Algorithms
     [ ] Updates

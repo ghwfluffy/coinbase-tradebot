@@ -4,6 +4,8 @@
 #include <gtb/Log.h>
 
 #include <gtb/Profits.h>
+#include <gtb/PendingProfits.h>
+
 #include <gtb/BtcPrice.h>
 #include <gtb/CoinbaseWallet.h>
 
@@ -40,8 +42,9 @@ void PeriodicPrinter::process(
     uint32_t totalCents = btcCents + usd;
 
     int32_t profit = ctx.data.get<Profits>().getProfit();
+    int32_t pending = ctx.data.get<PendingProfits>().getProfit();
 
-    log::info("STATUS | BTC: %u.%02u | Wallet: $%u.%02u USD + $%u.%02u BTC = $%u.%02u | Profit: $%s",
+    log::info("STATUS | BTC: %u.%02u | Wallet: $%u.%02u USD + $%u.%02u BTC = $%u.%02u | SellProfit: $%s | Profit: $%s",
         cents / 100,
         cents % 100,
         usd / 100,
@@ -50,7 +53,8 @@ void PeriodicPrinter::process(
         btcCents % 100,
         totalCents / 100,
         totalCents % 100,
-        IntegerUtils::centsToUsd(profit).c_str());
+        IntegerUtils::centsToUsd(profit).c_str(),
+        IntegerUtils::centsToUsd(profit + pending).c_str());
 
     nextPrint = now + std::chrono::seconds(10);
 }
