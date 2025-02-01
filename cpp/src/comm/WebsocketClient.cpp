@@ -11,13 +11,14 @@ WebsocketClient::WebsocketClient(
 
 WebsocketClient::~WebsocketClient()
 {
-    shutdown();
+    reset();
 }
 
 void WebsocketClient::init()
 {
     client = std::make_shared<WebsockClient>();
     io = std::make_shared<boost::asio::io_context>();
+    idleTimer = std::make_shared<boost::asio::steady_timer>(*io);
 
     // Use dedicated ASIO event context
     client->init_asio(io.get());
@@ -43,22 +44,60 @@ void WebsocketClient::init()
     client->set_close_handler(std::bind(&WebsocketClient::handleClose, this, std::placeholders::_1));
 }
 
+void WebsocketClient::updateIdleTimer()
+{
+    std::lock_guard<std::mutex> lock(mtx);
+    if (!idleTimer)
+        return;
+
+    // If no traffic after 5 minutes we will reset the connection
+    idleTimer->expires_from_now(std::chrono::minutes(5));
+    idleTimer->async_wait(
+        [this](const boost::system::error_code& ec)
+        {
+            if (!ec)
+            {
+                log::info("Idle timeout triggered for websocket '%s'.", name.c_str());
+                shutdown();
+            }
+        });
+}
+
+void WebsocketClient::reset()
+{
+    std::unique_lock<std::mutex> lock(mtx);
+    shutdown(lock);
+
+    // Save old pointers to free outside of mutex
+    WebsockConn oldConn(std::move(conn));
+    std::shared_ptr<WebsockClient> oldClient(std::move(client));
+    std::shared_ptr<boost::asio::io_context> oldIo(std::move(io));
+    std::shared_ptr<boost::asio::steady_timer> oldTimer(std::move(idleTimer));
+
+    io.reset();
+    conn.reset();
+    client.reset();
+    idleTimer.reset();
+
+    lock.unlock();
+}
+
 void WebsocketClient::run(
     const std::string &uri,
     const nlohmann::json &subscribeRequest,
     std::function<void(nlohmann::json message)> handler)
 {
-    std::unique_lock<std::mutex> lock(mtx);
+    reset();
 
-    // Save old pointers to free outside of mutex
-    WebsockConn oldConn(std::move(conn));
-    std::shared_ptr<WebsockClient> oldMem(std::move(client));
-    std::shared_ptr<boost::asio::io_context> oldIo(std::move(io));
+    std::unique_lock<std::mutex> lock(mtx);
+    // Already running
+    if (client)
+        return;
 
     // Setup new instance
     init();
     this->handler = std::move(handler);
-    subscribeMsg = subscribeRequest.dump();
+    this->subscribeMsg = subscribeRequest.dump();
 
     // Create new connection
     try {
@@ -157,6 +196,8 @@ void WebsocketClient::handleOpen(
         } catch (const std::exception &e) {
             log::error("Erorr while subscribing websocket '%s': %s", name.c_str(), e.what());
         }
+
+        updateIdleTimer();
     }
 }
 
@@ -199,6 +240,8 @@ void WebsocketClient::handleMessage(
             name.c_str(),
             e.what());
     }
+
+    updateIdleTimer();
 }
 
 void WebsocketClient::log(

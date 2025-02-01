@@ -15,8 +15,6 @@ Submodule Dependencies:
 
 TODOs
     Misc
-    [ ] Websocket re-subscribe was not getting new data
-        - Implement websocket timeout?
     [ ] Coinbase wallet updater move to separate class
     [ ] curl_global_init / curl_global_cleanup on ref
     [\] CLI tools

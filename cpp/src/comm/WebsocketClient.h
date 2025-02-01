@@ -39,8 +39,10 @@ class WebsocketClient
         typedef std::shared_ptr<websocketpp::connection<websocketpp::config::asio_tls_client>> WebsockConn;
 
         void init();
+        void reset();
         void shutdown(
             const std::unique_lock<std::mutex> &lock);
+        void updateIdleTimer();
 
         void log(
             bool error,
@@ -63,6 +65,7 @@ class WebsocketClient
         std::shared_ptr<WebsockClient> client;
         std::shared_ptr<boost::asio::io_context> io;
         std::shared_ptr<boost::asio::ssl::context> tlsCtx;
+        std::shared_ptr<boost::asio::steady_timer> idleTimer;
 
         std::mutex mtx;
         std::string name;
