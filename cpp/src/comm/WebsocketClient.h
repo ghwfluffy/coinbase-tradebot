@@ -40,8 +40,9 @@ class WebsocketClient
 
         void init();
         void reset();
-        void shutdown(
-            const std::unique_lock<std::mutex> &lock);
+        void disconnect();
+        void disconnect(
+            std::unique_lock<std::mutex> &lock);
         void updateIdleTimer();
 
         void log(
@@ -68,6 +69,7 @@ class WebsocketClient
         std::shared_ptr<boost::asio::steady_timer> idleTimer;
 
         std::mutex mtx;
+        bool enabled;
         std::string name;
         std::string subscribeMsg;
         std::function<void(nlohmann::json message)> handler;

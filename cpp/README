@@ -18,7 +18,6 @@ TODOs
     [ ] Coinbase wallet updater move to separate class
     [ ] curl_global_init / curl_global_cleanup on ref
     [\] CLI tools
-    [ ] Interrupt down before websockets connect deadlocks
     [ ] Move CoinbaseCredential to conf
     [ ] PendingProfits class
     [ ] Better INVALID_LIMIT_PRICE_POST_ONLY handling

@@ -7,10 +7,12 @@ WebsocketClient::WebsocketClient(
     std::string name)
         : name(std::move(name))
 {
+    enabled = true;
 }
 
 WebsocketClient::~WebsocketClient()
 {
+    enabled = false;
     reset();
 }
 
@@ -58,7 +60,7 @@ void WebsocketClient::updateIdleTimer()
             if (!ec)
             {
                 log::info("Idle timeout triggered for websocket '%s'.", name.c_str());
-                shutdown();
+                disconnect();
             }
         });
 }
@@ -66,7 +68,6 @@ void WebsocketClient::updateIdleTimer()
 void WebsocketClient::reset()
 {
     std::unique_lock<std::mutex> lock(mtx);
-    shutdown(lock);
 
     // Save old pointers to free outside of mutex
     WebsockConn oldConn(std::move(conn));
@@ -80,6 +81,18 @@ void WebsocketClient::reset()
     idleTimer.reset();
 
     lock.unlock();
+
+    // Stop everything
+    if (oldClient)
+        oldClient->stop_perpetual();
+    if (oldIo)
+        oldIo->stop();
+
+    // Free memory
+    oldConn.reset();
+    oldClient.reset();
+    oldTimer.reset();
+    oldIo.reset();
 }
 
 void WebsocketClient::run(
@@ -87,11 +100,14 @@ void WebsocketClient::run(
     const nlohmann::json &subscribeRequest,
     std::function<void(nlohmann::json message)> handler)
 {
-    reset();
+    disconnect();
 
     std::unique_lock<std::mutex> lock(mtx);
     // Already running
     if (client)
+        return;
+    // Completely disconnect
+    if (!enabled)
         return;
 
     // Setup new instance
@@ -108,7 +124,7 @@ void WebsocketClient::run(
             log::error("Websocket '%s' setup error: %s",
                 name.c_str(),
                 ec.message().c_str());
-            shutdown(lock);
+            disconnect(lock);
             return;
         }
     } catch (const std::exception &e) {
@@ -123,7 +139,7 @@ void WebsocketClient::run(
         log::error("Websocket '%s' connection error: %s",
             name.c_str(),
             e.what());
-        shutdown(lock);
+        disconnect(lock);
         return;
     }
 
@@ -133,34 +149,44 @@ void WebsocketClient::run(
         client->run();
     } catch (const std::exception &e) {
         log::error("Erorr while processing websocket '%s': %s", name.c_str(), e.what());
-        shutdown();
+        disconnect();
     }
 }
 
 void WebsocketClient::shutdown()
 {
     std::unique_lock<std::mutex> lock(mtx);
-    shutdown(lock);
+    enabled = false;
+    disconnect(lock);
 }
 
-void WebsocketClient::shutdown(
-    const std::unique_lock<std::mutex> &lock)
+void WebsocketClient::disconnect()
 {
-    (void)lock;
+    std::unique_lock<std::mutex> lock(mtx);
+    disconnect(lock);
+}
 
+void WebsocketClient::disconnect(
+    std::unique_lock<std::mutex> &lock)
+{
     if (client && conn)
     {
+        auto conn2 = conn;
+        auto client2 = client;
+        lock.unlock();
+
         log::info("Shutting down '%s' websocket.", name.c_str());
         try {
-            websocketpp::connection_hdl handle = conn->get_handle();
-            client->close(handle, websocketpp::close::status::going_away, "Client shutdown");
+            websocketpp::connection_hdl handle = conn2->get_handle();
+            client2->close(handle, websocketpp::close::status::going_away, "Client disconnect");
         } catch (const std::exception &e) {
             log::error("Erorr while shutting down websocket '%s': %s", name.c_str(), e.what());
         }
-    }
 
-    conn.reset();
-    client.reset();
+        reset();
+
+        lock.lock();
+    }
 }
 
 std::shared_ptr<boost::asio::ssl::context> WebsocketClient::handleTlsInit(

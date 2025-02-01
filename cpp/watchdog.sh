@@ -17,6 +17,7 @@ WATCHPID=0
 cleanup() {
     kill -TERM "${WATCHPID}" 2>/dev/null || true
     kill -TERM "${BOTPID}" 2>/dev/null || true
+    wait "${WATCHPID}" "${BOTPID}"
     exit 0
 }
 trap cleanup SIGINT SIGTERM
