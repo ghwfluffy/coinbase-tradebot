@@ -19,6 +19,7 @@ TODOs
     [\] CLI tools
     [ ] Move CoinbaseCredential to conf
     [ ] Better INVALID_LIMIT_PRICE_POST_ONLY handling
+    [ ] varargs printf format gcc warnings
     Trading Algorithms
     [ ] Updates
         [ ] Remove or officialize 'nextTrade'
@@ -40,34 +41,6 @@ TODOs
     [ ] Smooth value
     Testing
     [\] Mock
-        [x] MockMarket
-        [x] MockCoinbase
-            - Returns success on post
-            - Static fee tier
-            - Maintains wallet values based on starting point + trades/fees
-            [x] Enforce wallet has enough for transaction
-                [x] Need to add on-hold to wallet values
-            [x] Update CoinbaseWallet
-            [x] Update CoinbaseOrderBook
-        [x] MockUserTrades
-            - Subscribe to price changes and update mocked wallet
-            - Update mocked wallet
-            [x] Update CoinbaseWallet
-            [x] Update CoinbaseOrderBook
-        [x] Initialize CoinbaseFeeTier / CoinbaseInit
-        [x] Make sure im not writing to prod DB
-        [x] MockVersion1
-            - MockMarket
-            - MockCoinbaseApi
-            - MockUserTrades
-            - PeriodicPrinter
-            - PendingProfitsCalc
-            - Initial wallet value
-        [x] Some end condition
-        [x] std::steady_clock needs to respect mock time
-        [S] OrderBook cleaning up orders too fast (thread contention or bad SteadyClock impl?)
-        [x] Wallet updates are disabled in Prod
-        [x] Accurate wait in MockMarket
         [ ] Wallet needs to track picodollars in order to be completely accurate
         [ ] Log mock time?
         [ ] main stdargs pick algorithm and mock

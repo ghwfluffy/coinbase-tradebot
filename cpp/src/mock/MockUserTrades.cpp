@@ -12,7 +12,7 @@ using namespace gtb;
 namespace
 {
 
-constexpr const uint64_t SATOSHI_PER_BTC = 100000000ULL;
+constexpr const uint64_t SATOSHI_PER_BTC = 100'000'000ULL;
 constexpr const uint64_t PICODOLLARS_PER_CENT = 100'000'000'000ULL;
 
 // Input values:
@@ -61,8 +61,8 @@ void calcBuyFees(
 // feeTier: fee in basis points (e.g. 35 means 0.35%)
 
 // Output values:
-// beforeFees: cents received from sale (not including fees)
-// fees: cents paid in fees
+// beforeFees: picodollars received from sale (not including fees)
+// fees: picodollars paid in fees
 void calcSellFees(
     uint64_t quantity,
     uint32_t price,
@@ -71,7 +71,7 @@ void calcSellFees(
     uint64_t &fees)
 {
     // Gross sale proceeds in cents.
-    beforeFees = (price * quantity) / SATOSHI_PER_BTC;
+    beforeFees = price * quantity * (PICODOLLARS_PER_CENT / SATOSHI_PER_BTC);
 
     // Fee is a percentage of the gross sale.
     fees = (beforeFees * feeTier) / 10000;
