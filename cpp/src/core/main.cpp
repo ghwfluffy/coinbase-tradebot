@@ -6,7 +6,7 @@ int main(int argc, const char *argv[])
     (void)argc;
     (void)argv;
 
-    const bool mock = true;
+    const bool mock = false;
 
     gtb::TradeBot bot;
     gtb::Version1::init(bot, mock);

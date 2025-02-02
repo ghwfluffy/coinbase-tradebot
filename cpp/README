@@ -15,7 +15,6 @@ Submodule Dependencies:
 
 TODOs
     Misc
-    [ ] Fix historical DB time offset
     [\] CLI tools
     [ ] Move CoinbaseCredential to conf
     [ ] Better INVALID_LIMIT_PRICE_POST_ONLY handling
@@ -28,10 +27,14 @@ TODOs
     [ ] HODL
     [ ] Phased
     [ ] Tensorflow
-    [ ] Wind down / pause before market closes/opens
+    [\] Wind down / pause before market closes/opens
         - Pause buying when market closes
         - Sell at a loss when getting close to market open
         - Pause buying after open until last 2 hour window is within a small fluctuation amount (min 2 hours after open)
+        [x] Create utility for calculating market open/closed info
+        [ ] Make shared config struct for traders with common config
+        [ ] Add logic to disable buys during market opening until stablized
+        [ ] Add logic to discount sells during market close
     Data Sources
     [ ] Tastyworks
     [\] Config
