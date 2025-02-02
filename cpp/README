@@ -15,8 +15,6 @@ Submodule Dependencies:
 
 TODOs
     Misc
-    [ ] Coinbase wallet updater move to separate class
-    [ ] curl_global_init / curl_global_cleanup on ref
     [\] CLI tools
     [ ] Move CoinbaseCredential to conf
     [ ] Better INVALID_LIMIT_PRICE_POST_ONLY handling

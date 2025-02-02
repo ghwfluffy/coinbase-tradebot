@@ -4,6 +4,8 @@
 #include <unistd.h>
 #include <signal.h>
 
+#include <curl/curl.h>
+
 using namespace gtb;
 
 namespace
@@ -52,12 +54,14 @@ TradeBot::TradeBot()
 {
     running = false;
     initSignals();
+    curl_global_init(CURL_GLOBAL_DEFAULT);
     ctx.historicalDb.init("historical.sqlite", "./schema/historical.sql");
 }
 
 TradeBot::~TradeBot()
 {
     cleanupSignals();
+    curl_global_cleanup();
 }
 
 BotContext &TradeBot::getCtx()

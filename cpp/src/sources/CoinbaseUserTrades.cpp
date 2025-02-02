@@ -1,6 +1,7 @@
 #include <gtb/CoinbaseUserTrades.h>
 #include <gtb/CoinbaseCredential.h>
 #include <gtb/CoinbaseOrderBook.h>
+#include <gtb/CoinbaseWallet.h>
 #include <gtb/CoinbaseInit.h>
 #include <gtb/CoinbaseApi.h>
 #include <gtb/Time.h>
@@ -53,6 +54,11 @@ void CoinbaseUserTrades::handleMessage(
     if (!json.contains("events") || !json["events"].is_array() || json["events"].empty())
         return;
 
+    ctx.data.get<Time>().setNow();
+
+    // Update wallet on orderbook change
+    ctx.data.get<CoinbaseWallet>().update(ctx.coinbase().getWallet());
+
     for (const nlohmann::json &event : json["events"])
     {
         if (!event.contains("type") || !event["type"].is_string())
@@ -83,10 +89,10 @@ void CoinbaseUserTrades::handleMessage(
 
 void CoinbaseUserTrades::reset()
 {
+    ctx.data.get<Time>().setNow();
+
     CoinbaseOrderBook &book = ctx.data.get<CoinbaseOrderBook>();
     book.update(std::list<CoinbaseOrder>(), true);
-
-    ctx.data.get<Time>().setNow();
 }
 
 void CoinbaseUserTrades::update(
@@ -101,8 +107,8 @@ void CoinbaseUserTrades::update(
             updates.push_back(std::move(order));
     }
 
+    ctx.data.get<Time>().setNow();
+
     CoinbaseOrderBook &book = ctx.data.get<CoinbaseOrderBook>();
     book.update(std::move(updates), reset);
-
-    ctx.data.get<Time>().setNow();
 }

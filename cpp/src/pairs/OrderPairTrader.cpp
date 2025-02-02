@@ -47,10 +47,6 @@ void OrderPairTrader::process(
 {
     (void)orderbook;
 
-    // Update wallet on orderbook change
-    // TODO: Don't do this 'n' times (once per trader)
-    ctx.data.get<CoinbaseWallet>().update(ctx.coinbase().getWallet());
-
     // Check state of each pair
     // Force querying order information from Coinbase (don't trust orderbook cache)
     std::lock_guard<std::mutex> lock(mtx);
