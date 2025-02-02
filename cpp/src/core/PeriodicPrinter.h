@@ -2,6 +2,7 @@
 
 #include <gtb/Time.h>
 #include <gtb/BotContext.h>
+#include <gtb/SteadyClock.h>
 
 #include <chrono>
 #include <mutex>
@@ -27,7 +28,7 @@ class PeriodicPrinter
         BotContext &ctx;
 
         std::mutex mtx;
-        std::chrono::steady_clock::time_point nextPrint;
+        SteadyClock::TimePoint nextPrint;
 };
 
 }

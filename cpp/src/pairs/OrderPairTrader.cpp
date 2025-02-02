@@ -20,7 +20,7 @@ OrderPairTrader::OrderPairTrader(
 
 void OrderPairTrader::loadDatabase()
 {
-    db.init("spread_trader.sqlite", "./schema/spread_trader.sql");
+    OrderPairDb::initDb(db);
     orderPairs = OrderPairDb::select(db, name);
     log::info("Read %zu pairs for trader '%s' from database.",
         orderPairs.size(),

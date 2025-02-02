@@ -21,6 +21,8 @@ class CoinbaseInit : public DataModel
 
         operator bool() const;
 
+        void setFullInit();
+
         void setBtcInit();
         void setWalletInit();
         void setFeeTierInit();

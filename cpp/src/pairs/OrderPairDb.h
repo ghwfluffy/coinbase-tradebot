@@ -13,6 +13,12 @@ namespace gtb
  */
 namespace OrderPairDb
 {
+    void setDbFile(
+        std::string str);
+
+    void initDb(
+        Database &db);
+
     std::list<OrderPair> select(
         Database &db,
         const std::string &algorithm = std::string(),

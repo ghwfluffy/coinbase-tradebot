@@ -1,9 +1,9 @@
 #pragma once
 
 #include <gtb/IntegerUtils.h>
+#include <gtb/SteadyClock.h>
 
 #include <string>
-#include <chrono>
 
 #include <stdint.h>
 
@@ -29,7 +29,7 @@ struct CoinbaseOrder
     // 100-millions of a bitcoin (Satoshi)
     uint64_t quantity = 0;
     uint64_t createdTime = 0;
-    std::chrono::steady_clock::time_point cleanupTime;
+    SteadyClock::TimePoint cleanupTime;
 
     // In picodollars
     uint64_t beforeFees = 0;

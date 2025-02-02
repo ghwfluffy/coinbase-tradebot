@@ -1,4 +1,5 @@
 #include <gtb/CoinbaseOrderBook.h>
+#include <gtb/Log.h>
 
 using namespace gtb;
 
@@ -63,7 +64,7 @@ void CoinbaseOrderBook::cleanup(
 {
     (void)lock;
 
-    auto now = std::chrono::steady_clock::now();
+    auto now = SteadyClock::now();
 
     auto iter = orders.begin();
     while (iter != orders.end())

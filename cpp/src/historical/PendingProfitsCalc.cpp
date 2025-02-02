@@ -10,11 +10,10 @@ PendingProfitsCalc::PendingProfitsCalc(
     BotContext &ctx)
         : ctx(ctx)
 {
+    OrderPairDb::initDb(db);
+
     ctx.data.subscribe<BtcPrice>(*this);
     ctx.data.subscribe<CoinbaseOrderBook>(*this);
-
-    // TODO: Should have some ABI way of referencing this information
-    db.init("spread_trader.sqlite", "./schema/spread_trader.sql");
 }
 
 void PendingProfitsCalc::process(
@@ -30,7 +29,7 @@ void PendingProfitsCalc::process(
 {
     (void)price;
 
-    if (nextUpdate <= std::chrono::steady_clock::now())
+    if (nextUpdate <= SteadyClock::now())
         update();
 }
 
@@ -46,7 +45,7 @@ void PendingProfitsCalc::update()
     }
 
     // Update most once every 2 minutes (or on orderbook changes)
-    nextUpdate = std::chrono::steady_clock::now() + std::chrono::minutes(2);
+    nextUpdate = SteadyClock::now() + std::chrono::minutes(2);
 
     // Sum the prices and satoshis
     uint32_t spent = 0;

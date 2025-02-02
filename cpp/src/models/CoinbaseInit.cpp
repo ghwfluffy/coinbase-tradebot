@@ -15,6 +15,14 @@ CoinbaseInit::operator bool() const
     return btcPriceInit && walletInit && orderBookInit && feeTierInit;
 }
 
+void CoinbaseInit::setFullInit()
+{
+    walletInit = true;
+    feeTierInit = true;
+    btcPriceInit = true;
+    orderBookInit = true;
+}
+
 void CoinbaseInit::setBtcInit()
 {
     if (!btcPriceInit)

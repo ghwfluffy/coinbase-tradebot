@@ -26,6 +26,8 @@ class DatabaseConnection
         DatabaseConnection &operator=(const DatabaseConnection &) = delete;
         ~DatabaseConnection();
 
+        operator bool() const;
+
         DatabaseResult query(
             const std::string &str);
 

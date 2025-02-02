@@ -41,7 +41,7 @@ int main(int argc, const char *argv[])
     (void)argv;
 
     Database db;
-    db.init("spread_trader.sqlite", "./schema/spread_trader.sql");
+    OrderPairDb::initDb(db);
     std::list<OrderPair> orders = OrderPairDb::select(db);
     orders.sort(
         [](const OrderPair &lhs, const OrderPair &rhs) -> bool

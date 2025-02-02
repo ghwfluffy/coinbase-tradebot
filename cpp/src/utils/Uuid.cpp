@@ -26,7 +26,7 @@ std::string Uuid::generate()
     const uint16_t random = dist(gen);
 
     // Current time
-    auto now = std::chrono::steady_clock::now();
+    auto now = std::chrono::system_clock::now();
     auto epoch = std::chrono::time_point_cast<std::chrono::microseconds>(now).time_since_epoch();
     const uint64_t microseconds = static_cast<uint64_t>(epoch.count());
 

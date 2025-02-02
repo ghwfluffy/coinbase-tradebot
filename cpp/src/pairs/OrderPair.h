@@ -2,9 +2,9 @@
 
 #include <gtb/IntegerUtils.h>
 #include <gtb/Profits.h>
+#include <gtb/SteadyClock.h>
 
 #include <string>
-#include <chrono>
 #include <stdint.h>
 
 namespace gtb
@@ -34,7 +34,7 @@ struct OrderPair
     uint64_t quantity = 0;
     uint64_t created = 0;
     State state = State::None;
-    std::chrono::steady_clock::time_point nextTry;
+    SteadyClock::TimePoint nextTry;
 
     Profits::Data profit;
 

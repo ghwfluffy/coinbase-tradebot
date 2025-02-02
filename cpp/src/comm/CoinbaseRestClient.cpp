@@ -267,8 +267,10 @@ CoinbaseWallet::Data CoinbaseRestClient::getWallet()
     }
 
     CoinbaseWallet::Data ret;
-    ret.usd = IntegerUtils::usdToCents(usdBalance) + IntegerUtils::usdToCents(usdReserved);
-    ret.btc = IntegerUtils::btcToSatoshi(btcBalance) + IntegerUtils::btcToSatoshi(btcReserved);
+    ret.onHoldUsd = IntegerUtils::usdToCents(usdReserved);
+    ret.onHoldBtc = IntegerUtils::btcToSatoshi(btcReserved);
+    ret.usd = IntegerUtils::usdToCents(usdBalance) + ret.onHoldUsd;
+    ret.btc = IntegerUtils::btcToSatoshi(btcBalance) + ret.onHoldBtc;
     return ret;
 }
 

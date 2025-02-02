@@ -3,6 +3,7 @@
 #include <gtb/BotContext.h>
 #include <gtb/BtcPrice.h>
 #include <gtb/Database.h>
+#include <gtb/SteadyClock.h>
 #include <gtb/CoinbaseOrderBook.h>
 
 #include <chrono>
@@ -36,7 +37,7 @@ class PendingProfitsCalc
         BotContext &ctx;
         Database db;
 
-        std::chrono::steady_clock::time_point nextUpdate;
+        SteadyClock::TimePoint nextUpdate;
 };
 
 }

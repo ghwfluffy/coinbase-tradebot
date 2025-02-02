@@ -5,6 +5,7 @@
 
 #include <gtb/BtcPrice.h>
 #include <gtb/OrderPair.h>
+#include <gtb/SteadyClock.h>
 
 #include <list>
 
@@ -71,7 +72,7 @@ class OrderPairStateMachine
         Database &db;
 
         std::string name;
-        std::chrono::steady_clock::time_point nextTrade;
+        SteadyClock::TimePoint nextTrade;
 };
 
 }

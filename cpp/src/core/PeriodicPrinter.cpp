@@ -23,7 +23,7 @@ void PeriodicPrinter::process(
 {
     (void)time;
 
-    auto now = std::chrono::steady_clock::now();
+    auto now = SteadyClock::now();
 
     std::lock_guard<std::mutex> lock(mtx);
     if (now < nextPrint)

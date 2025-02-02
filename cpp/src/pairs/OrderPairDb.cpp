@@ -9,6 +9,10 @@ using namespace gtb;
 namespace
 {
 
+constexpr const char *SCHEMA_FILE = "./schema/spread_trader.sql";
+constexpr const char *PROD_DB_FILE = "spread_trader.sqlite";
+std::string dbFile = PROD_DB_FILE;
+
 constexpr const char *COLUMNS =
     "uuid, algorithm, state, buy_order_uuid, sell_order_uuid, bet, buy_price, sell_price, quantity, created, "
         "final_purchased, final_buy_fees, final_sold, final_sell_fees";
@@ -60,6 +64,18 @@ bool selectQuery(
     return true;
 }
 
+}
+
+void OrderPairDb::setDbFile(
+    std::string str)
+{
+    dbFile = std::move(str);
+}
+
+void OrderPairDb::initDb(
+    Database &db)
+{
+    db.init(dbFile, SCHEMA_FILE);
 }
 
 std::list<OrderPair> OrderPairDb::select(

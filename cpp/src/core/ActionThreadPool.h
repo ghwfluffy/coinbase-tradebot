@@ -34,11 +34,15 @@ class ActionThreadPool : public ActionQueue
         void queue(std::function<void()> action) final;
         void queue(std::function<void(Any)> action, Any mem) final;
 
+        void waitComplete(std::function<void()> cb);
+
     private:
         void runThread(size_t id);
+        void triggerComplete();
 
         std::mutex mtx;
         std::atomic<bool> running;
+        std::atomic<unsigned int> active;
         std::condition_variable cond;
         std::list<std::unique_ptr<std::thread>> threads;
 
@@ -49,6 +53,7 @@ class ActionThreadPool : public ActionQueue
             std::function<void(Any)> anyAction;
         };
         std::list<Action> actions;
+        std::list<std::function<void()>> waiters;
 };
 
 }

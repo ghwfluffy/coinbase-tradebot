@@ -47,6 +47,11 @@ DatabaseConnection::~DatabaseConnection()
     close();
 }
 
+DatabaseConnection::operator bool() const
+{
+    return bool(conn);
+}
+
 void DatabaseConnection::close()
 {
     if (conn)

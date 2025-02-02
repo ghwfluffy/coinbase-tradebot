@@ -15,6 +15,7 @@ Submodule Dependencies:
 
 TODOs
     Misc
+    [ ] Fix historical DB time offset
     [\] CLI tools
     [ ] Move CoinbaseCredential to conf
     [ ] Better INVALID_LIMIT_PRICE_POST_ONLY handling
@@ -26,6 +27,10 @@ TODOs
     [ ] HODL
     [ ] Phased
     [ ] Tensorflow
+    [ ] Wind down / pause before market closes/opens
+        - Pause buying when market closes
+        - Sell at a loss when getting close to market open
+        - Pause buying after open until last 2 hour window is within a small fluctuation amount (min 2 hours after open)
     Data Sources
     [ ] Tastyworks
     [\] Config
@@ -34,7 +39,38 @@ TODOs
     Data Processors
     [ ] Smooth value
     Testing
-    [ ] Mock 
+    [\] Mock
+        [x] MockMarket
+        [x] MockCoinbase
+            - Returns success on post
+            - Static fee tier
+            - Maintains wallet values based on starting point + trades/fees
+            [x] Enforce wallet has enough for transaction
+                [x] Need to add on-hold to wallet values
+            [x] Update CoinbaseWallet
+            [x] Update CoinbaseOrderBook
+        [x] MockUserTrades
+            - Subscribe to price changes and update mocked wallet
+            - Update mocked wallet
+            [x] Update CoinbaseWallet
+            [x] Update CoinbaseOrderBook
+        [x] Initialize CoinbaseFeeTier / CoinbaseInit
+        [x] Make sure im not writing to prod DB
+        [x] MockVersion1
+            - MockMarket
+            - MockCoinbaseApi
+            - MockUserTrades
+            - PeriodicPrinter
+            - PendingProfitsCalc
+            - Initial wallet value
+        [x] Some end condition
+        [x] std::steady_clock needs to respect mock time
+        [S] OrderBook cleaning up orders too fast (thread contention or bad SteadyClock impl?)
+        [x] Wallet updates are disabled in Prod
+        [x] Accurate wait in MockMarket
+        [ ] Wallet needs to track picodollars in order to be completely accurate
+        [ ] Log mock time?
+        [ ] main stdargs pick algorithm and mock
     Feedback
     [ ] File logger
     [ ] Web front-end

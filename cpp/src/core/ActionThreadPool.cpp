@@ -9,6 +9,7 @@ using namespace gtb;
 ActionThreadPool::ActionThreadPool()
 {
     running = false;
+    active = 0;
 }
 
 ActionThreadPool::~ActionThreadPool()
@@ -51,6 +52,8 @@ void ActionThreadPool::stop()
         threads.front()->join();
         threads.pop_front();
     }
+
+    triggerComplete();
 }
 
 void ActionThreadPool::queue(std::function<void()> action)
@@ -91,6 +94,8 @@ void ActionThreadPool::runThread(size_t id)
         // Wait for an action
         if (actions.empty())
         {
+            if (active == 0)
+                triggerComplete();
             cond.wait_for(lock, std::chrono::seconds(1));
             continue;
         }
@@ -100,10 +105,34 @@ void ActionThreadPool::runThread(size_t id)
         actions.pop_front();
 
         // Run it
+        active++;
         lock.unlock();
         if (action.action)
             action.action();
         else
             action.anyAction(std::move(action.mem));
+
+        lock.lock();
+        active--;
     }
+}
+
+void ActionThreadPool::waitComplete(std::function<void()> cb)
+{
+    std::unique_lock<std::mutex> lock(mtx);
+    if (running && (active > 0 || !actions.empty()))
+        waiters.push_back(std::move(cb));
+    else
+    {
+        lock.unlock();
+        cb();
+    }
+}
+
+void ActionThreadPool::triggerComplete()
+{
+    auto readyWaiters = std::move(waiters);
+    waiters.clear();
+    for (auto &cb : readyWaiters)
+        cb();
 }

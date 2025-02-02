@@ -1,6 +1,7 @@
 #include <gtb/OrderPairStateMachine.h>
 #include <gtb/CoinbaseOrderBook.h>
 #include <gtb/OrderPairDb.h>
+#include <gtb/MockMode.h>
 #include <gtb/Time.h>
 #include <gtb/Log.h>
 
@@ -40,7 +41,7 @@ void OrderPairStateMachine::churn(
     bool force)
 {
     // This pair is not ready to act yet
-    if (pair.nextTry > std::chrono::steady_clock::now() && !force)
+    if (pair.nextTry > SteadyClock::now() && !force)
         return;
 
     OrderPair::State startState = pair.state;
@@ -98,7 +99,7 @@ void OrderPairStateMachine::checkBuyState(
     if (!buyOrder || force)
     {
         buyOrder = ctx.coinbase().getOrder(pair.buyOrder);
-        if (buyOrder)
+        if (buyOrder && !ctx.data.get<MockMode>())
             orderbook.update(buyOrder);
     }
 
@@ -150,7 +151,7 @@ void OrderPairStateMachine::checkSellState(
     if (!sellOrder || force)
     {
         sellOrder = ctx.coinbase().getOrder(pair.sellOrder);
-        if (sellOrder)
+        if (sellOrder && !ctx.data.get<MockMode>())
             orderbook.update(sellOrder);
     }
 
@@ -200,14 +201,14 @@ void OrderPairStateMachine::handlePending(
 
     // Too soon?
     // XXX: Going to make sure we only run 1 trade per 30 seconds while testing
-    if (nextTrade > std::chrono::steady_clock::now())
+    if (nextTrade > SteadyClock::now())
     {
         log::info("Can't buy: too soon.");
         return;
     }
 
     // Not enough money to buy
-    if (pair.betCents > ctx.data.get<CoinbaseWallet>().getUsdCents())
+    if (pair.betCents > ctx.data.get<CoinbaseWallet>().getAvailUsdCents())
         return;
 
     // Try to place new order
@@ -227,15 +228,16 @@ void OrderPairStateMachine::handlePending(
             pair.uuid.c_str());
 
         // Update wallet after order created
-        ctx.data.get<CoinbaseWallet>().update(ctx.coinbase().getWallet());
+        if (!ctx.data.get<MockMode>())
+            ctx.data.get<CoinbaseWallet>().update(ctx.coinbase().getWallet());
 
         // XXX: Going to make sure we only run 1 trade per 30 seconds while testing
-        nextTrade = std::chrono::steady_clock::now() + std::chrono::seconds(2);
+        nextTrade = SteadyClock::now() + std::chrono::seconds(2);
     }
     else
     {
         // TODO: Different retry times for INVALID_LIMIT_PRICE_POST_ONLY and other errors
-        pair.nextTry = std::chrono::steady_clock::now() + std::chrono::seconds(FAILURE_RETRY_SECONDS);
+        pair.nextTry = SteadyClock::now() + std::chrono::seconds(FAILURE_RETRY_SECONDS);
         log::error("Failed to create buy order for spread '%s' pair '%s' ($%s).",
             name.c_str(),
             pair.uuid.c_str(),
@@ -261,7 +263,7 @@ void OrderPairStateMachine::handleBuyActive(
     // Failed to cancel, let's see if something about the order state changed
     else
     {
-        pair.nextTry = std::chrono::steady_clock::now() + std::chrono::seconds(FAILURE_RETRY_SECONDS);
+        pair.nextTry = SteadyClock::now() + std::chrono::seconds(FAILURE_RETRY_SECONDS);
         checkBuyState(pair, true);
     }
 }
@@ -276,7 +278,7 @@ void OrderPairStateMachine::handleHolding(
 
     // Too soon?
     // XXX: Going to make sure we only run 1 trade per 30 seconds while testing
-    if (nextTrade > std::chrono::steady_clock::now())
+    if (nextTrade > SteadyClock::now())
     {
         log::info("Can't sell: too soon.");
         return;
@@ -300,14 +302,15 @@ void OrderPairStateMachine::handleHolding(
             pair.uuid.c_str());
 
         // Update wallet after order created
-        ctx.data.get<CoinbaseWallet>().update(ctx.coinbase().getWallet());
+        if (!ctx.data.get<MockMode>())
+            ctx.data.get<CoinbaseWallet>().update(ctx.coinbase().getWallet());
 
         // XXX: Going to make sure we only run 1 trade per 30 seconds while testing
-        nextTrade = std::chrono::steady_clock::now() + std::chrono::seconds(2);
+        nextTrade = SteadyClock::now() + std::chrono::seconds(2);
     }
     else
     {
-        pair.nextTry = std::chrono::steady_clock::now() + std::chrono::seconds(FAILURE_RETRY_SECONDS);
+        pair.nextTry = SteadyClock::now() + std::chrono::seconds(FAILURE_RETRY_SECONDS);
         log::error("Failed to create sell order for spread '%s' pair '%s' ($%s).",
             name.c_str(),
             pair.uuid.c_str(),
@@ -333,7 +336,7 @@ void OrderPairStateMachine::handleSellActive(
     // Failed to cancel, let's see if something about the order state changed
     else
     {
-        pair.nextTry = std::chrono::steady_clock::now() + std::chrono::seconds(FAILURE_RETRY_SECONDS);
+        pair.nextTry = SteadyClock::now() + std::chrono::seconds(FAILURE_RETRY_SECONDS);
         checkSellState(pair);
     }
 }

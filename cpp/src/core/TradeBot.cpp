@@ -55,7 +55,6 @@ TradeBot::TradeBot()
     running = false;
     initSignals();
     curl_global_init(CURL_GLOBAL_DEFAULT);
-    ctx.historicalDb.init("historical.sqlite", "./schema/historical.sql");
 }
 
 TradeBot::~TradeBot()

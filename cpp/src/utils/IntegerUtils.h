@@ -31,6 +31,7 @@ namespace IntegerUtils
         uint32_t btcPriceCents,
         uint32_t amountCents);
 
+    // I call it 'picodollars' but it's really 10^-13 dollars (10^-11 cents)
     uint64_t usdToPico(
         const std::string &str);
 }
