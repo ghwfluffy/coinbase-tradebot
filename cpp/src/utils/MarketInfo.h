@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 #include <stdint.h>
 
 namespace gtb
@@ -53,5 +55,7 @@ class MarketInfo
         Market market;
         uint64_t time;
 };
+
+std::string to_string(MarketInfo::Market);
 
 }

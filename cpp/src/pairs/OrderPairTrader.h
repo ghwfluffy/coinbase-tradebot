@@ -2,6 +2,7 @@
 
 #include <gtb/Database.h>
 #include <gtb/BotContext.h>
+#include <gtb/BaseTraderConfig.h>
 
 #include <gtb/BtcPrice.h>
 #include <gtb/CoinbaseOrderBook.h>
@@ -24,7 +25,7 @@ class OrderPairTrader
     public:
         OrderPairTrader(
             BotContext &ctx,
-            std::string name);
+            const BaseTraderConfig &conf);
         OrderPairTrader(OrderPairTrader &&) = delete;
         OrderPairTrader(const OrderPairTrader &) = delete;
         OrderPairTrader &operator=(OrderPairTrader &&) = delete;
@@ -42,7 +43,7 @@ class OrderPairTrader
             const BtcPrice &price) = 0;
 
         BotContext &ctx;
-        std::string name;
+        BaseTraderConfig conf;
 
         Database db;
         std::list<OrderPair> orderPairs;

@@ -11,12 +11,8 @@ namespace gtb
 class TimeTrader : public OrderPairTrader
 {
     public:
-        struct Config
+        struct Config : public BaseTraderConfig
         {
-            // Name for algorithm
-            std::string name;
-            // How much to buy
-            uint32_t cents = 0;
             // How many seconds to sample for the high/low window
             uint32_t seconds = 0;
             // Minimum spread (10 = 0.1%)
@@ -27,8 +23,6 @@ class TimeTrader : public OrderPairTrader
             uint32_t numPairs = 1;
             // The maximum price we will queue a sale for
             uint32_t maxValue = 105'000'00;
-            // Whether or not to trigger new buys
-            bool enabled = true;
         };
 
         TimeTrader(

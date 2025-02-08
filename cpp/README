@@ -13,12 +13,19 @@ Submodule Dependencies:
     jwt-cpp
     cpr
 
+
 TODOs
     Misc
     [\] CLI tools
     [ ] Move CoinbaseCredential to conf
     [ ] Better INVALID_LIMIT_PRICE_POST_ONLY handling
     [ ] varargs printf format gcc warnings
+    [ ] user-defined literals (IE: 1000_gtbSeconds => microseconds, 60_gtbDollars => picodollars, 10_gtbCents => picodollars)
+        - and then unify all USD/Time units gtb_time_t / gtb_usd_t / gtb_satoshi_t
+        [ ] Lowercase ULL for readability?
+        [ ] integer typedefs
+    [ ] watchdog fork
+    [ ] clang static analyzer
     Trading Algorithms
     [ ] Updates
         [ ] Remove or officialize 'nextTrade'
@@ -31,10 +38,14 @@ TODOs
         - Pause buying when market closes
         - Sell at a loss when getting close to market open
         - Pause buying after open until last 2 hour window is within a small fluctuation amount (min 2 hours after open)
-        [x] Create utility for calculating market open/closed info
-        [ ] Make shared config struct for traders with common config
-        [ ] Add logic to disable buys during market opening until stablized
-        [ ] Add logic to discount sells during market close
+        [x] Make shared config struct for traders with common config
+        [x] Add logic to modify order pairs based on market conditions
+        [x] Hook into new trade pair
+        [x] Expire old pending trade pairs
+        [x] Hook into pending sales
+        [ ] track modifiers on order pairs
+        [ ] Use new pending patience config
+        [x] Test market configs
     Data Sources
     [ ] Tastyworks
     [\] Config

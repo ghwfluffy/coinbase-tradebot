@@ -61,7 +61,7 @@ namespace SteadyClock
     TimePoint now();
 
     void setMockTime(
-        Time &time);
+        const Time &time);
 
     // Non-member arithmetic operators
     template<typename Rep, typename Period>

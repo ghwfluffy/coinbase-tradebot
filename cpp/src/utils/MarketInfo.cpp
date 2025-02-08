@@ -618,3 +618,17 @@ uint64_t MarketInfo::sinceClosed() const
 
     return (time > closeTime ? time - closeTime : 0);
 }
+
+std::string gtb::to_string(MarketInfo::Market e)
+{
+    switch (e)
+    {
+        case MarketInfo::Market::StockMarket: return "Stock";
+        case MarketInfo::Market::BitcoinFutures: return "Bitcoin";
+        default:
+        case MarketInfo::Market::None:
+            break;
+    }
+
+    return "None";
+}

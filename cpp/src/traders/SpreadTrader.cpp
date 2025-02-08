@@ -1,4 +1,6 @@
 #include <gtb/SpreadTrader.h>
+
+#include <gtb/OrderPairMarketEngine.h>
 #include <gtb/OrderPairUtils.h>
 #include <gtb/OrderPairDb.h>
 #include <gtb/Time.h>
@@ -10,7 +12,7 @@ using namespace gtb;
 SpreadTrader::SpreadTrader(
     BotContext &ctx,
     Config confIn)
-        : OrderPairTrader(ctx, confIn.name)
+        : OrderPairTrader(ctx, confIn)
         , conf(std::move(confIn))
 {
 }
@@ -56,19 +58,12 @@ void SpreadTrader::handleNewPair(
         return;
 
     // Setup the pair
-    OrderPair pair;
-    pair.algo = conf.name;
-    pair.uuid = Uuid::generate();
-    pair.state = OrderPair::State::Pending;
-    pair.created = ctx.data.get<Time>().getTime();
-    uint32_t half_spread = (spread_cents + 1) / 2;
-    pair.buyPrice = price.getCents() - half_spread;
-    pair.sellPrice = price.getCents() + half_spread;
-    pair.betCents = conf.cents;
-    pair.quantity = IntegerUtils::getSatoshiForPrice(pair.buyPrice, pair.betCents);
-
-    // We need to make sure the sell price isn't too far outside today's estimated value of BTC
-    if (pair.sellPrice > conf.maxValue)
+    OrderPair pair = OrderPairMarketEngine::newSpread(
+        conf,
+        price.getCents(),
+        ctx.data.get<Time>().getTime(),
+        conf.spread);
+    if (!pair)
         return;
 
     // We need to decide if we can cancel something first

@@ -87,6 +87,8 @@ void initMock(
     SteadyClock::setMockTime(ctx.data.get<Time>());
     unlink("mock_trader.sqlite");
     OrderPairDb::setDbFile("mock_trader.sqlite");
+    // XXX: Use a copy of the historical database
+    // so our fast reads dont interrupt the active tradebot by holding a read lock
     ctx.historicalDb.init("mock_historical.sqlite", "./schema/historical.sql");
 
     // Mock coinbase API
@@ -136,6 +138,57 @@ void Version1::init(
         conf.num_pairs = 4;
         conf.buffer_percent = 25;
         conf.maxValue = 107'000'00;
+        conf.marketParams.push_back({
+            .market = MarketInfo::Market::BitcoinFutures,
+            // Open -> Closed
+            .closingMarket = {
+                // Ramp down
+                .hot = false,
+                // Don't create any new positions an hour before close
+                .pausePeriod = (60 * 60 * 1'000'000ULL),
+                // Accept losses of 0.35% during pause period
+                .pauseAcceptLoss = 35,
+                // Be less aggressive an hour before that
+                .rampPeriod = (60 * 60 * 1'000'000ULL),
+                // Ramp up from 0 to 0.35% acceptable losses during cooling period
+                .rampGrade = 35,
+            },
+            // Closed ----->
+            .closedMarket = {
+                // Don't do anything once closed
+                .hot = false,
+            },
+            // Closed -> Open
+            .openingMarket = {
+                // Don't do anything pre-open
+                .hot = false,
+            },
+            // Open ----->
+            .openMarket = {
+                // Ramp up
+                .hot = true,
+                // Don't create any new positions for the first hour
+                .pausePeriod = (60 * 60 * 1'000'000ULL),
+                // Accept losses of 0.35% during pause period
+                .pauseAcceptLoss = 35,
+                // Be less aggressive for next hour
+                .rampPeriod = (60 * 60 * 1'000'000ULL),
+                // Ramp down from 0.35% desired gains to normal during cooling/warming period
+                .rampGrade = 35,
+            },
+            // Open -> Weekend
+            .weekendingMarket = {
+                .hot = false,
+            },
+            // Weekend ---->
+            .weekendMarket = {
+                .hot = false,
+            },
+            // Weekend -> Open
+            .weekStartingMarket = {
+                .hot = false,
+            },
+        });
 
         auto trader = std::make_unique<SpreadTrader>(ctx, conf);
         bot.addProcessor(std::move(trader));

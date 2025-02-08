@@ -11,7 +11,7 @@ using namespace gtb;
 TimeTrader::TimeTrader(
     BotContext &ctx,
     Config confIn)
-        : OrderPairTrader(ctx, confIn.name)
+        : OrderPairTrader(ctx, confIn)
         , conf(std::move(confIn))
 {
     startTime = 0;

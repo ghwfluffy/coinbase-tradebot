@@ -6,6 +6,7 @@
 #include <gtb/BtcPrice.h>
 #include <gtb/OrderPair.h>
 #include <gtb/SteadyClock.h>
+#include <gtb/BaseTraderConfig.h>
 
 #include <list>
 
@@ -21,7 +22,7 @@ class OrderPairStateMachine
         OrderPairStateMachine(
             BotContext &ctx,
             Database &db,
-            std::string name);
+            BaseTraderConfig conf);
         OrderPairStateMachine(OrderPairStateMachine &&) = default;
         OrderPairStateMachine(const OrderPairStateMachine &) = default;
         OrderPairStateMachine &operator=(OrderPairStateMachine &&) = delete;
@@ -70,8 +71,7 @@ class OrderPairStateMachine
 
         BotContext &ctx;
         Database &db;
-
-        std::string name;
+        BaseTraderConfig conf;
         SteadyClock::TimePoint nextTrade;
 };
 

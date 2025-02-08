@@ -1,6 +1,9 @@
 #include <gtb/OrderPairStateMachine.h>
 #include <gtb/CoinbaseOrderBook.h>
+
+#include <gtb/OrderPairMarketEngine.h>
 #include <gtb/OrderPairDb.h>
+
 #include <gtb/MockMode.h>
 #include <gtb/Time.h>
 #include <gtb/Log.h>
@@ -21,10 +24,10 @@ constexpr const uint32_t KEEP_ACTIVE_ORDER_WINDOW_CENTS = 100'00;
 OrderPairStateMachine::OrderPairStateMachine(
     BotContext &ctx,
     Database &db,
-    std::string name)
+    BaseTraderConfig conf)
         : ctx(ctx)
         , db(db)
-        , name(std::move(name))
+        , conf(std::move(conf))
 {
 }
 
@@ -195,6 +198,16 @@ void OrderPairStateMachine::handlePending(
     OrderPair &pair,
     const BtcPrice &price)
 {
+    // Remove stale pairs
+    if (conf.pendingPairExpiration > 0 &&
+        ctx.data.get<Time>().getTime() > (pair.created + conf.pendingPairExpiration))
+    {
+        log::info("Canceling stale pending pair '%s'.",
+            pair.uuid.c_str());
+        pair.state = OrderPair::State::Canceled;
+        return;
+    }
+
     // Wait for price to go down
     if (pair.buyPrice < price.getCents())
         return;
@@ -223,7 +236,7 @@ void OrderPairStateMachine::handlePending(
         pair.buyOrder = order.uuid;
 
         log::info("Created new '%s' buy order '%s' for pair '%s'.",
-            name.c_str(),
+            conf.name.c_str(),
             pair.buyOrder.c_str(),
             pair.uuid.c_str());
 
@@ -239,7 +252,7 @@ void OrderPairStateMachine::handlePending(
         // TODO: Different retry times for INVALID_LIMIT_PRICE_POST_ONLY and other errors
         pair.nextTry = SteadyClock::now() + std::chrono::seconds(FAILURE_RETRY_SECONDS);
         log::error("Failed to create buy order for spread '%s' pair '%s' ($%s).",
-            name.c_str(),
+            conf.name.c_str(),
             pair.uuid.c_str(),
             IntegerUtils::centsToUsd(order.valueCents()).c_str());
     }
@@ -272,6 +285,9 @@ void OrderPairStateMachine::handleHolding(
     OrderPair &pair,
     const BtcPrice &price)
 {
+    // Update sale price based on market
+    OrderPairMarketEngine::checkSale(pair, conf, ctx.data.get<Time>().getTime());
+
     // Wait for price to to up
     if (pair.sellPrice > price.getCents())
         return;
@@ -297,7 +313,7 @@ void OrderPairStateMachine::handleHolding(
         pair.sellOrder = order.uuid;
 
         log::info("Created new '%s' sell order '%s' for pair '%s'.",
-            name.c_str(),
+            conf.name.c_str(),
             pair.sellOrder.c_str(),
             pair.uuid.c_str());
 
@@ -312,7 +328,7 @@ void OrderPairStateMachine::handleHolding(
     {
         pair.nextTry = SteadyClock::now() + std::chrono::seconds(FAILURE_RETRY_SECONDS);
         log::error("Failed to create sell order for spread '%s' pair '%s' ($%s).",
-            name.c_str(),
+            conf.name.c_str(),
             pair.uuid.c_str(),
             IntegerUtils::centsToUsd(order.valueCents()).c_str());
     }
@@ -346,7 +362,7 @@ void OrderPairStateMachine::logChange(
     const OrderPair &pair)
 {
     log::info("Spread '%s' pair '%s' updated '%s' => '%s' ($%s -> $%s) @ ($%s -> $%s).",
-        name.c_str(),
+        conf.name.c_str(),
         pair.uuid.c_str(),
         to_string(startState).c_str(),
         to_string(pair.state).c_str(),

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <gtb/OrderPairTrader.h>
+#include <gtb/BaseTraderConfig.h>
 
 namespace gtb
 {
@@ -11,20 +12,14 @@ namespace gtb
 class SpreadTrader : public OrderPairTrader
 {
     public:
-        struct Config
+        struct Config : public BaseTraderConfig
         {
-            // Name for algorithm
-            std::string name;
             // Percentage points spread (10 = 0.1%)
             uint32_t spread = 1000;
-            // Cents to buy each spread
-            uint32_t cents = 0;
             // How many spreads to maintain
             uint32_t num_pairs = 1;
             // How much to buffer between each spred (25 = 25% of spread value)
             uint32_t buffer_percent = 25;
-            // The maximum price we will queue a sale for
-            uint32_t maxValue = 105'000'00;
         };
 
         SpreadTrader(

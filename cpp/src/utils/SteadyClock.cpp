@@ -5,7 +5,7 @@ using namespace gtb;
 namespace
 {
 
-Time *mockTime = nullptr;
+const Time *mockTime = nullptr;
 
 }
 
@@ -24,7 +24,7 @@ SteadyClock::TimePoint SteadyClock::now()
     return tp;
 }
 
-void SteadyClock::setMockTime(Time &time)
+void SteadyClock::setMockTime(const Time &time)
 {
     mockTime = &time;
 }

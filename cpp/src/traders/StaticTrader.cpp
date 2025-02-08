@@ -1,6 +1,9 @@
 #include <gtb/StaticTrader.h>
-#include <gtb/IntegerUtils.h>
+
+#include <gtb/OrderPairMarketEngine.h>
 #include <gtb/OrderPairDb.h>
+
+#include <gtb/IntegerUtils.h>
 #include <gtb/Time.h>
 #include <gtb/Uuid.h>
 #include <gtb/Log.h>
@@ -10,7 +13,7 @@ using namespace gtb;
 StaticTrader::StaticTrader(
     BotContext &ctx,
     Config confIn)
-        : OrderPairTrader(ctx, confIn.name)
+        : OrderPairTrader(ctx, confIn)
         , conf(std::move(confIn))
 {
 }
@@ -25,15 +28,13 @@ void StaticTrader::handleNewPair(
         return;
 
     // Add a new order pair for our static buy price
-    OrderPair pair;
-    pair.algo = conf.name;
-    pair.uuid = Uuid::generate();
-    pair.state = OrderPair::State::Pending;
-    pair.created = ctx.data.get<Time>().getTime();
-    pair.buyPrice = conf.buyCents;
-    pair.sellPrice = conf.sellCents;
-    pair.betCents = conf.cents;
-    pair.quantity = IntegerUtils::getSatoshiForPrice(pair.buyPrice, pair.betCents);
+    OrderPair pair = OrderPairMarketEngine::newStatic(
+        conf,
+        ctx.data.get<Time>().getTime(),
+        conf.buyCents,
+        conf.sellCents);
+    if (!pair)
+        return;
 
     // Add the pair
     if (!OrderPairDb::insert(db, pair))

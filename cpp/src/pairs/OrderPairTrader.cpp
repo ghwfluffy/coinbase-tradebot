@@ -7,10 +7,10 @@ using namespace gtb;
 
 OrderPairTrader::OrderPairTrader(
     BotContext &ctx,
-    std::string nameIn)
+    const BaseTraderConfig &conf)
         : ctx(ctx)
-        , name(std::move(nameIn))
-        , stateMachine(ctx, db, name)
+        , conf(conf)
+        , stateMachine(ctx, db, conf)
 {
     loadDatabase();
 
@@ -21,10 +21,10 @@ OrderPairTrader::OrderPairTrader(
 void OrderPairTrader::loadDatabase()
 {
     OrderPairDb::initDb(db);
-    orderPairs = OrderPairDb::select(db, name);
+    orderPairs = OrderPairDb::select(db, conf.name);
     log::info("Read %zu pairs for trader '%s' from database.",
         orderPairs.size(),
-        name.c_str());
+        conf.name.c_str());
 }
 
 void OrderPairTrader::process(
@@ -69,7 +69,7 @@ void OrderPairTrader::handleExistingPairs(
         {
             log::info("Removing completed order pair '%s' from trader '%s'.",
                 pair.uuid.c_str(),
-                name.c_str());
+                conf.name.c_str());
             iter = orderPairs.erase(iter);
         }
         else

@@ -73,6 +73,7 @@ string(APPEND
     " -Wzero-as-null-pointer-constant"
 
     " -Wno-aggregate-return"
+    " -Wno-c++20-extensions"
     " -Wno-effc++"
     " -Wno-inline"
     " -Wno-padded"
