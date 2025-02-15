@@ -51,6 +51,9 @@ class MarketInfo
         uint64_t sinceOpen() const;
         uint64_t sinceClosed() const;
 
+        static std::string getTimeString(
+            uint64_t time);
+
     private:
         Market market;
         uint64_t time;

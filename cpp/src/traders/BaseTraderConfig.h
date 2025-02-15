@@ -18,7 +18,7 @@ struct BaseTraderConfig
     // How long we need to wait till we can exceed our max leverage
     uint32_t patienceOverride = 0;
     // Remove pending pairs that haven't filled in this much time
-    uint64_t pendingPairExpiration = 30 * 60 * 1'000'000ULL;
+    uint64_t pendingPairExpiration = 0;
 
     std::list<MarketTimeTraderConfig> marketParams;
 };

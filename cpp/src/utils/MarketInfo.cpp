@@ -1,4 +1,5 @@
 #include <gtb/MarketInfo.h>
+#include <gtb/Log.h>
 
 #include <ctime>
 #include <math.h>
@@ -9,7 +10,6 @@ using namespace gtb;
 namespace
 {
 
-// ChatGPT
 // -----------------------------------------------------------------------------
 // Helper functions for manual DST and time conversion using US rules.
 // We assume input "time" is in microseconds since Unix epoch (UTC).
@@ -52,7 +52,7 @@ int firstSundayInNovember(int year)
 
 // Given a UTC time (in seconds), compute the Eastern offset in seconds.
 // Returns -14400 (UTC-4) if DST is in effect; otherwise, -18000 (UTC-5).
-int getEasternOffset(uint64_t utcSecs)
+int getEasternOffset(uint64_t utcSecs, bool &inDST)
 {
     // Break down the UTC time.
     std::tm utc_tm;
@@ -75,7 +75,6 @@ int getEasternOffset(uint64_t utcSecs)
     // - After March (i.e. months 4 through 10), OR
     // - In March, if it is after the second Sunday, or on the second Sunday after 2:00 AM, OR
     // - In November, if it is before the first Sunday, or on the first Sunday before 2:00 AM.
-    bool inDST = false;
     int month = cand.tm_mon + 1; // tm_mon is 0-based; month in 1..12
     if (month > 3 && month < 11)
     {
@@ -99,29 +98,35 @@ int getEasternOffset(uint64_t utcSecs)
     return inDST ? -4 * 3600 : -5 * 3600;
 }
 
-// Convert a UTC time (in microseconds) to Eastern local time (in microseconds).
-uint64_t toEastern(uint64_t utcMicros)
+// Convert a UTC time (in microseconds) to Eastern local time
+std::tm toEastern(uint64_t utcMicros)
 {
     uint64_t utcSecs = utcMicros / 1000000;
-    int offset = getEasternOffset(utcSecs);
-    return utcMicros + static_cast<uint64_t>(offset) * 1000000;
+    bool inDST = false;
+    int offset = getEasternOffset(utcSecs, inDST);
+    uint64_t localMicros = utcMicros + static_cast<uint64_t>(offset) * 1000000;
+
+    // Given a time in microseconds (in local time), build a std::tm using gmtime() on seconds.
+    // (We assume the provided time is already “local” in the chosen zone.)
+    std::tm tmLocal;
+    uint64_t secs = localMicros / 1000000;
+    time_t secsT = static_cast<time_t>(secs);
+    gmtime_r(&secsT, &tmLocal);
+    tmLocal.tm_isdst = inDST;
+    return tmLocal;
+}
+
+uint64_t fromEastern(const std::tm &tm)
+{
+    uint64_t localSecs = static_cast<uint64_t>(timegm(const_cast<std::tm *>(&tm)));
+    uint64_t utcSecs = localSecs + (tm.tm_isdst ? 4 : 5) * 3600;
+    return utcSecs * 1'000'000;
 }
 
 // Convert microseconds to minutes since midnight, given a broken-down time (provided as a std::tm).
 uint64_t minutesSinceMidnight(const std::tm &tmVal)
 {
     return static_cast<uint64_t>(tmVal.tm_hour * 60 + tmVal.tm_min);
-}
-
-// Given a time in microseconds (in local time), build a std::tm using gmtime() on seconds.
-// (We assume the provided time is already “local” in the chosen zone.)
-std::tm brokenDown(uint64_t localMicros)
-{
-    std::tm tmLocal;
-    uint64_t secs = localMicros / 1000000;
-    time_t secsT = static_cast<time_t>(secs);
-    gmtime_r(&secsT, &tmLocal);
-    return tmLocal;
 }
 
 // Add days to a microseconds timestamp (local time). For simplicity, add days in seconds.
@@ -138,8 +143,7 @@ uint64_t addDays(uint64_t localMicros, int days)
 // For these functions we compute "next open" or "next close" manually using Eastern local times.
 uint64_t nextStockOpen(uint64_t utcMicros)
 {
-    uint64_t local = toEastern(utcMicros);
-    std::tm tmLocal = brokenDown(local);
+    std::tm tmLocal = toEastern(utcMicros);
     uint64_t mins = minutesSinceMidnight(tmLocal);
     uint64_t openMins = 9 * 60 + 30;
     // If before today's open and it's a weekday.
@@ -148,36 +152,27 @@ uint64_t nextStockOpen(uint64_t utcMicros)
         tmLocal.tm_hour = 9;
         tmLocal.tm_min = 30;
         tmLocal.tm_sec = 0;
-        // Convert back: since our brokenDown came from toEastern, we can approximate by computing
-        // seconds from midnight.
-        uint64_t candidate = static_cast<uint64_t>(tmLocal.tm_hour * 3600 + tmLocal.tm_min * 60);
-        // Reconstruct microseconds timestamp from local date.
-        // For simplicity, add difference in seconds from today's local midnight.
-        uint64_t dayStart = local - (mins * 60ULL * 1000000ULL);
-        return dayStart + candidate * 1000000ULL;
+        return fromEastern(tmLocal);
     }
 
     // Otherwise, find the next weekday open.
     // Add one day until weekday between Monday and Friday.
-    local = addDays(local, 1);
-    tmLocal = brokenDown(local);
+    utcMicros = addDays(utcMicros, 1);
+    tmLocal = toEastern(utcMicros);
     while (tmLocal.tm_wday == 0 || tmLocal.tm_wday == 6)
     {
-        local = addDays(local, 1);
-        tmLocal = brokenDown(local);
+        utcMicros = addDays(utcMicros, 1);
+        tmLocal = toEastern(utcMicros);
     }
     tmLocal.tm_hour = 9;
     tmLocal.tm_min = 30;
     tmLocal.tm_sec = 0;
-    uint64_t candidate = static_cast<uint64_t>(tmLocal.tm_hour * 3600 + tmLocal.tm_min * 60);
-    uint64_t dayStart = local - (minutesSinceMidnight(tmLocal) * 60ULL * 1000000ULL);
-    return dayStart + candidate * 1000000ULL;
+    return fromEastern(tmLocal);
 }
 
 uint64_t nextStockClose(uint64_t utcMicros)
 {
-    uint64_t local = toEastern(utcMicros);
-    std::tm tmLocal = brokenDown(local);
+    std::tm tmLocal = toEastern(utcMicros);
     uint64_t mins = minutesSinceMidnight(tmLocal);
     uint64_t closeMins = 16 * 60;
     if (mins < closeMins && tmLocal.tm_wday >= 1 && tmLocal.tm_wday <= 5)
@@ -185,44 +180,38 @@ uint64_t nextStockClose(uint64_t utcMicros)
         tmLocal.tm_hour = 16;
         tmLocal.tm_min = 0;
         tmLocal.tm_sec = 0;
-        uint64_t candidate = static_cast<uint64_t>(tmLocal.tm_hour * 3600);
-        uint64_t dayStart = local - (mins * 60ULL * 1000000ULL);
-        return dayStart + candidate * 1000000ULL;
+        return fromEastern(tmLocal);
     }
 
     // Otherwise, next close is tomorrow's 16:00 on a weekday.
-    local = addDays(local, 1);
-    tmLocal = brokenDown(local);
+    utcMicros = addDays(utcMicros, 1);
+    tmLocal = toEastern(utcMicros);
     while (tmLocal.tm_wday == 0 || tmLocal.tm_wday == 6)
     {
-        local = addDays(local, 1);
-        tmLocal = brokenDown(local);
+        utcMicros = addDays(utcMicros, 1);
+        tmLocal = toEastern(utcMicros);
     }
 
     tmLocal.tm_hour = 16;
     tmLocal.tm_min = 0;
     tmLocal.tm_sec = 0;
-    uint64_t candidate = static_cast<uint64_t>(tmLocal.tm_hour * 3600);
-    uint64_t dayStart = local - (minutesSinceMidnight(tmLocal) * 60ULL * 1000000ULL);
-    return dayStart + candidate * 1000000ULL;
+    return fromEastern(tmLocal);
 }
 
 uint64_t nextBFOpen(uint64_t utcMicros)
 {
     // For Bitcoin Futures: if current Eastern local time is in a closed period,
     // next open is Sunday 18:00 if in weekend closure; if in daily maintenance, next open is today at 18:00.
-    uint64_t local = toEastern(utcMicros);
-    std::tm tmLocal = brokenDown(local);
+    std::tm tmLocal = toEastern(utcMicros);
     uint64_t mins = minutesSinceMidnight(tmLocal);
+
     // If daily maintenance closure (17:00-18:00) on a weekday.
     if (tmLocal.tm_wday >= 1 && tmLocal.tm_wday <= 4 && mins >= 17*60 && mins < 18*60)
     {
         tmLocal.tm_hour = 18;
         tmLocal.tm_min = 0;
         tmLocal.tm_sec = 0;
-        uint64_t candidate = static_cast<uint64_t>(tmLocal.tm_hour * 3600);
-        uint64_t dayStart = local - (mins * 60ULL * 1000000ULL);
-        return dayStart + candidate * 1000000ULL;
+        return fromEastern(tmLocal);
     }
     // If Friday after 17:00, or Saturday, or Sunday before 18:00:
     if ((tmLocal.tm_wday == 5 && mins >= 17*60) || tmLocal.tm_wday == 6 ||
@@ -231,50 +220,43 @@ uint64_t nextBFOpen(uint64_t utcMicros)
         // Find next Sunday:
         while (tmLocal.tm_wday != 0)
         {
-            local = addDays(local, 1);
-            tmLocal = brokenDown(local);
+            utcMicros = addDays(utcMicros, 1);
+            tmLocal = toEastern(utcMicros);
         }
 
         tmLocal.tm_hour = 18;
         tmLocal.tm_min = 0;
         tmLocal.tm_sec = 0;
-        uint64_t candidate = static_cast<uint64_t>(tmLocal.tm_hour * 3600);
-        uint64_t dayStart = local - (minutesSinceMidnight(tmLocal) * 60ULL * 1000000ULL);
-        return dayStart + candidate * 1000000ULL;
+        return fromEastern(tmLocal);
     }
     // Otherwise, assume currently open.
-    return local;
+    return utcMicros;
 }
 
 uint64_t nextBFClose(uint64_t utcMicros)
 {
     // For Bitcoin Futures: if before 17:00 on an open weekday, next close is today at 17:00.
-    uint64_t local = toEastern(utcMicros);
-    std::tm tmLocal = brokenDown(local);
+    std::tm tmLocal = toEastern(utcMicros);
     uint64_t mins = minutesSinceMidnight(tmLocal);
     if (mins < 17*60 && tmLocal.tm_wday >= 1 && tmLocal.tm_wday <= 4)
     {
         tmLocal.tm_hour = 17;
         tmLocal.tm_min = 0;
         tmLocal.tm_sec = 0;
-        uint64_t candidate = static_cast<uint64_t>(tmLocal.tm_hour * 3600);
-        uint64_t dayStart = local - (mins * 60ULL * 1000000ULL);
-        return dayStart + candidate * 1000000ULL;
+        return fromEastern(tmLocal);
     }
     // Otherwise, if after 18:00 on a weekday, next close is tomorrow at 17:00 (skipping weekend if needed)
-    local = addDays(local, 1);
-    tmLocal = brokenDown(local);
+    utcMicros = addDays(utcMicros, 1);
+    tmLocal = toEastern(utcMicros);
     while (tmLocal.tm_wday == 0 || tmLocal.tm_wday == 6)
     {
-        local = addDays(local, 1);
-        tmLocal = brokenDown(local);
+        utcMicros = addDays(utcMicros, 1);
+        tmLocal = toEastern(utcMicros);
     }
     tmLocal.tm_hour = 17;
     tmLocal.tm_min = 0;
     tmLocal.tm_sec = 0;
-    uint64_t candidate = static_cast<uint64_t>(tmLocal.tm_hour * 3600);
-    uint64_t dayStart = local - (minutesSinceMidnight(tmLocal) * 60ULL * 1000000ULL);
-    return dayStart + candidate * 1000000ULL;
+    return fromEastern(tmLocal);
 }
 
 }
@@ -295,8 +277,7 @@ bool MarketInfo::isOpen() const
     if (market == Market::StockMarket)
     {
         // Stock market: Monday-Friday, open 9:30-16:00 Eastern.
-        uint64_t localTime = toEastern(time);
-        std::tm tmLocal = brokenDown(localTime);
+        std::tm tmLocal = toEastern(time);
 
         // tm_wday: 0 = Sunday, 6 = Saturday.
         if (tmLocal.tm_wday == 0 || tmLocal.tm_wday == 6)
@@ -313,8 +294,7 @@ bool MarketInfo::isOpen() const
         // Daily: Open Sunday–Friday from 6:00 PM to 5:00 PM Eastern,
         // with daily maintenance closure 5:00-6:00 PM.
         // Weekend closure: closed Friday 5:00PM until Sunday 6:00PM.
-        uint64_t localTime = toEastern(time);
-        std::tm tmLocal = brokenDown(localTime);
+        std::tm tmLocal = toEastern(time);
         uint64_t mins = minutesSinceMidnight(tmLocal);
 
         // Check weekend closure.
@@ -345,8 +325,7 @@ bool MarketInfo::isWeekend() const
         return false;
 
     // For both markets, convert UTC time to Eastern local time manually.
-    uint64_t localTime = toEastern(time);
-    std::tm tmLocal = brokenDown(localTime);
+    std::tm tmLocal = toEastern(time);
     uint64_t mins = minutesSinceMidnight(tmLocal);
 
     if (market == Market::StockMarket)
@@ -385,8 +364,7 @@ bool MarketInfo::isWeekendNext() const
         // For the stock market, if the market is currently open
         // and today is Friday, then the next closing (today at 16:00)
         // will lead to the weekend closure.
-        uint64_t localTime = toEastern(time);
-        std::tm tmLocal = brokenDown(localTime);
+        std::tm tmLocal = toEastern(time);
         uint64_t mins = minutesSinceMidnight(tmLocal);
         // Check that today is a weekday (Mon-Fri) and currently open:
         if (tmLocal.tm_wday >= 1 && tmLocal.tm_wday <= 5)
@@ -396,7 +374,7 @@ bool MarketInfo::isWeekendNext() const
             if (mins >= openMins && mins < closeMins)
             {
                 // If today is Friday, the next close is at 16:00 on Friday, which is weekend.
-                if(tmLocal.tm_wday == 5)
+                if (tmLocal.tm_wday == 5)
                     return true;
             }
         }
@@ -408,8 +386,7 @@ bool MarketInfo::isWeekendNext() const
         // For Bitcoin futures, if the market is open now but the next closing time
         // (computed by nextBFClose()) falls into the long weekend period, then return true.
         uint64_t nextClose = nextBFClose(time);
-        uint64_t nextCloseLocal = toEastern(nextClose);
-        std::tm tmClose = brokenDown(nextCloseLocal);
+        std::tm tmClose = toEastern(nextClose);
         uint64_t closeMins = minutesSinceMidnight(tmClose);
         if (tmClose.tm_wday == 5 && closeMins >= (17 * 60))
             return true;
@@ -466,8 +443,7 @@ uint64_t MarketInfo::sinceOpen() const
     uint64_t openTime = 0;
     if (market == Market::StockMarket)
     {
-        uint64_t local = toEastern(time);
-        std::tm tmLocal = brokenDown(local);
+        std::tm tmLocal = toEastern(time);
         uint64_t mins = minutesSinceMidnight(tmLocal);
         uint64_t openMins = 9*60 + 30;
         if (mins >= openMins)
@@ -475,9 +451,7 @@ uint64_t MarketInfo::sinceOpen() const
             tmLocal.tm_hour = 9;
             tmLocal.tm_min = 30;
             tmLocal.tm_sec = 0;
-            uint64_t candidate = static_cast<uint64_t>(tmLocal.tm_hour * 3600 + tmLocal.tm_min * 60);
-            uint64_t dayStart = local - (mins * 60ULL * 1000000ULL);
-            openTime = dayStart + candidate * 1000000ULL;
+            openTime = fromEastern(tmLocal);
         }
         else
         {
@@ -487,30 +461,24 @@ uint64_t MarketInfo::sinceOpen() const
     }
     else if (market == Market::BitcoinFutures)
     {
-        uint64_t local = toEastern(time);
-        std::tm tmLocal = brokenDown(local);
+        std::tm tmLocal = toEastern(time);
         uint64_t mins = minutesSinceMidnight(tmLocal);
         if (mins >= 18*60)
         {
             tmLocal.tm_hour = 18;
             tmLocal.tm_min = 0;
             tmLocal.tm_sec = 0;
-            uint64_t candidate = static_cast<uint64_t>(tmLocal.tm_hour * 3600);
-            uint64_t dayStart = local - (mins * 60ULL * 1000000ULL);
-            openTime = dayStart + candidate * 1000000ULL;
+            openTime = fromEastern(tmLocal);
         }
         else
         {
             // Before 17:00: assume open was yesterday at 18:00.
-            uint64_t prev = addDays(toEastern(time), -1);
-            std::tm tprev = brokenDown(prev);
+            uint64_t prev = addDays(time, -1);
+            std::tm tprev = toEastern(prev);
             tprev.tm_hour = 18;
             tprev.tm_min = 0;
             tprev.tm_sec = 0;
-            uint64_t candidate = static_cast<uint64_t>(tprev.tm_hour * 3600);
-            uint64_t m = minutesSinceMidnight(tprev);
-            uint64_t dayStart = prev - (m * 60ULL * 1000000ULL);
-            openTime = dayStart + candidate * 1000000ULL;
+            openTime = fromEastern(tprev);
         }
     }
 
@@ -529,22 +497,18 @@ uint64_t MarketInfo::sinceClosed() const
     uint64_t closeTime = 0;
     if (market == Market::StockMarket)
     {
-        uint64_t local = toEastern(time);
-        std::tm tmLocal = brokenDown(local);
+        std::tm tmLocal = toEastern(time);
         uint64_t mins = minutesSinceMidnight(tmLocal);
         uint64_t openMins = 9*60+30;
         if (mins < openMins)
         {
             // last close was yesterday at 16:00.
-            uint64_t prev = addDays(toEastern(time), -1);
-            std::tm tprev = brokenDown(prev);
+            uint64_t prev = addDays(time, -1);
+            std::tm tprev = toEastern(prev);
             tprev.tm_hour = 16;
             tprev.tm_min = 0;
             tprev.tm_sec = 0;
-            uint64_t candidate = static_cast<uint64_t>(tprev.tm_hour * 3600);
-            uint64_t m = minutesSinceMidnight(tprev);
-            uint64_t dayStart = prev - (m * 60ULL * 1000000ULL);
-            closeTime = dayStart + candidate * 1000000ULL;
+            closeTime = fromEastern(tprev);
         }
         else
         {
@@ -552,15 +516,12 @@ uint64_t MarketInfo::sinceClosed() const
             tmLocal.tm_hour = 16;
             tmLocal.tm_min = 0;
             tmLocal.tm_sec = 0;
-            uint64_t candidate = static_cast<uint64_t>(tmLocal.tm_hour * 3600);
-            uint64_t dayStart = local - (mins * 60ULL * 1000000ULL);
-            closeTime = dayStart + candidate * 1000000ULL;
+            closeTime = fromEastern(tmLocal);
         }
     }
     else if (market == Market::BitcoinFutures)
     {
-        uint64_t local = toEastern(time);
-        std::tm tmLocal = brokenDown(local);
+        std::tm tmLocal = toEastern(time);
         uint64_t mins = minutesSinceMidnight(tmLocal);
         if ((tmLocal.tm_wday == 5 && mins >= 17*60) ||
            tmLocal.tm_wday == 6 ||
@@ -568,55 +529,77 @@ uint64_t MarketInfo::sinceClosed() const
         {
             // Last close is Friday 17:00.
             // For simplicity, subtract days until Friday.
-            uint64_t temp = local;
-            std::tm ttemp = brokenDown(temp);
+            uint64_t temp = time;
+            std::tm ttemp = toEastern(temp);
             while (ttemp.tm_wday != 5)
             {
                 temp = addDays(temp, -1);
-                ttemp = brokenDown(temp);
+                ttemp = toEastern(temp);
             }
             ttemp.tm_hour = 17;
             ttemp.tm_min = 0;
             ttemp.tm_sec = 0;
-            uint64_t candidate = static_cast<uint64_t>(ttemp.tm_hour * 3600);
-            uint64_t m = minutesSinceMidnight(ttemp);
-            uint64_t dayStart = temp - (m * 60ULL * 1000000ULL);
-            closeTime = dayStart + candidate * 1000000ULL;
+            closeTime = fromEastern(ttemp);
         }
         else if (mins >= 17*60 && mins < 18*60)
         {
             tmLocal.tm_hour = 17;
             tmLocal.tm_min = 0;
             tmLocal.tm_sec = 0;
-            uint64_t candidate = static_cast<uint64_t>(tmLocal.tm_hour * 3600);
-            uint64_t dayStart = local - (mins * 60ULL * 1000000ULL);
-            closeTime = dayStart + candidate * 1000000ULL;
+            closeTime = fromEastern(tmLocal);
         }
         else if (mins < 17*60)
         {
             // Last close was yesterday at 17:00.
-            uint64_t prev = addDays(toEastern(time), -1);
-            std::tm tprev = brokenDown(prev);
+            uint64_t prev = addDays(time, -1);
+            std::tm tprev = toEastern(prev);
             tprev.tm_hour = 17;
             tprev.tm_min = 0;
             tprev.tm_sec = 0;
-            uint64_t candidate = static_cast<uint64_t>(tprev.tm_hour * 3600);
-            uint64_t m = minutesSinceMidnight(tprev);
-            uint64_t dayStart = prev - (m * 60ULL * 1000000ULL);
-            closeTime = dayStart + candidate * 1000000ULL;
+            closeTime = fromEastern(tprev);
         }
         else
         {
             tmLocal.tm_hour = 17;
             tmLocal.tm_min = 0;
             tmLocal.tm_sec = 0;
-            uint64_t candidate = static_cast<uint64_t>(tmLocal.tm_hour * 3600);
-            uint64_t dayStart = local - (mins * 60ULL * 1000000ULL);
-            closeTime = dayStart + candidate * 1000000ULL;
+            closeTime = fromEastern(tmLocal);
         }
     }
 
     return (time > closeTime ? time - closeTime : 0);
+}
+
+std::string MarketInfo::getTimeString(
+    uint64_t time)
+{
+    std::tm tmLocal = toEastern(time);
+
+    const char *dow = nullptr;
+    switch (tmLocal.tm_wday)
+    {
+        case 0: dow = "Sun"; break;
+        case 1: dow = "Mon"; break;
+        case 2: dow = "Tue"; break;
+        case 3: dow = "Wed"; break;
+        case 4: dow = "Thu"; break;
+        case 5: dow = "Fri"; break;
+        case 6: dow = "Sat"; break;
+        default:
+            break;
+    }
+
+    char szTime[128] = {};
+    snprintf(szTime, sizeof(szTime),
+        "%04d-%02d-%02d %02d:%02d:%02d (%s)",
+        1900 + tmLocal.tm_year,
+        1 + tmLocal.tm_mon,
+        tmLocal.tm_mday,
+        tmLocal.tm_hour,
+        tmLocal.tm_min,
+        tmLocal.tm_sec,
+        dow);
+    return szTime;
 }
 
 std::string gtb::to_string(MarketInfo::Market e)

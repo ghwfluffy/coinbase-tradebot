@@ -47,13 +47,13 @@ void ActionThreadPool::stop()
         cond.notify_all();
     }
 
+    triggerComplete();
+
     while (!threads.empty())
     {
         threads.front()->join();
         threads.pop_front();
     }
-
-    triggerComplete();
 }
 
 void ActionThreadPool::queue(std::function<void()> action)

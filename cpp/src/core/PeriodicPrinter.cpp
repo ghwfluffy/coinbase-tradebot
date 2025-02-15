@@ -9,6 +9,9 @@
 #include <gtb/BtcPrice.h>
 #include <gtb/CoinbaseWallet.h>
 
+#include <gtb/MockMode.h>
+#include <gtb/MarketInfo.h>
+
 using namespace gtb;
 
 PeriodicPrinter::PeriodicPrinter(
@@ -44,7 +47,11 @@ void PeriodicPrinter::process(
     int32_t profit = ctx.data.get<Profits>().getProfit();
     int32_t pending = ctx.data.get<PendingProfits>().getProfit();
 
-    log::info("STATUS | BTC: %u.%02u | Wallet: $%u.%02u USD + $%u.%02u BTC = $%u.%02u | SellProfit: $%s | Profit: $%s",
+    std::string mockTime;
+    if (ctx.data.get<MockMode>())
+        mockTime = MarketInfo::getTimeString(time.getTime()) + " | ";
+    log::info("%sSTATUS | BTC: %u.%02u | Wallet: $%u.%02u USD + $%u.%02u BTC = $%u.%02u | SellProfit: $%s | Profit: $%s",
+        mockTime.c_str(),
         cents / 100,
         cents % 100,
         usd / 100,

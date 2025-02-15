@@ -3,6 +3,8 @@
 #include <gtb/Uuid.h>
 #include <gtb/Log.h>
 
+#include <cassert>
+
 using namespace gtb;
 
 namespace
@@ -29,6 +31,7 @@ std::list<MarketPeriodModifier> getPeriodModifiers(
         MarketInfo marketTime(params.market, time);
 
         MarketPeriodModifier modifier;
+        modifier.market = params.market;
 
         // Market is open
         if (marketTime.isOpen())
@@ -80,6 +83,7 @@ std::list<MarketPeriodModifier> getPeriodModifiers(
         else if (marketTime.isClosed())
         {
             uint64_t tillOpen = marketTime.tillOpen();
+            //assert(tillOpen > 0);
             // Market is approaching open time
             if (tillOpen <= params.openingMarket.bufferPeriod())
             {
@@ -151,7 +155,7 @@ void applyNewOrderModifier(
     }
 
     // We are passed the buffer and this period disables buying
-    if (!modifier.period.hot && modifier.timeIntoBuffer > bufferPeriod)
+    if (!modifier.period.hot && modifier.timeIntoBuffer >= bufferPeriod)
     {
         pair.betCents = 0;
         setDesc("full pause");
@@ -159,7 +163,7 @@ void applyNewOrderModifier(
     }
 
     // We are passed the buffer and this period enables buying
-    if (modifier.period.hot && modifier.timeIntoBuffer > bufferPeriod)
+    if (modifier.period.hot && modifier.timeIntoBuffer >= bufferPeriod)
     {
         // Modifier is not applied, just normal buying
         pair.modifiers.push_back(modifier.periodName);
@@ -169,9 +173,9 @@ void applyNewOrderModifier(
 
     // Are we in the pause period or the ramp period
     bool pause = true;
-    if (!modifier.period.hot && modifier.timeIntoBuffer < modifier.period.rampPeriod)
+    if (!modifier.period.hot && modifier.timeIntoBuffer <= modifier.period.rampPeriod)
         pause = false;
-    else if (modifier.period.hot && modifier.timeIntoBuffer > modifier.period.pausePeriod)
+    else if (modifier.period.hot && modifier.timeIntoBuffer >= modifier.period.pausePeriod)
         pause = false;
 
     // Pause period, disable buying
@@ -191,8 +195,8 @@ void applyNewOrderModifier(
 
     // Calculate where we are on the ramp
     uint64_t rampPercent = ((intoRampPeriod * modifier.period.rampGrade) / modifier.period.rampPeriod);
-    // Ramping down
-    if (!modifier.period.hot)
+    // Hot=Ramping down the handicap (ramp percent is added to initial spread)
+    if (modifier.period.hot)
         rampPercent = modifier.period.rampGrade - rampPercent;
 
     // Just double super check we're not going to rollover these unsigned with subtraction
@@ -211,24 +215,35 @@ void applyNewOrderModifier(
     }
 
     uint32_t diff = pair.sellPrice - pair.buyPrice;
-    uint32_t spread = (diff * 10'000) / mid;
+    uint32_t spread = static_cast<uint32_t>((static_cast<uint64_t>(diff * 10'000) + mid - 1) / mid);
     if (!spread)
         spread = 1;
 
     // Apply ramp
-    spread += static_cast<uint32_t>((spread * rampPercent) / 10'000);
-    diff = (mid * spread) / 10'000;
+    uint32_t additionalSpread = static_cast<uint32_t>((spread * rampPercent) / 10'000);
+    diff = static_cast<uint32_t>((static_cast<uint64_t>(mid) * (spread + additionalSpread)) / 10'000);
+    uint32_t diffHalf = (diff + 1) / 2;
 
     // Recalculate buy/sell pairs
-    uint32_t buyPrice = mid - diff;
-    uint32_t sellPrice = mid + diff;
+    uint32_t buyPrice = mid - diffHalf;
+    uint32_t sellPrice = mid + diffHalf;
 
     // Be super sure our math didn't roll something over
     if (buyPrice > pair.buyPrice || sellPrice < pair.sellPrice)
     {
-        log::error("Overflow while calculating '%s %s' ramp modifier.",
+        log::error("Overflow while calculating '%s %s' ramp modifier.\n[buy %s - %s], [sell %s - %s] - mid %s\n%u spread + %u additional\n%s diff / %s half diff",
             to_string(modifier.market).c_str(),
-            modifier.periodName.c_str());
+            modifier.periodName.c_str(),
+            IntegerUtils::centsToUsd(pair.buyPrice).c_str(),
+            IntegerUtils::centsToUsd(buyPrice).c_str(),
+            IntegerUtils::centsToUsd(pair.sellPrice).c_str(),
+            IntegerUtils::centsToUsd(sellPrice).c_str(),
+            IntegerUtils::centsToUsd(mid).c_str(),
+            spread,
+            additionalSpread,
+            IntegerUtils::centsToUsd(diff).c_str(),
+            IntegerUtils::centsToUsd(diffHalf).c_str());
+        assert(0);
         return;
     }
 
@@ -310,7 +325,11 @@ void applySellModifier(
     }
 
     // Calculate where we are on the ramp
-    uint64_t rampPercent = ((intoRampPeriod * modifier.period.pauseAcceptLoss) / modifier.period.rampPeriod);
+    uint64_t rampPercent = 0;
+    if (modifier.period.rampPeriod)
+        rampPercent = ((intoRampPeriod * modifier.period.pauseAcceptLoss) / modifier.period.rampPeriod);
+    else
+        rampPercent = modifier.period.pauseAcceptLoss;
     // Ramping down losses (ramping up to be active)
     if (modifier.period.hot)
         rampPercent = modifier.period.pauseAcceptLoss - rampPercent;
@@ -321,7 +340,7 @@ void applySellModifier(
 
     // Calculate the new sell price
     uint32_t diff = pair.origSellPrice - pair.buyPrice;
-    uint32_t less = static_cast<uint32_t>((diff * rampPercent) / 10'000);
+    uint32_t less = static_cast<uint32_t>(static_cast<uint64_t>(diff * rampPercent) / 10'000);
     if (pair.sellPrice <= less)
     {
         log::error("Invalid discount amount exceeds sale price calculated for '%s %s' sell ramp modifier.",
@@ -355,6 +374,19 @@ OrderPair OrderPairMarketEngine::newSpread(
 
     // Apply modifiers
     applyNewOrderModifiers(config, currentTime, pair);
+
+#if 0
+    if (!pair.getModifiers().empty())
+    {
+        log::info("%s : %s : %s(%u) = [%s - %s]",
+            MarketInfo::getTimeString(currentTime).c_str(),
+            pair.getModifiers().c_str(),
+            IntegerUtils::centsToUsd(currentBtcPrice).c_str(),
+            spread,
+            IntegerUtils::centsToUsd(pair.buyPrice).c_str(),
+            IntegerUtils::centsToUsd(pair.sellPrice).c_str());
+    }
+#endif
 
     return pair;
 }

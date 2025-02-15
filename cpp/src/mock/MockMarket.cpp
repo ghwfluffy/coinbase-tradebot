@@ -102,6 +102,6 @@ void MockMarket::process()
 
         std::unique_lock<std::mutex> lock(mtxChurn);
         ctx.actionPool.queue(std::move(queueWakeup));
-        condChurn.wait(lock);
+        condChurn.wait_for(lock, std::chrono::seconds(1));
     }
 }

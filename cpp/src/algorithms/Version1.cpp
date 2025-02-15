@@ -102,6 +102,7 @@ void initMock(
 
     // Source: Historical market data
     bot.addSource(std::make_unique<MockMarket>(ctx));
+    //bot.addSource(std::make_unique<MockMarket>(ctx, "2025-01-29", "2025-02-05"));
 
     // Processor: Emulate trades according to current BTC price
     bot.addProcessor(std::make_unique<MockUserTrades>(ctx));
@@ -111,6 +112,60 @@ void initMock(
 
     // Processor: Pending Profits
     bot.addProcessor(std::make_unique<PendingProfitsCalc>(ctx));
+}
+
+MarketPeriodConfig getRampedPeriodConf(bool hot)
+{
+    return {
+        .hot = hot,
+        // 1 hour
+        .pausePeriod = 2 * 60ull * 60ull * 1'000'000ull,
+        .pauseAcceptLoss = 100u,
+        .rampPeriod = 2 * 60ull * 60ull * 1'000'000ull,
+        .rampGrade = 500,
+    };
+}
+
+MarketTimeTraderConfig getMarketConf()
+{
+    return {
+        //.market = MarketInfo::Market::StockMarket,
+        .market = MarketInfo::Market::BitcoinFutures,
+
+        // Open ----->
+        .openMarket = getRampedPeriodConf(true),
+        // Open -> Closed
+        .closingMarket = getRampedPeriodConf(false),
+        // Closed ----->
+        .closedMarket = {
+            // Paused
+            .hot = false,
+        },
+        // Closed -> Open
+        .openingMarket = {
+            // Paused
+            .hot = false,
+        },
+        // Open -> Weekend
+        .weekendingMarket = getRampedPeriodConf(false),
+        // Weekend ---->
+        .weekendMarket = {
+            // Paused
+            .hot = false,
+        },
+        // Weekend -> Open
+        .weekStartingMarket = {
+            // Paused
+            .hot = false,
+        },
+    };
+}
+
+MarketTimeTraderConfig getStockMarketConf()
+{
+    MarketTimeTraderConfig ret = getMarketConf();
+    ret.market = MarketInfo::Market::StockMarket;
+    return ret;
 }
 
 }
@@ -129,66 +184,17 @@ void Version1::init(
 
     BotContext &ctx = bot.getCtx();
 
-    // Trader: 0.5% Spread
+    // Trader: Spread
     {
         SpreadTrader::Config conf;
         conf.name = "BreakEven";
-        conf.spread = 50;
-        conf.cents = 100'00;
-        conf.num_pairs = 4;
-        conf.buffer_percent = 25;
-        conf.maxValue = 107'000'00;
-        conf.marketParams.push_back({
-            .market = MarketInfo::Market::BitcoinFutures,
-            // Open -> Closed
-            .closingMarket = {
-                // Ramp down
-                .hot = false,
-                // Don't create any new positions an hour before close
-                .pausePeriod = (60 * 60 * 1'000'000ULL),
-                // Accept losses of 0.35% during pause period
-                .pauseAcceptLoss = 35,
-                // Be less aggressive an hour before that
-                .rampPeriod = (60 * 60 * 1'000'000ULL),
-                // Ramp up from 0 to 0.35% acceptable losses during cooling period
-                .rampGrade = 35,
-            },
-            // Closed ----->
-            .closedMarket = {
-                // Don't do anything once closed
-                .hot = false,
-            },
-            // Closed -> Open
-            .openingMarket = {
-                // Don't do anything pre-open
-                .hot = false,
-            },
-            // Open ----->
-            .openMarket = {
-                // Ramp up
-                .hot = true,
-                // Don't create any new positions for the first hour
-                .pausePeriod = (60 * 60 * 1'000'000ULL),
-                // Accept losses of 0.35% during pause period
-                .pauseAcceptLoss = 35,
-                // Be less aggressive for next hour
-                .rampPeriod = (60 * 60 * 1'000'000ULL),
-                // Ramp down from 0.35% desired gains to normal during cooling/warming period
-                .rampGrade = 35,
-            },
-            // Open -> Weekend
-            .weekendingMarket = {
-                .hot = false,
-            },
-            // Weekend ---->
-            .weekendMarket = {
-                .hot = false,
-            },
-            // Weekend -> Open
-            .weekStartingMarket = {
-                .hot = false,
-            },
-        });
+        conf.spread = 100; // 1% spread
+        conf.cents = 200'00; // $200 bet
+        conf.num_pairs = 20;
+        conf.buffer_percent = 5;
+        conf.maxValue = 110'000'00;
+        conf.marketParams.push_back(getMarketConf());
+        conf.marketParams.push_back(getStockMarketConf());
 
         auto trader = std::make_unique<SpreadTrader>(ctx, conf);
         bot.addProcessor(std::move(trader));
@@ -201,7 +207,8 @@ void Version1::init(
         conf.cents = 500'00;
         conf.buyCents = 101'000'00;
         conf.sellCents = 105'000'00;
-        conf.enabled = true;
+        conf.enabled = false;
+        conf.marketParams.push_back(getMarketConf());
 
         auto trader = std::make_unique<StaticTrader>(ctx, conf);
         bot.addProcessor(std::move(trader));
@@ -214,7 +221,8 @@ void Version1::init(
         conf.cents = 400'00;
         conf.buyCents = 100'000'00;
         conf.sellCents = 101'000'00;
-        conf.enabled = true;
+        conf.enabled = false;
+        conf.marketParams.push_back(getMarketConf());
 
         auto trader = std::make_unique<StaticTrader>(ctx, conf);
         bot.addProcessor(std::move(trader));
@@ -224,13 +232,14 @@ void Version1::init(
     {
         TimeTrader::Config conf;
         conf.name = "SmallTime";
-        conf.cents = 20'00;
+        conf.cents = 100'00;
         conf.seconds = 5 * 60;
         conf.minSpread = 31;
         conf.paddingSpread = 1;
         conf.numPairs = 10;
         conf.maxValue = 107'000'00;
-        conf.enabled = true;
+        conf.enabled = false;
+        conf.marketParams.push_back(getMarketConf());
 
         auto trader = std::make_unique<TimeTrader>(ctx, conf);
         bot.addProcessor(std::move(trader));

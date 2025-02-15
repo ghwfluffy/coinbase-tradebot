@@ -16,6 +16,7 @@ Submodule Dependencies:
 
 TODOs
     Misc
+    [ ] Profit isn't correct in mock tests
     [\] CLI tools
     [ ] Move CoinbaseCredential to conf
     [ ] Better INVALID_LIMIT_PRICE_POST_ONLY handling
@@ -24,28 +25,20 @@ TODOs
         - and then unify all USD/Time units gtb_time_t / gtb_usd_t / gtb_satoshi_t
         [ ] Lowercase ULL for readability?
         [ ] integer typedefs
+        [ ] Wallet needs to track picodollars in order to be completely accurate
     [ ] watchdog fork
     [ ] clang static analyzer
+    [ ] mock 30 day trading volume
+    [ ] main stdargs pick algorithm and mock
     Trading Algorithms
     [ ] Updates
+        [ ] track modifiers on order pairs
+        [ ] Use new pending patience config
         [ ] Remove or officialize 'nextTrade'
-        [ ] Codify patience
         [ ] time trader weighted average multiple windows
     [ ] HODL
     [ ] Phased
     [ ] Tensorflow
-    [\] Wind down / pause before market closes/opens
-        - Pause buying when market closes
-        - Sell at a loss when getting close to market open
-        - Pause buying after open until last 2 hour window is within a small fluctuation amount (min 2 hours after open)
-        [x] Make shared config struct for traders with common config
-        [x] Add logic to modify order pairs based on market conditions
-        [x] Hook into new trade pair
-        [x] Expire old pending trade pairs
-        [x] Hook into pending sales
-        [ ] track modifiers on order pairs
-        [ ] Use new pending patience config
-        [x] Test market configs
     Data Sources
     [ ] Tastyworks
     [\] Config
@@ -53,11 +46,6 @@ TODOs
     [ ] RIG
     Data Processors
     [ ] Smooth value
-    Testing
-    [\] Mock
-        [ ] Wallet needs to track picodollars in order to be completely accurate
-        [ ] Log mock time?
-        [ ] main stdargs pick algorithm and mock
     Feedback
     [ ] File logger
     [ ] Web front-end
