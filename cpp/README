@@ -29,7 +29,6 @@ TODOs
     [ ] watchdog fork
     [ ] clang static analyzer
     [ ] mock 30 day trading volume
-    [ ] main stdargs pick algorithm and mock
     Trading Algorithms
     [ ] Updates
         [ ] track modifiers on order pairs

@@ -1,4 +1,4 @@
-#include <gtb/Version1.h>
+#include <gtb/Version2.h>
 #include <gtb/Time.h>
 #include <gtb/Log.h>
 
@@ -89,6 +89,7 @@ void initMock(
     OrderPairDb::setDbFile("mock_trader.sqlite");
     // XXX: Use a copy of the historical database
     // so our fast reads dont interrupt the active tradebot by holding a read lock
+    [[maybe_unused]] int x = system("cp historical.sqlite mock_historical.sqlite");
     ctx.historicalDb.init("mock_historical.sqlite", "./schema/historical.sql");
 
     // Mock coinbase API
@@ -101,10 +102,8 @@ void initMock(
     ctx.data.get<CoinbaseFeeTier>().setFeeTier(ctx.coinbase().getFeeTier());
 
     // Source: Historical market data
-    //bot.addSource(std::make_unique<MockMarket>(ctx));
+    bot.addSource(std::make_unique<MockMarket>(ctx));
     //bot.addSource(std::make_unique<MockMarket>(ctx, "2025-02-02", "2025-02-15"));
-    //bot.addSource(std::make_unique<MockMarket>(ctx, "2025-01-28", "2025-02-15"));
-    bot.addSource(std::make_unique<MockMarket>(ctx, "2025-01-25", "2025-02-15"));
 
     // Processor: Emulate trades according to current BTC price
     bot.addProcessor(std::make_unique<MockUserTrades>(ctx));
@@ -116,7 +115,7 @@ void initMock(
     bot.addProcessor(std::make_unique<PendingProfitsCalc>(ctx));
 }
 
-#if 0
+#if 1
 MarketPeriodConfig getRampedPeriodConf(bool hot)
 {
     return {
@@ -201,11 +200,11 @@ MarketTimeTraderConfig getStockMarketConf()
 
 }
 
-void Version1::init(
+void Version2::init(
     TradeBot &bot,
     bool mock)
 {
-    log::info("Initializing Ghw Trade Bot version 1%s.", mock ? " - Mock Test" : "");
+    log::info("Initializing Ghw Trade Bot version 2%s.", mock ? " - Mock Test" : "");
 
     // Setup sources, processors, and initial state
     if (mock)
@@ -213,7 +212,7 @@ void Version1::init(
     else
         initProd(bot);
 
-#if 0
+#if 1
     BotContext &ctx = bot.getCtx();
     // Trader: Spread
     {

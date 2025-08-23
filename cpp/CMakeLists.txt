@@ -19,7 +19,6 @@ file(
     SOURCE_FILES
     "${SRC_DIR}/*.cpp"
 )
-list(FILTER SOURCE_FILES EXCLUDE REGEX ".*main.cpp$")
 list(FILTER SOURCE_FILES EXCLUDE REGEX ".*cli/*.cpp$")
 
 # Create header symlinks
@@ -58,7 +57,7 @@ target_link_libraries(
 )
 
 # Executables
-add_executable(tradebot "src/core/main.cpp")
+add_executable(tradebot "src/cli/tradebot.cpp")
 target_link_libraries(tradebot PRIVATE gtb)
 
 add_executable(order-pairs "src/cli/order_pairs.cpp")
