@@ -349,7 +349,7 @@ void applySellModifier(
         return;
     }
 
-    pair.sellPrice -= less;
+    pair.sellPrice -= less / 100;
     setDesc("ramp");
 }
 
@@ -424,6 +424,8 @@ void OrderPairMarketEngine::checkSale(
     // Or restore from it
     if (!pair.origSellPrice)
         pair.origSellPrice = pair.sellPrice;
+    else
+        pair.sellPrice = pair.origSellPrice;
 
     // Clear old sale modifiers
     pair.sellPrice = pair.origSellPrice;

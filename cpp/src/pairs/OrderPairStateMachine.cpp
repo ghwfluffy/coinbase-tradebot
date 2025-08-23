@@ -212,6 +212,7 @@ void OrderPairStateMachine::handlePending(
     if (pair.buyPrice < price.getCents())
         return;
 
+#if 0
     // Too soon?
     // XXX: Going to make sure we only run 1 trade per 30 seconds while testing
     if (nextTrade > SteadyClock::now())
@@ -219,6 +220,7 @@ void OrderPairStateMachine::handlePending(
         log::info("Can't buy: too soon.");
         return;
     }
+#endif
 
     // Not enough money to buy
     if (pair.betCents > ctx.data.get<CoinbaseWallet>().getAvailUsdCents())
@@ -227,7 +229,7 @@ void OrderPairStateMachine::handlePending(
     // Try to place new order
     CoinbaseOrder order;
     order.buy = true;
-    order.setQuantity(price.getCents() - 200, pair.betCents);
+    order.setQuantity(price.getCents() - 2'00, pair.betCents);
     order.createdTime = ctx.data.get<Time>().getTime();
 
     if (ctx.coinbase().submitOrder(order))
@@ -287,11 +289,17 @@ void OrderPairStateMachine::handleHolding(
 {
     // Update sale price based on market
     OrderPairMarketEngine::checkSale(pair, conf, ctx.data.get<Time>().getTime());
+#if 1
+    bool abandon = false;
+    if (pair.getModifiers().find("pause") != std::string::npos)
+        abandon = true;
+#endif
 
     // Wait for price to to up
-    if (pair.sellPrice > price.getCents())
+    if (pair.sellPrice > price.getCents() && !abandon)
         return;
 
+#if 0
     // Too soon?
     // XXX: Going to make sure we only run 1 trade per 30 seconds while testing
     if (nextTrade > SteadyClock::now())
@@ -299,11 +307,12 @@ void OrderPairStateMachine::handleHolding(
         log::info("Can't sell: too soon.");
         return;
     }
+#endif
 
     // Try to place new order
     CoinbaseOrder order;
     order.buy = false;
-    order.priceCents = price.getCents() + 200;
+    order.priceCents = price.getCents() + (abandon ? 1'00 : 5'00);
     order.quantity = pair.quantity;
     order.createdTime = ctx.data.get<Time>().getTime();
 

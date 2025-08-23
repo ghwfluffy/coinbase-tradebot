@@ -74,8 +74,21 @@ VALGRIND=(
     --max-stackframe=50000000
 )
 
+VALGRIND=(
+    valgrind
+    --tool=memcheck
+    --num-callers=50
+    --leak-check=full
+    --track-origins=yes
+    -v
+)
+
+logFile() {
+    echo "--log-file=valgrind-$(date +%s).log"
+}
+
 while true; do
-    "${VALGRIND[@]}" ./build/tradebot &
+    "${VALGRIND[@]}" $(logFile) ./build/tradebot &
     BOTPID=$!
     wait "${BOTPID}"
 done

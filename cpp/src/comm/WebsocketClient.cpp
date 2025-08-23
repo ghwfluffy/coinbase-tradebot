@@ -74,11 +74,14 @@ void WebsocketClient::reset()
     std::shared_ptr<WebsockClient> oldClient(std::move(client));
     std::shared_ptr<boost::asio::io_context> oldIo(std::move(io));
     std::shared_ptr<boost::asio::steady_timer> oldTimer(std::move(idleTimer));
+    std::shared_ptr<boost::asio::ssl::context> oldTlsCtx(std::move(tlsCtx));
+
 
     io.reset();
     conn.reset();
     client.reset();
     idleTimer.reset();
+    tlsCtx.reset();
 
     lock.unlock();
 
@@ -92,6 +95,7 @@ void WebsocketClient::reset()
     oldConn.reset();
     oldClient.reset();
     oldTimer.reset();
+    oldTlsCtx.reset();
     oldIo.reset();
 }
 

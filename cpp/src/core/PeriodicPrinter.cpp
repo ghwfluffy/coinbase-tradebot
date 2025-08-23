@@ -50,7 +50,7 @@ void PeriodicPrinter::process(
     std::string mockTime;
     if (ctx.data.get<MockMode>())
         mockTime = MarketInfo::getTimeString(time.getTime()) + " | ";
-    log::info("%sSTATUS | BTC: %u.%02u | Wallet: $%u.%02u USD + $%u.%02u BTC = $%u.%02u | SellProfit: $%s | Profit: $%s",
+    log::info("%sSTATUS | BTC: %u.%02u | Wallet: $%u.%02u USD + $%u.%02u BTC = $%u.%02u | SellProfit: $%s | Profit: $%s | Volume: $%s",
         mockTime.c_str(),
         cents / 100,
         cents % 100,
@@ -61,7 +61,8 @@ void PeriodicPrinter::process(
         totalCents / 100,
         totalCents % 100,
         IntegerUtils::centsToUsd(profit).c_str(),
-        IntegerUtils::centsToUsd(profit + pending).c_str());
+        IntegerUtils::centsToUsd(profit + pending).c_str(),
+        IntegerUtils::centsToUsd(ctx.data.get<Profits>().getVolume()).c_str());
 
     nextPrint = now + std::chrono::seconds(10);
 }

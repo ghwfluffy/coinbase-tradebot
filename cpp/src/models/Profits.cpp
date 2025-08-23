@@ -1,4 +1,5 @@
 #include <gtb/Profits.h>
+#include <gtb/Log.h>
 
 using namespace gtb;
 
@@ -11,6 +12,12 @@ int32_t Profits::getProfit() const
 {
     std::lock_guard<std::mutex> lock(const_cast<std::mutex &>(mtx));
     return data.getProfit();
+}
+
+uint32_t Profits::getVolume() const
+{
+    std::lock_guard<std::mutex> lock(const_cast<std::mutex &>(mtx));
+    return static_cast<uint32_t>((data.purchased + data.sold + data.sellFees) / 100'000'000'000ULL);
 }
 
 Profits::Data Profits::getData() const

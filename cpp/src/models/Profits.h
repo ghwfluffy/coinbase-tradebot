@@ -22,6 +22,7 @@ class Profits : public DataModel
         ~Profits() final = default;
 
         int32_t getProfit() const;
+        uint32_t getVolume() const;
 
         void addOrderPair(
             uint64_t purchased,
