@@ -1,8 +1,0 @@
-Flask
-coinbase-advanced-py
-gunicorn
-matplotlib
-numpy
-pyqt5
-python-dateutil
-scipy

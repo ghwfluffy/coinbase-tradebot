@@ -1,5 +1,0 @@
-python-dateutil
-matplotlib
-pyqt5
-numpy
-scipy
