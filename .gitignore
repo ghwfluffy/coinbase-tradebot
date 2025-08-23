@@ -4,9 +4,9 @@ __pycache__
 secrets/
 logs/
 bak/
-orderbook.json
-historical.json
-phases.json
+build
+historical.sqlite
+version1.sqlite
 
 outfile.tmp
 commit-message.txt
