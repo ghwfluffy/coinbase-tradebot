@@ -1,9 +1,9 @@
 [submodule "cpp/websocketpp"]
-	path = cpp/websocketpp
+	path = websocketpp
 	url = https://github.com/zaphoyd/websocketpp.git
 [submodule "cpp/jwt-cpp"]
-	path = cpp/jwt-cpp
+	path = jwt-cpp
 	url = https://github.com/Thalhammer/jwt-cpp.git
 [submodule "cpp/cpr"]
-	path = cpp/cpr
+	path = cpr
 	url = https://github.com/libcpr/cpr.git
