@@ -7,3 +7,6 @@
 [submodule "cpp/cpr"]
 	path = cpr
 	url = https://github.com/libcpr/cpr.git
+[submodule "googletest"]
+	path = googletest
+	url = https://github.com/google/googletest.git

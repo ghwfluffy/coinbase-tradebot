@@ -8,6 +8,7 @@ find_package(OpenSSL REQUIRED)
 find_package(Boost REQUIRED system thread)
 find_package(SQLite3 REQUIRED)
 include(cmake/cpr.cmake)
+add_subdirectory(googletest)
 
 # Build configuration
 include(cmake/cxxflags.cmake)
@@ -19,7 +20,8 @@ file(
     SOURCE_FILES
     "${SRC_DIR}/*.cpp"
 )
-list(FILTER SOURCE_FILES EXCLUDE REGEX ".*cli/*.cpp$")
+list(FILTER SOURCE_FILES EXCLUDE REGEX ".*/cli/.*.cpp$")
+list(FILTER SOURCE_FILES EXCLUDE REGEX ".*/test/.*.cpp$")
 
 # Create header symlinks
 include(cmake/headers.cmake)
@@ -65,3 +67,19 @@ target_link_libraries(order-pairs PRIVATE gtb)
 
 add_executable(query-order "src/cli/query_order.cpp")
 target_link_libraries(query-order PRIVATE gtb)
+
+# Unit tests
+
+set(TEST_DIR "${SRC_DIR}/test")
+file(
+    GLOB_RECURSE
+    TEST_SOURCE_FILES
+    "${TEST_DIR}/*.cpp"
+)
+add_executable(unit-tests ${TEST_SOURCE_FILES})
+target_link_libraries(
+    unit-tests
+    PRIVATE
+        gtb
+        GTest::gtest
+)
