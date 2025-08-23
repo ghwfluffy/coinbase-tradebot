@@ -20,7 +20,7 @@ using namespace gtb;
 namespace
 {
 
-constexpr const char *API_KEY = "../secrets/cdp_api_key.json";
+constexpr const char *API_KEY = "./secrets/cdp_api_key.json";
 
 std::string genNonce(size_t length = 64)
 {

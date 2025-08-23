@@ -7,6 +7,9 @@ bak/
 build
 historical.sqlite
 version1.sqlite
+go.sh
 
 outfile.tmp
 commit-message.txt
+.aider*
+*.sqlite

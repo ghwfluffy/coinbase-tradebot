@@ -2,6 +2,8 @@
 
 namespace gtb::log
 {
-    void info(const char *, ...);
-    void error(const char *, ...);
+    void info(const char *, ...)
+        __attribute__((format(printf, 1, 2)));
+    void error(const char *, ...)
+        __attribute__((format(printf, 1, 2)));
 }

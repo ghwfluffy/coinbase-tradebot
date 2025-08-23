@@ -20,7 +20,6 @@ TODOs
     [\] CLI tools
     [ ] Move CoinbaseCredential to conf
     [ ] Better INVALID_LIMIT_PRICE_POST_ONLY handling
-    [ ] varargs printf format gcc warnings
     [ ] user-defined literals (IE: 1000_gtbSeconds => microseconds, 60_gtbDollars => picodollars, 10_gtbCents => picodollars)
         - and then unify all USD/Time units gtb_time_t / gtb_usd_t / gtb_satoshi_t
         [ ] Lowercase ULL for readability?
