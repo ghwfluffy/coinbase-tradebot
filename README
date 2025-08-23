@@ -12,39 +12,3 @@ Submodule Dependencies:
     websockpp
     jwt-cpp
     cpr
-
-
-TODOs
-    Misc
-    [ ] Profit isn't correct in mock tests
-    [\] CLI tools
-    [ ] Move CoinbaseCredential to conf
-    [ ] Better INVALID_LIMIT_PRICE_POST_ONLY handling
-    [ ] user-defined literals (IE: 1000_gtbSeconds => microseconds, 60_gtbDollars => picodollars, 10_gtbCents => picodollars)
-        - and then unify all USD/Time units gtb_time_t / gtb_usd_t / gtb_satoshi_t
-        [ ] Lowercase ULL for readability?
-        [ ] integer typedefs
-        [ ] Wallet needs to track picodollars in order to be completely accurate
-    [ ] watchdog fork
-    [ ] clang static analyzer
-    [ ] mock 30 day trading volume
-    Trading Algorithms
-    [ ] Updates
-        [ ] track modifiers on order pairs
-        [ ] Use new pending patience config
-        [ ] Remove or officialize 'nextTrade'
-        [ ] time trader weighted average multiple windows
-    [ ] HODL
-    [ ] Phased
-    [ ] Tensorflow
-    Data Sources
-    [ ] Tastyworks
-    [\] Config
-    Data models
-    [ ] RIG
-    Data Processors
-    [ ] Smooth value
-    Feedback
-    [ ] File logger
-    [ ] Web front-end
-    [ ] Notifications
