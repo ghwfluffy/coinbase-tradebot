@@ -1,23 +1,24 @@
 #pragma once
 
 #include <gtb/Time.h>
+#include <gtb/IntLiterals.h>
 
 #include <chrono>
-
-#include <stdint.h>
 
 namespace gtb
 {
 
 /**
- * Acts like std::chrono::steady_clock but respects the mock time
+ * Wrapper for std::chrono::steady_clock that allows taking the current
+ * time from a static value (setMockTime) so steady timers and calculations
+ * involving time can work in the mocked environment.
  */
 namespace SteadyClock
 {
     struct TimePoint
     {
         // Time in microseconds since epoch
-        uint64_t time = 0;
+        utime_t time;
 
         bool operator<(const TimePoint &) const;
         bool operator>(const TimePoint &) const;
@@ -34,11 +35,11 @@ namespace SteadyClock
         TimePoint &operator+=(const std::chrono::duration<Rep, Period>& d)
         {
             auto micros = std::chrono::duration_cast<std::chrono::microseconds>(d);
-            auto count = micros.count();
+            int64_t count = static_cast<int64_t>(micros.count());
             if (count > 0)
-                time += static_cast<uint64_t>(count);
+                time += utime_t(static_cast<uint64_t>(count));
             else
-                time -= static_cast<uint64_t>(count * -1);
+                time -= utime_t(static_cast<uint64_t>(count * -1L));
 
             return (*this);
         }
@@ -47,11 +48,11 @@ namespace SteadyClock
         TimePoint &operator-=(const std::chrono::duration<Rep, Period>& d)
         {
             auto micros = std::chrono::duration_cast<std::chrono::microseconds>(d);
-            auto count = micros.count();
+            int64_t count = static_cast<int64_t>(micros.count());
             if (count > 0)
-                time -= static_cast<uint64_t>(count);
+                time -= utime_t(static_cast<uint64_t>(count));
             else
-                time += static_cast<uint64_t>(count * -1);
+                time += utime_t(static_cast<uint64_t>(count * -1L));
 
             return (*this);
         }

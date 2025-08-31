@@ -46,7 +46,7 @@ class CoinbaseRestClient : public CoinbaseInterface
 
         CoinbaseWallet::Data getWallet() final;
 
-        uint32_t getFeeTier() final;
+        pp_t getFeeTier() final;
 
     private:
         RestClient client;

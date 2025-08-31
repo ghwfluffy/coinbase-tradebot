@@ -11,7 +11,7 @@ using namespace gtb;
 
 MockCoinbase::MockCoinbase(
     BotContext &ctx,
-    uint32_t feeTier)
+    pp_t feeTier)
         : ctx(ctx)
 {
     this->feeTier = feeTier;
@@ -46,12 +46,12 @@ bool MockCoinbase::submitOrder(
     // Verify there is enough in the wallet
     if (order.buy)
     {
-        if (wallet.getAvailUsdCents() < order.valueCents())
+        if (wallet.getAvailUsd() < order.value())
         {
             log::error("Not enough USD to submit order.");
             return false;
         }
-        else if (!order.valueCents())
+        else if (!order.value())
         {
             log::error("Cannot submit invalid null buy.");
             return false;
@@ -59,7 +59,7 @@ bool MockCoinbase::submitOrder(
     }
     else
     {
-        if (wallet.getAvailBtcSatoshi() < order.quantity)
+        if (wallet.getAvailBtc() < order.quantity)
         {
             log::error("Not enough BTC to submit order.");
             return false;
@@ -74,7 +74,7 @@ bool MockCoinbase::submitOrder(
     // Update on hold amounts
     CoinbaseWallet::Data walletData = wallet.getData();
     if (order.buy)
-        walletData.onHoldUsd += order.valueCents();
+        walletData.onHoldUsd += order.value();
     else
         walletData.onHoldBtc += order.quantity;
     wallet.update(walletData);
@@ -114,14 +114,14 @@ bool MockCoinbase::cancelOrder(
     CoinbaseWallet::Data walletData = wallet.getData();
     if (order.buy)
     {
-        if (walletData.onHoldUsd >= order.valueCents())
+        if (walletData.onHoldUsd >= order.value())
         {
-            walletData.onHoldUsd -= order.valueCents();
+            walletData.onHoldUsd -= order.value();
         }
         else
         {
             log::error("Wallet does not have matching on hold USD for canceled order.");
-            walletData.onHoldUsd = 0;
+            walletData.onHoldUsd = {};
         }
     }
     else
@@ -133,7 +133,7 @@ bool MockCoinbase::cancelOrder(
         else
         {
             log::error("Wallet does not have matching on hold BTC for canceled order.");
-            walletData.onHoldBtc = 0;
+            walletData.onHoldBtc = {};
         }
     }
     wallet.update(walletData);
@@ -152,7 +152,7 @@ CoinbaseWallet::Data MockCoinbase::getWallet()
     return ctx.data.get<CoinbaseWallet>().getData();
 }
 
-uint32_t MockCoinbase::getFeeTier()
+pp_t MockCoinbase::getFeeTier()
 {
     return feeTier;
 }

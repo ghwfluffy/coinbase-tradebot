@@ -4,19 +4,18 @@ using namespace gtb;
 
 BtcPrice::BtcPrice()
 {
-    cents = 0;
 }
 
-uint32_t BtcPrice::getCents() const
+usd_t BtcPrice::getPrice() const
 {
-    return cents;
+    return price;
 }
 
-void BtcPrice::setCents(uint32_t cents)
+void BtcPrice::setPrice(usd_t price)
 {
-    if (this->cents != cents)
+    if (this->price != price)
     {
-        this->cents = cents;
+        this->price = price;
         updated();
     }
 }

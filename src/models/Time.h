@@ -1,8 +1,7 @@
 #pragma once
 
 #include <gtb/DataModel.h>
-
-#include <stdint.h>
+#include <gtb/IntLiterals.h>
 
 namespace gtb
 {
@@ -17,13 +16,13 @@ class Time : public DataModel
         Time &operator=(const Time &) = delete;
         ~Time() final = default;
 
-        uint64_t getTime() const;
-        void setTime(uint64_t time);
+        utime_t getTime() const;
+        void setTime(utime_t time);
 
         void setNow();
 
     private:
-        uint64_t microseconds;
+        utime_t microseconds;
 };
 
 }

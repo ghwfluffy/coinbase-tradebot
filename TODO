@@ -1,16 +1,13 @@
 Misc
-[ ] Profit isn't correct in mock tests
+[ ] buffer_percent, num_pairs -> camelCase
 [\] CLI tools
 [ ] Move CoinbaseCredential to conf
 [ ] Better INVALID_LIMIT_PRICE_POST_ONLY handling
-[ ] user-defined literals (IE: 1000_gtbSeconds => microseconds, 60_gtbDollars => picodollars, 10_gtbCents => picodollars)
-    - and then unify all USD/Time units gtb_time_t / gtb_usd_t / gtb_satoshi_t
-    [ ] Lowercase ULL for readability?
-    [ ] integer typedefs
-    [ ] Wallet needs to track picodollars in order to be completely accurate
 [ ] watchdog fork
 [ ] clang static analyzer
 [ ] mock 30 day trading volume
+[ ] // XXX: Going to make sure we only run 1 trade per 30 seconds while testing / "Too soon?" codify
+[ ] Mock random percent chance trade is not executed
 Trading Algorithms
 [ ] Updates
     [ ] track modifiers on order pairs

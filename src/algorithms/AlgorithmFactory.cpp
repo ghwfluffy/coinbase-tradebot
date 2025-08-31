@@ -2,7 +2,7 @@
 #include <gtb/Log.h>
 
 #include <gtb/Version1.h>
-#include <gtb/Version2.h>
+//#include <gtb/Version2.h>
 
 using namespace gtb;
 
@@ -17,7 +17,7 @@ bool AlgorithmFactory::provision(
             Version1::init(bot, mock);
             return true;
         case 2:
-            Version2::init(bot, mock);
+            //Version2::init(bot, mock);
             return true;
         default:
             log::error("Invalid algorithm version %u.", version);

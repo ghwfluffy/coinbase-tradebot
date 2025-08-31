@@ -8,16 +8,16 @@ Profits::Profits(Profits &&rhs)
 {
 }
 
-int32_t Profits::getProfit() const
+int64_t Profits::getProfit() const
 {
     std::lock_guard<std::mutex> lock(const_cast<std::mutex &>(mtx));
     return data.getProfit();
 }
 
-uint32_t Profits::getVolume() const
+usd_t Profits::getVolume() const
 {
     std::lock_guard<std::mutex> lock(const_cast<std::mutex &>(mtx));
-    return static_cast<uint32_t>((data.purchased + data.sold + data.sellFees) / 100'000'000'000ULL);
+    return data.purchased + data.sold;
 }
 
 Profits::Data Profits::getData() const
@@ -27,12 +27,12 @@ Profits::Data Profits::getData() const
 }
 
 void Profits::addOrderPair(
-    uint64_t purchased,
-    uint64_t sold,
-    uint64_t buyFees,
-    uint64_t sellFees)
+    usd_t purchased,
+    usd_t sold,
+    usd_t buyFees,
+    usd_t sellFees)
 {
-    if (purchased == 0 || sold == 0)
+    if (!purchased || !sold)
         return;
 
     // Atomic
@@ -53,10 +53,10 @@ void Profits::addOrderPair(
     addOrderPair(data.purchased, data.sold, data.buyFees, data.sellFees);
 }
 
-int32_t Profits::Data::getProfit() const
+int64_t Profits::Data::getProfit() const
 {
-    uint64_t aboveZero = sold;
-    uint64_t belowZero = 0;
+    usd_t aboveZero = sold;
+    usd_t belowZero = {};
 
     #define SUBTRACT(x) \
     if (aboveZero >= x) \
@@ -64,15 +64,15 @@ int32_t Profits::Data::getProfit() const
     else \
     { \
         belowZero += (x - aboveZero); \
-        aboveZero = 0; \
+        aboveZero = {}; \
     }
 
-    SUBTRACT(sellFees)
+    //SUBTRACT(sellFees)
     SUBTRACT(purchased)
     SUBTRACT(buyFees)
 
-    if (belowZero > 0)
-        return static_cast<int32_t>(static_cast<int32_t>(belowZero / 100'000'000'000ULL) * -1);
+    if (belowZero)
+        return static_cast<int64_t>(belowZero.value()) * -1L;
 
-    return static_cast<int32_t>(aboveZero / 100'000'000'000ULL);
+    return static_cast<int64_t>(aboveZero.value());
 }

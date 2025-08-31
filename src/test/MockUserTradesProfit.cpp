@@ -17,8 +17,7 @@ TEST(MockUserTrades_Profits, PositiveProfitCalculation)
 
     p.addOrderPair(purchased, sold, buyFees, sellFees);
 
-    int32_t profitCents = p.getProfit();
-    EXPECT_EQ(profitCents, (4_Dollars + 75_Cents) / 1_Cents);
+    EXPECT_EQ(p.getProfit(), static_cast<int64_t>(usd_t(4_Dollars + 75_Cents).value()));
 }
 
 // Negative profit scenario
@@ -33,6 +32,5 @@ TEST(MockUserTrades_Profits, NegativeProfitCalculation)
 
     p.addOrderPair(purchased, sold, buyFees, sellFees);
 
-    int32_t profitCents = p.getProfit();
-    EXPECT_EQ(profitCents, static_cast<int64_t>(7_Dollars / 1_Cents) * -1);
+    EXPECT_EQ(p.getProfit(), static_cast<int64_t>(usd_t(7_Dollars).value()) * -1L);
 }

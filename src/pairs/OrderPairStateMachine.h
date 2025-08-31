@@ -66,9 +66,6 @@ class OrderPairStateMachine
             OrderPair &pair,
             const BtcPrice &price);
 
-        bool cancelPending(
-            const BtcPrice &price);
-
         BotContext &ctx;
         Database &db;
         BaseTraderConfig conf;

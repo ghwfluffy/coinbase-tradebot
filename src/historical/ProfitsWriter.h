@@ -30,7 +30,7 @@ class ProfitsWriter
         BotContext &ctx;
 
         std::mutex mtx;
-        uint64_t prevTime;
+        utime_t prevTime;
 };
 
 }

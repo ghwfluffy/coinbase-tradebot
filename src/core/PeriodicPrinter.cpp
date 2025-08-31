@@ -36,33 +36,31 @@ void PeriodicPrinter::process(
     if (!ctx.data.get<CoinbaseInit>())
         return;
 
-    uint32_t cents = ctx.data.get<BtcPrice>().getCents();
+    usd_t price = ctx.data.get<BtcPrice>().getPrice();
 
-    uint32_t usd = ctx.data.get<CoinbaseWallet>().getUsdCents();
-    uint64_t btc = ctx.data.get<CoinbaseWallet>().getBtcSatoshi();
+    usd_t usd = ctx.data.get<CoinbaseWallet>().getUsd();
+    btc_t btc = ctx.data.get<CoinbaseWallet>().getBtc();
 
-    uint32_t btcCents = static_cast<uint32_t>((btc * cents) / 100'000'000);
-    uint32_t totalCents = btcCents + usd;
+    usd_t btcValue = IntegerUtils::getValue(price, btc);
 
-    int32_t profit = ctx.data.get<Profits>().getProfit();
-    int32_t pending = ctx.data.get<PendingProfits>().getProfit();
+    int64_t profit = ctx.data.get<Profits>().getProfit();
+    int64_t pending = ctx.data.get<PendingProfits>().getProfit();
 
     std::string mockTime;
     if (ctx.data.get<MockMode>())
         mockTime = MarketInfo::getTimeString(time.getTime()) + " | ";
-    log::info("%sSTATUS | BTC: %u.%02u | Wallet: $%u.%02u USD + $%u.%02u BTC = $%u.%02u | SellProfit: $%s | Profit: $%s | Volume: $%s",
+    log::info("%sSTATUS | BTC: %s | Wallet: $%s USD + $%s BTC = $%s | SellProfit: $%s | Profit: $%s | Volume: $%s",
         mockTime.c_str(),
-        cents / 100,
-        cents % 100,
-        usd / 100,
-        usd % 100,
-        btcCents / 100,
-        btcCents % 100,
-        totalCents / 100,
-        totalCents % 100,
-        IntegerUtils::centsToUsd(profit).c_str(),
-        IntegerUtils::centsToUsd(profit + pending).c_str(),
-        IntegerUtils::centsToUsd(ctx.data.get<Profits>().getVolume()).c_str());
+        IntegerUtils::toUsdString(price).c_str(),
+        IntegerUtils::toUsdString(usd).c_str(),
+        IntegerUtils::toUsdString(btcValue).c_str(),
+        IntegerUtils::toUsdString(usd + btcValue).c_str(),
+        IntegerUtils::toUsdString(pending).c_str(),
+        IntegerUtils::toUsdString(profit).c_str(),
+        IntegerUtils::toUsdString(ctx.data.get<Profits>().getVolume()).c_str());
 
-    nextPrint = now + std::chrono::seconds(10);
+    if (ctx.data.get<MockMode>())
+        nextPrint = now + std::chrono::days(1);
+    else
+        nextPrint = now + std::chrono::seconds(10);
 }

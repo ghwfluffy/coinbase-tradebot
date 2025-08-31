@@ -2,6 +2,7 @@
 #include <gtb/MockLock.h>
 
 #include <gtb/Log.h>
+#include <gtb/IntegerUtils.h>
 
 #include <gtb/CoinbaseOrderBook.h>
 #include <gtb/CoinbaseWallet.h>
@@ -12,69 +13,49 @@ using namespace gtb;
 namespace
 {
 
-constexpr const uint64_t SATOSHI_PER_BTC = 100'000'000ULL;
-constexpr const uint64_t PICODOLLARS_PER_CENT = 100'000'000'000ULL;
-
 // Input values:
-// spend: total funds in cents
-// price: price of 1 BTC in cents
-// feeTier: fee in basis points (e.g. 35 means 0.35%)
+// spend: Amount to spend
+// price: BTC price
+// feeTier: Coinbase trade fee
 
 // Output values:
-// purchased: number of satoshis purchased
-// beforeFees: cents spent on satoshis
-// fees: cents spent on fees
+// purchased: Number of bitcoins purchased
+// beforeFees: Amount spent on bitcoin
+// fees: Amount spent on fees
 void calcBuyFees(
-    uint32_t spend,
-    uint32_t price,
-    uint32_t feeTier,
-    uint64_t &purchased,
-    uint64_t &beforeFees,
-    uint64_t &fees)
+    usd_t spend,
+    usd_t price,
+    pp_t feeTier,
+    btc_t &purchased,
+    usd_t &beforeFees,
+    usd_t &fees)
 {
-    // The fee fraction is feeTier/10000. Thus, the effective multiplier is (1+feeTier/10000) = (10000+feeTier)/10000.
-    // If you buy n satoshis, the cost in cents is (price * n)/SATOSHI_PER_BTC.
-    // Total cost (in cents) including fee is:
-    //    total = cost * (10000+feeTier) / 10000.
-    // We require total <= spend.
-    //
-    // Rearranging:
-    //    (price * n / SATOSHI_PER_BTC) * (10000+feeTier) <= spend * 10000
-    // so a maximal n is given by:
-    purchased = (spend * 10000ULL * SATOSHI_PER_BTC) / (price * (10000ULL+feeTier));
-
-    // Actual cost (in cents) of the BTC purchase:
-    uint64_t cost_cents = (price * purchased) / SATOSHI_PER_BTC;
-    // Fee (in cents):
-    uint64_t fee_cents = (cost_cents * feeTier) / 10000;
-    // Total spent (in cents):
-    uint64_t total_cents = cost_cents + fee_cents;
-
-    // Convert to picodollars
-    fees = fee_cents * PICODOLLARS_PER_CENT;
-    beforeFees = total_cents * PICODOLLARS_PER_CENT;
+    usd_t maxSpend = spend / (100_Percent + feeTier);
+    purchased = IntegerUtils::getSatoshiForPrice(price, maxSpend);
+    beforeFees = IntegerUtils::getValue(price, purchased);
+    fees = beforeFees * feeTier;
 }
 
 // Input values:
-// quantity: number of satoshis to sell
-// price: price of 1 BTC in cents
-// feeTier: fee in basis points (e.g. 35 means 0.35%)
+// quantity: Amount of BTC to sell
+// price: Price of BTC
+// feeTier: Coinbase trade fee
 
 // Output values:
-// beforeFees: picodollars received from sale (not including fees)
-// fees: picodollars paid in fees
+// beforeFees: Amount received from sale (before paying fees)
+// fees: Amount paid in fees
 void calcSellFees(
-    uint64_t quantity,
-    uint32_t price,
-    uint32_t feeTier,
-    uint64_t &beforeFees,
-    uint64_t &fees)
+    btc_t quantity,
+    usd_t price,
+    pp_t feeTier,
+    usd_t &beforeFees,
+    usd_t &fees)
 {
-    // Gross sale proceeds in cents.
-    beforeFees = price * quantity * (PICODOLLARS_PER_CENT / SATOSHI_PER_BTC);
+    // Gross sale proceeds
+    beforeFees = IntegerUtils::getValue(price, quantity);
 
     // Fee is a percentage of the gross sale.
-    fees = (beforeFees * feeTier) / 10000;
+    fees = beforeFees * feeTier;
 }
 
 }
@@ -93,7 +74,7 @@ void MockUserTrades::process(
 
     CoinbaseOrderBook &orderBook = ctx.data.get<CoinbaseOrderBook>();
     CoinbaseWallet &wallet = ctx.data.get<CoinbaseWallet>();
-    uint32_t feeTier = ctx.coinbase().getFeeTier();
+    pp_t feeTier = ctx.coinbase().getFeeTier();
 
     // Will make updates
     std::list<CoinbaseOrder> updates;
@@ -105,39 +86,38 @@ void MockUserTrades::process(
     {
         if (order.state != CoinbaseOrder::State::Open)
             continue;
-        if (order.buy && order.priceCents < price.getCents())
+        if (order.buy && order.price < price.getPrice())
             continue;
-        if (!order.buy && order.priceCents > price.getCents())
+        if (!order.buy && order.price > price.getPrice())
             continue;
 
         // Update wallet values
         if (order.buy)
         {
-            uint64_t quantity = 0;
+            btc_t quantity;
             calcBuyFees(
-                order.valueCents(),
-                order.priceCents,
+                order.value(),
+                order.price,
                 feeTier,
                 quantity,
                 order.beforeFees,
                 order.fees);
 
             // USD no longer on hold
-            if (order.valueCents() <= walletData.onHoldUsd)
+            if (order.value() <= walletData.onHoldUsd)
             {
-                walletData.onHoldUsd -= order.valueCents();
+                walletData.onHoldUsd -= order.value();
             }
             else
             {
                 log::error("Wallet does not have matching on hold USD for transaction (%llu vs %llu).",
-                    static_cast<unsigned long long>(order.valueCents()),
-                    static_cast<unsigned long long>(walletData.onHoldUsd));
-                walletData.onHoldUsd = 0;
+                    static_cast<unsigned long long>(order.value().value()),
+                    static_cast<unsigned long long>(walletData.onHoldUsd.value()));
+                walletData.onHoldUsd = {};
             }
 
             // USD is spent (Round Up)
-            uint32_t minusUsd = static_cast<uint32_t>(
-                (order.beforeFees + order.fees + PICODOLLARS_PER_CENT - 1) / PICODOLLARS_PER_CENT);
+            usd_t minusUsd = order.beforeFees + order.fees;
             if (minusUsd <= walletData.usd)
             {
                 walletData.usd -= minusUsd;
@@ -145,7 +125,7 @@ void MockUserTrades::process(
             else
             {
                 log::error("Wallet does not have matching USD for transaction.");
-                walletData.usd = 0;
+                walletData.usd = {};
             }
 
             // Gained bitcoin
@@ -156,7 +136,7 @@ void MockUserTrades::process(
         {
             calcSellFees(
                 order.quantity,
-                order.priceCents,
+                order.price,
                 feeTier,
                 order.beforeFees,
                 order.fees);
@@ -169,9 +149,9 @@ void MockUserTrades::process(
             else
             {
                 log::error("Wallet does not have matching on hold BTC for transaction (%llu vs %llu).",
-                    static_cast<unsigned long long>(order.quantity),
-                    static_cast<unsigned long long>(walletData.onHoldBtc));
-                walletData.onHoldBtc = 0;
+                    static_cast<unsigned long long>(order.quantity.value()),
+                    static_cast<unsigned long long>(walletData.onHoldBtc.value()));
+                walletData.onHoldBtc = {};
             }
 
             // BTC is sold
@@ -182,11 +162,11 @@ void MockUserTrades::process(
             else
             {
                 log::error("Wallet does not have matching BTC for transaction.");
-                walletData.btc = 0;
+                walletData.btc = {};
             }
 
             // Gained money (Round down)
-            walletData.usd += static_cast<uint32_t>(order.beforeFees / PICODOLLARS_PER_CENT);
+            walletData.usd += order.beforeFees;
         }
 
         // Update order as complete

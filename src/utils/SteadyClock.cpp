@@ -1,4 +1,5 @@
 #include <gtb/SteadyClock.h>
+#include <gtb/IntLiterals.h>
 
 using namespace gtb;
 
@@ -18,7 +19,7 @@ SteadyClock::TimePoint SteadyClock::now()
     {
         auto now = std::chrono::steady_clock::now();
         auto epoch = std::chrono::time_point_cast<std::chrono::microseconds>(now).time_since_epoch();
-        tp.time = static_cast<uint64_t>(epoch.count());
+        tp.time = utime_t(static_cast<uint64_t>(epoch.count()));
     }
 
     return tp;
@@ -56,6 +57,6 @@ bool SteadyClock::TimePoint::operator!=(const SteadyClock::TimePoint &other) con
 namespace gtb::SteadyClock
 {
     std::chrono::microseconds operator-(const SteadyClock::TimePoint &lhs, const SteadyClock::TimePoint &rhs) {
-        return std::chrono::microseconds(lhs.time - rhs.time);
+        return std::chrono::microseconds(lhs.time.value() - rhs.time.value());
     }
 }

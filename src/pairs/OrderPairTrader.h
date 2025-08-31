@@ -42,6 +42,8 @@ class OrderPairTrader
         virtual void handleNewPair(
             const BtcPrice &price) = 0;
 
+        bool patientOverride() const;
+
         BotContext &ctx;
         BaseTraderConfig conf;
 

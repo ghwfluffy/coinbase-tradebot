@@ -4,15 +4,14 @@ using namespace gtb;
 
 CoinbaseFeeTier::CoinbaseFeeTier()
 {
-    fees = 0;
 }
 
-uint32_t CoinbaseFeeTier::getFeeTier() const
+pp_t CoinbaseFeeTier::getFeeTier() const
 {
     return fees;
 }
 
-void CoinbaseFeeTier::setFeeTier(uint32_t time)
+void CoinbaseFeeTier::setFeeTier(pp_t time)
 {
     if (this->fees != time)
     {

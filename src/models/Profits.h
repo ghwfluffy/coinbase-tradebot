@@ -1,6 +1,7 @@
 #pragma once
 
 #include <gtb/DataModel.h>
+#include <gtb/IntLiterals.h>
 
 #include <mutex>
 #include <stdint.h>
@@ -21,24 +22,23 @@ class Profits : public DataModel
         Profits &operator=(const Profits &) = delete;
         ~Profits() final = default;
 
-        int32_t getProfit() const;
-        uint32_t getVolume() const;
+        int64_t getProfit() const;
+        usd_t getVolume() const;
 
         void addOrderPair(
-            uint64_t purchased,
-            uint64_t sold,
-            uint64_t buyFees,
-            uint64_t sellFees);
+            usd_t purchased,
+            usd_t sold,
+            usd_t buyFees,
+            usd_t sellFees);
 
         struct Data
         {
-            // In pico dollars (10^-13)
-            uint64_t purchased = 0;
-            uint64_t sold = 0;
-            uint64_t buyFees = 0;
-            uint64_t sellFees = 0;
+            usd_t purchased;
+            usd_t sold;
+            usd_t buyFees;
+            usd_t sellFees;
             // Profit (cents) = (sold - sellFees - purchased - buyFees)
-            int32_t getProfit() const;
+            int64_t getProfit() const;
         };
 
         void addOrderPair(

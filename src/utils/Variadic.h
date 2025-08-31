@@ -19,6 +19,7 @@
  \
         if (size > 0) \
         { \
+            size += 1; \
             output.resize(static_cast<size_t>(size)); \
             va_start(varArgs, format); \
             vsnprintf(&output[0], output.size(), format, varArgs); \

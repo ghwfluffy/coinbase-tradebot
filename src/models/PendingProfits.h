@@ -2,7 +2,7 @@
 
 #include <gtb/DataModel.h>
 
-#include <stdint.h>
+#include <gtb/IntLiterals.h>
 
 namespace gtb
 {
@@ -20,11 +20,11 @@ class PendingProfits : public DataModel
         PendingProfits &operator=(const PendingProfits &) = delete;
         ~PendingProfits() final = default;
 
-        int32_t getProfit() const;
-        void setProfit(int32_t profit);
+        int64_t getProfit() const;
+        void setProfit(usd_t spent, usd_t assets);
 
     private:
-        int32_t profit;
+        int64_t profit;
 };
 
 }

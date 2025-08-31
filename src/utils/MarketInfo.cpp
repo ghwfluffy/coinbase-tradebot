@@ -263,9 +263,9 @@ uint64_t nextBFClose(uint64_t utcMicros)
 
 MarketInfo::MarketInfo(
     Market market,
-    uint64_t time)
+    utime_t time)
         : market(market)
-        , time(time)
+        , time(time.value())
 {
 }
 
@@ -400,12 +400,12 @@ bool MarketInfo::isWeekendNext() const
     return false;
 }
 
-uint64_t MarketInfo::tillOpen() const
+utime_t MarketInfo::tillOpen() const
 {
     if (market == Market::None)
-        return 0;
+        return {};
     if (isOpen())
-        return 0;
+        return {};
 
     uint64_t candidate = 0;
     if (market == Market::StockMarket)
@@ -413,15 +413,15 @@ uint64_t MarketInfo::tillOpen() const
     else if (market == Market::BitcoinFutures)
         candidate = nextBFOpen(time);
 
-    return (candidate > time ? candidate - time : 0);
+    return utime_t(candidate > time ? candidate - time : 0);
 }
 
-uint64_t MarketInfo::tillClosed() const
+utime_t MarketInfo::tillClosed() const
 {
     if (market == Market::None)
-        return 0;
+        return {};
     if (!isOpen())
-        return 0;
+        return {};
 
     uint64_t candidate = 0;
     if (market == Market::StockMarket)
@@ -429,15 +429,15 @@ uint64_t MarketInfo::tillClosed() const
     else if (market == Market::BitcoinFutures)
         candidate = nextBFClose(time);
 
-    return (candidate > time ? candidate - time : 0);
+    return utime_t(candidate > time ? candidate - time : 0);
 }
 
-uint64_t MarketInfo::sinceOpen() const
+utime_t MarketInfo::sinceOpen() const
 {
     if (market == Market::None)
-        return 0;
+        return {};
     if (!isOpen())
-        return 0;
+        return {};
 
     // For simplicity, assume the open time today (or last open for BitcoinFutures).
     uint64_t openTime = 0;
@@ -482,15 +482,15 @@ uint64_t MarketInfo::sinceOpen() const
         }
     }
 
-    return (time > openTime ? time - openTime : 0);
+    return utime_t(time > openTime ? time - openTime : 0);
 }
 
-uint64_t MarketInfo::sinceClosed() const
+utime_t MarketInfo::sinceClosed() const
 {
     if (market == Market::None)
-        return 0;
+        return {};
     if (isOpen())
-        return 0;
+        return {};
 
     // For simplicity, for stock market: if before 9:30, last close was previous day at 16:00;
     // for Bitcoin futures: if in maintenance or weekend, last close is defined accordingly.
@@ -567,13 +567,13 @@ uint64_t MarketInfo::sinceClosed() const
         }
     }
 
-    return (time > closeTime ? time - closeTime : 0);
+    return utime_t(time > closeTime ? time - closeTime : 0);
 }
 
 std::string MarketInfo::getTimeString(
-    uint64_t time)
+    utime_t time)
 {
-    std::tm tmLocal = toEastern(time);
+    std::tm tmLocal = toEastern(time.value());
 
     const char *dow = nullptr;
     switch (tmLocal.tm_wday)

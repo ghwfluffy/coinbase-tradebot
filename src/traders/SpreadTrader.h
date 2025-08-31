@@ -2,6 +2,7 @@
 
 #include <gtb/OrderPairTrader.h>
 #include <gtb/BaseTraderConfig.h>
+#include <gtb/IntLiterals.h>
 
 namespace gtb
 {
@@ -15,11 +16,11 @@ class SpreadTrader : public OrderPairTrader
         struct Config : public BaseTraderConfig
         {
             // Percentage points spread (10 = 0.1%)
-            uint32_t spread = 1000;
+            pp_t spread = 10_Percent;
             // How many spreads to maintain
             uint32_t num_pairs = 1;
             // How much to buffer between each spred (25 = 25% of spread value)
-            uint32_t buffer_percent = 25;
+            pp_t buffer_percent = 25_Percent;
         };
 
         SpreadTrader(
@@ -36,8 +37,6 @@ class SpreadTrader : public OrderPairTrader
             const BtcPrice &price) final;
 
     private:
-        bool patientOverride() const;
-
         Config conf;
 };
 

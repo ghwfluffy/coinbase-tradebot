@@ -11,7 +11,7 @@ namespace gtb
 namespace OrderPairUtils
 {
     std::string getFurthestPending(
-        uint32_t currentPrice,
+        usd_t currentPrice,
         const std::list<OrderPair> &orderPairs);
 
     bool cancelPair(
@@ -22,7 +22,7 @@ namespace OrderPairUtils
 
     bool cancelPending(
         Database &db,
-        uint32_t currentPrice,
+        usd_t currentPrice,
         const std::string &algName,
         std::list<OrderPair> &orderPairs);
 }

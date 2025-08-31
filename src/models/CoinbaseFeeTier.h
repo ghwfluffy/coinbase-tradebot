@@ -1,13 +1,11 @@
 #pragma once
 
 #include <gtb/DataModel.h>
-
-#include <stdint.h>
+#include <gtb/IntLiterals.h>
 
 namespace gtb
 {
 
-// 1/100 of a percent (35 = 0.35%)
 class CoinbaseFeeTier : public DataModel
 {
     public:
@@ -18,11 +16,11 @@ class CoinbaseFeeTier : public DataModel
         CoinbaseFeeTier &operator=(const CoinbaseFeeTier &) = delete;
         ~CoinbaseFeeTier() final = default;
 
-        uint32_t getFeeTier() const;
-        void setFeeTier(uint32_t fees);
+        pp_t getFeeTier() const;
+        void setFeeTier(pp_t fees);
 
     private:
-        uint32_t fees;
+        pp_t fees;
 };
 
 }

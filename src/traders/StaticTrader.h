@@ -2,6 +2,8 @@
 
 #include <gtb/OrderPairTrader.h>
 
+#include <gtb/IntLiterals.h>
+
 namespace gtb
 {
 
@@ -14,9 +16,9 @@ class StaticTrader : public OrderPairTrader
         struct Config : public BaseTraderConfig
         {
             // Static buy price
-            uint32_t buyCents = 100'000'00;
+            usd_t buy = 100'000_Dollars;
             // Static sell price
-            uint32_t sellCents = 200'000'00;
+            usd_t sell = 200'000_Dollars;
         };
 
         StaticTrader(

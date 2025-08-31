@@ -17,7 +17,7 @@ namespace
 constexpr const unsigned int FAILURE_RETRY_SECONDS = 10;
 
 // Keep orders active if they're within $100 of our target price
-constexpr const uint32_t KEEP_ACTIVE_ORDER_WINDOW_CENTS = 100'00;
+const usd_t KEEP_ACTIVE_ORDER_WINDOW = 100_Dollars;
 
 }
 
@@ -122,7 +122,7 @@ void OrderPairStateMachine::checkBuyState(
         // Complete, now holding
         pair.state = OrderPair::State::Holding;
         // Record the price it filled at
-        pair.buyPrice = buyOrder.priceCents;
+        pair.buyPrice = buyOrder.price;
         pair.quantity = buyOrder.quantity;
         pair.profit.purchased = buyOrder.beforeFees;
         pair.profit.buyFees = buyOrder.fees;
@@ -174,7 +174,7 @@ void OrderPairStateMachine::checkSellState(
         // Complete
         pair.state = OrderPair::State::Complete;
         // Record the price it filled at
-        pair.sellPrice = sellOrder.priceCents;
+        pair.sellPrice = sellOrder.price;
         pair.profit.sold = sellOrder.beforeFees;
         pair.profit.sellFees = sellOrder.fees;
         // Track total profits
@@ -199,7 +199,7 @@ void OrderPairStateMachine::handlePending(
     const BtcPrice &price)
 {
     // Remove stale pairs
-    if (conf.pendingPairExpiration > 0 &&
+    if (conf.pendingPairExpiration &&
         ctx.data.get<Time>().getTime() > (pair.created + conf.pendingPairExpiration))
     {
         log::info("Canceling stale pending pair '%s'.",
@@ -209,7 +209,7 @@ void OrderPairStateMachine::handlePending(
     }
 
     // Wait for price to go down
-    if (pair.buyPrice < price.getCents())
+    if (pair.buyPrice < price.getPrice())
         return;
 
 #if 0
@@ -223,13 +223,14 @@ void OrderPairStateMachine::handlePending(
 #endif
 
     // Not enough money to buy
-    if (pair.betCents > ctx.data.get<CoinbaseWallet>().getAvailUsdCents())
+    if (pair.bet > ctx.data.get<CoinbaseWallet>().getAvailUsd())
         return;
 
     // Try to place new order
     CoinbaseOrder order;
     order.buy = true;
-    order.setQuantity(price.getCents() - 2'00, pair.betCents);
+    order.setQuantity(price.getPrice() - 2_Dollars, pair.bet);
+
     order.createdTime = ctx.data.get<Time>().getTime();
 
     if (ctx.coinbase().submitOrder(order))
@@ -253,10 +254,10 @@ void OrderPairStateMachine::handlePending(
     {
         // TODO: Different retry times for INVALID_LIMIT_PRICE_POST_ONLY and other errors
         pair.nextTry = SteadyClock::now() + std::chrono::seconds(FAILURE_RETRY_SECONDS);
-        log::error("Failed to create buy order for spread '%s' pair '%s' ($%s).",
+        log::error("Failed to create buy order for spread '%s' pair '%s' (%s).",
             conf.name.c_str(),
             pair.uuid.c_str(),
-            IntegerUtils::centsToUsd(order.valueCents()).c_str());
+            IntegerUtils::toUsdString(order.value()).c_str());
     }
 }
 
@@ -265,11 +266,11 @@ void OrderPairStateMachine::handleBuyActive(
     const BtcPrice &price)
 {
     // It should fill any time now...
-    if (pair.buyPrice > price.getCents())
+    if (pair.buyPrice > price.getPrice())
         return;
 
     // Still close enough to the desired buy price
-    if (pair.buyPrice + KEEP_ACTIVE_ORDER_WINDOW_CENTS > price.getCents())
+    if (pair.buyPrice + KEEP_ACTIVE_ORDER_WINDOW > price.getPrice())
         return;
 
     // If price has risen too much, cancel buy order so we get the liquidity back
@@ -296,7 +297,7 @@ void OrderPairStateMachine::handleHolding(
 #endif
 
     // Wait for price to to up
-    if (pair.sellPrice > price.getCents() && !abandon)
+    if (pair.sellPrice > price.getPrice() && !abandon)
         return;
 
 #if 0
@@ -312,7 +313,7 @@ void OrderPairStateMachine::handleHolding(
     // Try to place new order
     CoinbaseOrder order;
     order.buy = false;
-    order.priceCents = price.getCents() + (abandon ? 1'00 : 5'00);
+    order.price = price.getPrice() + (abandon ? 1_Dollars : 5_Dollars);
     order.quantity = pair.quantity;
     order.createdTime = ctx.data.get<Time>().getTime();
 
@@ -336,10 +337,10 @@ void OrderPairStateMachine::handleHolding(
     else
     {
         pair.nextTry = SteadyClock::now() + std::chrono::seconds(FAILURE_RETRY_SECONDS);
-        log::error("Failed to create sell order for spread '%s' pair '%s' ($%s).",
+        log::error("Failed to create sell order for spread '%s' pair '%s' (%s).",
             conf.name.c_str(),
             pair.uuid.c_str(),
-            IntegerUtils::centsToUsd(order.valueCents()).c_str());
+            IntegerUtils::toUsdString(order.value()).c_str());
     }
 }
 
@@ -348,11 +349,11 @@ void OrderPairStateMachine::handleSellActive(
     const BtcPrice &price)
 {
     // It should fill any time now...
-    if (pair.sellPrice < price.getCents())
+    if (pair.sellPrice < price.getPrice())
         return;
 
     // Still close enough to the desired sell price
-    if (pair.sellPrice < price.getCents() + KEEP_ACTIVE_ORDER_WINDOW_CENTS)
+    if (pair.sellPrice < price.getPrice() + KEEP_ACTIVE_ORDER_WINDOW)
         return;
 
     // If price has fallen too much, cancel sell order so we get the liquidity back
@@ -370,17 +371,17 @@ void OrderPairStateMachine::logChange(
     OrderPair::State startState,
     const OrderPair &pair)
 {
-    log::info("Spread '%s' pair '%s' updated '%s' => '%s' ($%s -> $%s) @ ($%s -> $%s).",
+    log::info("Spread '%s' pair '%s' updated '%s' => '%s' (%s -> %s) @ (%s -> %s).",
         conf.name.c_str(),
         pair.uuid.c_str(),
         to_string(startState).c_str(),
         to_string(pair.state).c_str(),
         // $ investment
-        IntegerUtils::centsToUsd(pair.betCents).c_str(),
+        IntegerUtils::toUsdString(pair.bet).c_str(),
         // Final sale value
-        IntegerUtils::centsToUsd(pair.sellValue()).c_str(),
+        IntegerUtils::toUsdString(pair.sellValue()).c_str(),
         // Buy BTC price
-        IntegerUtils::centsToUsd(pair.buyPrice).c_str(),
+        IntegerUtils::toUsdString(pair.buyPrice).c_str(),
         // Sell BTC price
-        IntegerUtils::centsToUsd(pair.sellPrice).c_str());
+        IntegerUtils::toUsdString(pair.sellPrice).c_str());
 }

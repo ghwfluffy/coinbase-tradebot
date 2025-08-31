@@ -89,22 +89,23 @@ void initMock(
     OrderPairDb::setDbFile("mock_trader.sqlite");
     // XXX: Use a copy of the historical database
     // so our fast reads dont interrupt the active tradebot by holding a read lock
+    [[maybe_unused]] int x = system("cp historical.sqlite mock_historical.sqlite");
     ctx.historicalDb.init("mock_historical.sqlite", "./schema/historical.sql");
 
     // Mock coinbase API
-    constexpr const uint32_t FEE_TIER = 15;
+    constexpr const pp_t FEE_TIER = 15_PercentagePoints;
     ctx.setCoinbase(std::make_unique<MockCoinbase>(ctx, FEE_TIER));
 
     // Initial state
     ctx.data.get<CoinbaseInit>().setFullInit();
-    ctx.data.get<CoinbaseWallet>().update(5000'00, 0, 0, 0);
+    ctx.data.get<CoinbaseWallet>().update(5000_Dollars, 0_Bitcoins, 0_Dollars, 0_Bitcoins);
     ctx.data.get<CoinbaseFeeTier>().setFeeTier(ctx.coinbase().getFeeTier());
 
     // Source: Historical market data
-    //bot.addSource(std::make_unique<MockMarket>(ctx));
+    bot.addSource(std::make_unique<MockMarket>(ctx));
     //bot.addSource(std::make_unique<MockMarket>(ctx, "2025-02-02", "2025-02-15"));
     //bot.addSource(std::make_unique<MockMarket>(ctx, "2025-01-28", "2025-02-15"));
-    bot.addSource(std::make_unique<MockMarket>(ctx, "2025-01-25", "2025-02-15"));
+    //bot.addSource(std::make_unique<MockMarket>(ctx, "2025-01-25", "2025-02-15"));
 
     // Processor: Emulate trades according to current BTC price
     bot.addProcessor(std::make_unique<MockUserTrades>(ctx));
@@ -116,15 +117,25 @@ void initMock(
     bot.addProcessor(std::make_unique<PendingProfitsCalc>(ctx));
 }
 
-#if 0
 MarketPeriodConfig getRampedPeriodConf(bool hot)
 {
     return {
         .hot = hot,
-        .pausePeriod = 2 * 60ull * 60ull * 1'000'000ull,
-        .pauseAcceptLoss = (hot ? 10u : 100'000u),
-        .rampPeriod = 2 * 60ull * 60ull * 1'000'000ull,
-        .rampGrade = 200'000,
+        .pausePeriod = 2_Hours,
+        .pauseAcceptLoss = (hot ? 10_PercentagePoints : 100_Percent),
+        .rampPeriod = 2_Hours,
+        .rampGrade = 200_Percent,
+    };
+}
+
+MarketPeriodConfig getPausedPeriodConf()
+{
+    return {
+        .hot = false,
+        .pausePeriod = 0_Seconds,
+        .pauseAcceptLoss = 0_Percent,
+        .rampPeriod = 0_Seconds,
+        .rampGrade = 0_Percent,
     };
 }
 
@@ -136,32 +147,21 @@ MarketTimeTraderConfig getMarketConf()
         // Open ----->
         .openMarket = getRampedPeriodConf(true),
         // Open -> Closed
-        .closingMarket = getRampedPeriodConf(false),
+        .closingMarket = getPausedPeriodConf(),
         // Closed ----->
-        .closedMarket = {
-            // Paused
-            .hot = false,
-        },
+        .closedMarket = getPausedPeriodConf(),
         // Closed -> Open
-        .openingMarket = {
-            // Paused
-            .hot = false,
-        },
+        .openingMarket = getRampedPeriodConf(false),
         // Open -> Weekend
-        .weekendingMarket = getRampedPeriodConf(false),
+        .weekendingMarket = getPausedPeriodConf(),
         // Weekend ---->
-        .weekendMarket = {
-            // Paused
-            .hot = false,
-        },
+        .weekendMarket = getPausedPeriodConf(),
         // Weekend -> Open
-        .weekStartingMarket = {
-            // Paused
-            .hot = false,
-        },
+        .weekStartingMarket = getRampedPeriodConf(true),
     };
 }
 
+#if 0
 MarketTimeTraderConfig getStockMarketConf()
 {
     return {
@@ -213,150 +213,125 @@ void Version1::init(
     else
         initProd(bot);
 
-#if 0
     BotContext &ctx = bot.getCtx();
     // Trader: Spread
     {
         SpreadTrader::Config conf;
         conf.name = "BreakEven";
-        conf.spread = 100; // 1% spread
-        conf.cents = 1000'00; // $500 bet
+        conf.spread = 10_PercentagePoints;
+        conf.bet = 500_Dollars;
         conf.num_pairs = 4;
-        conf.buffer_percent = 50;
-        conf.maxValue = 110'000'00;
+        conf.buffer_percent = 5_PercentagePoints;
+        conf.maxValue = 115'000_Dollars;
         conf.marketParams.push_back(getMarketConf());
-        conf.marketParams.push_back(getStockMarketConf());
-
-        auto trader = std::make_unique<SpreadTrader>(ctx, conf);
-        bot.addProcessor(std::move(trader));
+        bot.addProcessor(std::make_unique<SpreadTrader>(ctx, conf));
     }
 
-
+#if 0
     // Trader: Spread
     {
         SpreadTrader::Config conf;
         conf.name = "SmallSpread";
-        conf.spread = 50; // 0.5% spread
-        conf.cents = 200'00; // $500 bet
+        conf.spread = 50_PercentagePoints;
+        conf.bet = 500_Dollars;
         conf.num_pairs = 10;
-        conf.buffer_percent = 5;
-        conf.maxValue = 110'000'00;
-        conf.marketParams.push_back(getMarketConf());
-        conf.marketParams.push_back(getStockMarketConf());
-
-        auto trader = std::make_unique<SpreadTrader>(ctx, conf);
-        bot.addProcessor(std::move(trader));
+        conf.buffer_percent = 5_PercentagePoints;
+        conf.maxValue = 115'000_Dollars;
+        bot.addProcessor(std::make_unique<SpreadTrader>(ctx, conf));
     }
 
     // Trader: Spread
     {
         SpreadTrader::Config conf;
         conf.name = "SmallSpread2";
-        conf.spread = 40; // 0.4% spread
-        conf.cents = 50'00; // $50 bet
+        conf.spread = 40_PercentagePoints;
+        conf.bet = 50_Dollars;
         conf.num_pairs = 5;
-        conf.buffer_percent = 10;
-        conf.maxValue = 110'000'00;
-        conf.marketParams.push_back(getMarketConf());
-        conf.marketParams.push_back(getStockMarketConf());
-
-        auto trader = std::make_unique<SpreadTrader>(ctx, conf);
-        bot.addProcessor(std::move(trader));
+        conf.buffer_percent = 10_PercentagePoints;
+        conf.maxValue = 115'000_Dollars;
+        bot.addProcessor(std::make_unique<SpreadTrader>(ctx, conf));
     }
-
 
     // Trader: 101k -> 105k ($500)
     {
         StaticTrader::Config conf;
         conf.name = "Static4k";
-        conf.cents = 500'00;
-        conf.buyCents = 101'000'00;
-        conf.sellCents = 105'000'00;
-        conf.enabled = false;
-        conf.marketParams.push_back(getMarketConf());
+        conf.bet = 500_Dollars;
+        conf.buy = 101'000_Dollars;
+        conf.sell = 105'000_Dollars;
+        conf.enabled = true;
+        //conf.marketParams.push_back(getMarketConf());
 
-        auto trader = std::make_unique<StaticTrader>(ctx, conf);
-        bot.addProcessor(std::move(trader));
+        bot.addProcessor(std::make_unique<StaticTrader>(ctx, conf));
     }
 
     // Trader: 100k -> 101k ($400)
     {
         StaticTrader::Config conf;
         conf.name = "Static1k";
-        conf.cents = 400'00;
-        conf.buyCents = 100'000'00;
-        conf.sellCents = 101'000'00;
-        conf.enabled = false;
-        conf.marketParams.push_back(getMarketConf());
+        conf.bet = 400_Dollars;
+        conf.buy = 100'000_Dollars;
+        conf.sell = 101'000_Dollars;
+        conf.enabled = true;
+        //conf.marketParams.push_back(getMarketConf());
 
-        auto trader = std::make_unique<StaticTrader>(ctx, conf);
-        bot.addProcessor(std::move(trader));
+        bot.addProcessor(std::make_unique<StaticTrader>(ctx, conf));
     }
 
     // Trader: 0.5% time spread
     {
         TimeTrader::Config conf;
         conf.name = "SmallTime";
-        conf.cents = 200'00; // $500
-        conf.seconds = 20 * 60;
-        conf.minSpread = 50;
-        conf.paddingSpread = 1;
+        conf.bet = 500_Dollars;
+        conf.sampleSize = 20_Minutes;
+        conf.minSpread = 50_PercentagePoints;
+        conf.paddingSpread = 1_PercentagePoints;
         conf.numPairs = 10;
-        conf.maxValue = 110'000'00;
+        conf.maxValue = 115'000_Dollars;
         conf.enabled = true;
-        conf.marketParams.push_back(getMarketConf());
-        conf.marketParams.push_back(getStockMarketConf());
-
-        auto trader = std::make_unique<TimeTrader>(ctx, conf);
-        bot.addProcessor(std::move(trader));
+        bot.addProcessor(std::make_unique<TimeTrader>(ctx, conf));
     }
 
     // Trader: 0.5% time spread
     {
         TimeTrader::Config conf;
         conf.name = "MedTime";
-        conf.cents = 40'00;
-        conf.seconds = 5 * 60;
-        conf.minSpread = 100;
-        conf.paddingSpread = 1;
+        conf.bet = 40_Dollars;
+        conf.sampleSize = 5_Minutes;
+        conf.minSpread = 1_Percent;
+        conf.paddingSpread = 1_PercentagePoints;
         conf.numPairs = 10;
-        conf.maxValue = 110'000'00;
+        conf.maxValue = 115'000_Dollars;
         conf.enabled = true;
-        conf.marketParams.push_back(getMarketConf());
-        conf.marketParams.push_back(getStockMarketConf());
-
-        auto trader = std::make_unique<TimeTrader>(ctx, conf);
-        bot.addProcessor(std::move(trader));
+        bot.addProcessor(std::make_unique<TimeTrader>(ctx, conf));
     }
 
     // Trader: Market immune time spreader
     {
         TimeTrader::Config conf;
         conf.name = "ImmuneTime";
-        conf.cents = 50'00;
-        conf.seconds = 30 * 60;
-        conf.minSpread = 50;
-        conf.paddingSpread = 100;
+        conf.bet = 50_Dollars;
+        conf.sampleSize = 30_Minutes;
+        conf.minSpread = 50_PercentagePoints;
+        conf.paddingSpread = 100_PercentagePoints;
         conf.numPairs = 100;
-        conf.maxValue = 110'000'00;
+        conf.maxValue = 115'000_Dollars;
         conf.enabled = true;
 
-        auto trader = std::make_unique<TimeTrader>(ctx, conf);
-        bot.addProcessor(std::move(trader));
+        bot.addProcessor(std::make_unique<TimeTrader>(ctx, conf));
     }
 
     // Trader: Spread
     {
         SpreadTrader::Config conf;
         conf.name = "ImmuneSpread";
-        conf.spread = 50; // .5% spread
-        conf.cents = 50'00; // $50 bet
+        conf.spread = 50_PercentagePoints;
+        conf.bet = 50_Dollars;
         conf.num_pairs = 10;
-        conf.buffer_percent = 20;
-        conf.maxValue = 110'000'00;
+        conf.buffer_percent = 20_PercentagePoints;
+        conf.maxValue = 115'000_Dollars;
 
-        auto trader = std::make_unique<SpreadTrader>(ctx, conf);
-        bot.addProcessor(std::move(trader));
+        bot.addProcessor(std::make_unique<SpreadTrader>(ctx, conf));
     }
 #endif
 }

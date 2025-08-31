@@ -25,7 +25,7 @@ class CoinbaseInterface
 
         virtual CoinbaseWallet::Data getWallet() = 0;
 
-        virtual uint32_t getFeeTier() = 0;
+        virtual pp_t getFeeTier() = 0;
 
     protected:
         CoinbaseInterface() = default;

@@ -168,7 +168,7 @@ bool CoinbaseRestClient::submitOrder(
 
     log::info("Submitted new %s order ($%s) (UUID: '%s', Client UUID: '%s').",
         order.buy ? "BUY" : "SELL",
-        IntegerUtils::centsToUsd(order.valueCents()).c_str(),
+        IntegerUtils::toUsdString(order.value()).c_str(),
         order.uuid.c_str(),
         clientUuid.c_str());
 
@@ -267,14 +267,14 @@ CoinbaseWallet::Data CoinbaseRestClient::getWallet()
     }
 
     CoinbaseWallet::Data ret;
-    ret.onHoldUsd = IntegerUtils::usdToCents(usdReserved);
-    ret.onHoldBtc = IntegerUtils::btcToSatoshi(btcReserved);
-    ret.usd = IntegerUtils::usdToCents(usdBalance) + ret.onHoldUsd;
-    ret.btc = IntegerUtils::btcToSatoshi(btcBalance) + ret.onHoldBtc;
+    ret.onHoldUsd = IntegerUtils::fromUsdString(usdReserved);
+    ret.onHoldBtc = IntegerUtils::fromBtcString(btcReserved);
+    ret.usd = IntegerUtils::fromUsdString(usdBalance) + ret.onHoldUsd;
+    ret.btc = IntegerUtils::fromBtcString(btcBalance) + ret.onHoldBtc;
     return ret;
 }
 
-uint32_t CoinbaseRestClient::getFeeTier()
+pp_t CoinbaseRestClient::getFeeTier()
 {
     HttpResponse resp = get("brokerage/transaction_summary");
     // Retry at least once to handle transient issues
@@ -288,22 +288,22 @@ uint32_t CoinbaseRestClient::getFeeTier()
     {
         log::error("Failed to query Coinbase transactions summary: %s",
             getError(resp).c_str());
-        return 0;
+        return {};
     }
 
     if (!resp.data.contains("fee_tier"))
     {
         log::error("Coinbase transaction summary malformed.");
-        return 0;
+        return {};
     }
 
     // Parse response
     std::string fee = resp.data["fee_tier"]["maker_fee_rate"].get<std::string>();
     size_t pos = fee.find(".");
     if (pos == std::string::npos)
-        return 0;
+        return {};
 
     fee.erase(0, pos + 1);
     fee.resize(4, '0');
-    return static_cast<uint32_t>(atoi(fee.c_str()));
+    return pp_t(static_cast<uint32_t>(atoi(fee.c_str())));
 }

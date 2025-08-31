@@ -12,7 +12,7 @@ namespace
 {
 
 // 5 minutes
-constexpr const uint64_t PERIODIC_FREQUENCY = 5 * 60 * 1'000'000;
+constexpr const utime_t PERIODIC_FREQUENCY = 5_Minutes;
 
 }
 
@@ -20,7 +20,6 @@ WalletHistoricalWriter::WalletHistoricalWriter(
     BotContext &ctx)
         : ctx(ctx)
 {
-    prevTime = 0;
     ctx.data.subscribe<BtcPrice>(*this);
     ctx.data.subscribe<CoinbaseWallet>(*this);
 }
@@ -30,7 +29,7 @@ void WalletHistoricalWriter::process(
 {
     (void)price;
 
-    uint64_t curTime = ctx.data.get<Time>().getTime();
+    utime_t curTime = ctx.data.get<Time>().getTime();
 
     std::lock_guard<std::mutex> lock(mtx);
     if (curTime < prevTime + PERIODIC_FREQUENCY)
@@ -56,23 +55,23 @@ void WalletHistoricalWriter::write(
     if (!ctx.data.get<CoinbaseInit>())
         return;
 
-    uint64_t curTime = ctx.data.get<Time>().getTime();
+    utime_t curTime = ctx.data.get<Time>().getTime();
     if (curTime == prevTime)
         return;
 
     prevTime = curTime;
 
     const CoinbaseWallet &wallet = ctx.data.get<CoinbaseWallet>();
-    uint32_t btcValue = ctx.data.get<BtcPrice>().getCents();
-    uint32_t totalValue = wallet.getUsdCents();
-    totalValue += IntegerUtils::getValueCents(btcValue, wallet.getBtcSatoshi());
+    usd_t btcValue = ctx.data.get<BtcPrice>().getPrice();
+    usd_t totalValue = wallet.getUsd();
+    totalValue += IntegerUtils::getValue(btcValue, wallet.getBtc());
 
     std::ostringstream query;
     query << "INSERT INTO wallet (time, usd, btc, value) VALUES ("
-        << curTime << ","
-        << wallet.getUsdCents() << ","
-        << wallet.getBtcSatoshi() << ","
-        << totalValue << ")";
+        << curTime.value() << ","
+        << wallet.getUsd().value() << ","
+        << wallet.getBtc().value() << ","
+        << totalValue.value() << ")";
     if (!ctx.historicalDb.getConn().execute(query.str()))
         log::error("Failed to record wallet data.");
 }

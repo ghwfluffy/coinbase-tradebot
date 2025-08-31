@@ -2,10 +2,9 @@
 
 #include <gtb/IntegerUtils.h>
 #include <gtb/SteadyClock.h>
+#include <gtb/IntLiterals.h>
 
 #include <string>
-
-#include <stdint.h>
 
 namespace gtb
 {
@@ -21,43 +20,46 @@ struct CoinbaseOrder
         Error,
     };
 
-    State state = State::None;
     std::string uuid;
+    // Buy or sell
     bool buy = false;
     // Price of BTC to buy/sell at
-    uint32_t priceCents = 0;
-    // 100-millions of a bitcoin (Satoshi)
-    uint64_t quantity = 0;
-    uint64_t createdTime = 0;
-    SteadyClock::TimePoint cleanupTime;
+    usd_t price;
+    // How many BTC to buy/sell
+    btc_t quantity;
+    // Final wallet change (not including fees)
+    usd_t beforeFees;
+    // Fees paid
+    usd_t fees;
 
-    // In picodollars
-    uint64_t beforeFees = 0;
-    uint64_t fees = 0;
+    State state = State::None;
+    utime_t createdTime;
+    SteadyClock::TimePoint cleanupTime;
 
     operator bool() const
     {
-        return !uuid.empty() && state != State::None && priceCents > 0 && quantity > 0;
+        return !uuid.empty() && state != State::None && price && quantity;
     }
 
-    uint32_t valueCents() const
+    usd_t value() const
     {
-        return IntegerUtils::getValueCents(priceCents, quantity);
+        return IntegerUtils::getValue(price, quantity);
     }
 
+    // Set quantity based on USD amount to buy at btcPrice
     void setQuantity(
-        uint32_t priceCents,
-        uint32_t amountCents)
+        usd_t btcPrice,
+        usd_t transactionSize)
     {
-        if (priceCents == 0 || amountCents == 0)
+        if (!btcPrice || !transactionSize)
         {
-            this->quantity = 0;
-            this->priceCents = 0;
+            this->quantity = {};
+            this->price = {};
             return;
         }
 
-        this->priceCents = priceCents;
-        this->quantity = IntegerUtils::getSatoshiForPrice(priceCents, amountCents);
+        this->price = btcPrice;
+        this->quantity = IntegerUtils::getSatoshiForPrice(btcPrice, transactionSize);
     }
 };
 

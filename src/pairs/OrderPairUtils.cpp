@@ -1,35 +1,25 @@
 #include <gtb/OrderPairUtils.h>
 #include <gtb/OrderPairDb.h>
+#include <gtb/IntegerUtils.h>
 #include <gtb/Log.h>
 
 using namespace gtb;
 
 std::string OrderPairUtils::getFurthestPending(
-    uint32_t currentPrice,
+    usd_t currentPrice,
     const std::list<OrderPair> &orderPairs)
 {
     std::string furthestUuid;
-    uint32_t furthestDistance = 0;
+    usd_t furthestDistance;
     for (const OrderPair &pair : orderPairs)
     {
         // Only pending
         if (pair.state > OrderPair::State::Pending)
             continue;
 
-        int32_t buyDistance = static_cast<int32_t>(pair.buyPrice - currentPrice);
-        if (buyDistance < 0)
-            buyDistance *= -1;
-
-        int32_t sellDistance = static_cast<int32_t>(pair.sellPrice - currentPrice);
-        if (sellDistance < 0)
-            sellDistance *= -1;
-
-        uint32_t distance = 0;
-        if (buyDistance < sellDistance)
-            distance = static_cast<uint32_t>(buyDistance);
-        else
-            distance = static_cast<uint32_t>(sellDistance);
-
+        usd_t buyDistance = IntegerUtils::difference(pair.buyPrice, pair.sellPrice);
+        usd_t sellDistance = IntegerUtils::difference(pair.sellPrice, currentPrice);
+        usd_t distance = std::min(buyDistance, sellDistance);
         if (furthestUuid.empty() || distance > furthestDistance)
         {
             furthestUuid = pair.uuid;
@@ -83,7 +73,7 @@ bool OrderPairUtils::cancelPair(
 
 bool OrderPairUtils::cancelPending(
     Database &db,
-    uint32_t currentPrice,
+    usd_t currentPrice,
     const std::string &algName,
     std::list<OrderPair> &orderPairs)
 {

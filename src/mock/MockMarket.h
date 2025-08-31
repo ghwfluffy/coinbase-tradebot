@@ -34,8 +34,8 @@ class MockMarket : public ThreadedDataSource
     private:
         BotContext &ctx;
 
-        uint64_t curTime;
-        uint64_t endTime;
+        utime_t curTime;
+        utime_t endTime;
         DatabaseConnection conn;
 
         std::mutex mtxChurn;

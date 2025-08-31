@@ -14,7 +14,7 @@ class MockCoinbase : public CoinbaseInterface
     public:
         MockCoinbase(
             BotContext &ctx,
-            uint32_t feeTier = 35);
+            pp_t feeTier = 35_PercentagePoints);
         MockCoinbase(MockCoinbase &&) = default;
         MockCoinbase(const MockCoinbase &) = delete;
         MockCoinbase &operator=(MockCoinbase &&) = delete;
@@ -32,11 +32,11 @@ class MockCoinbase : public CoinbaseInterface
 
         CoinbaseWallet::Data getWallet() final;
 
-        uint32_t getFeeTier() final;
+        pp_t getFeeTier() final;
 
     private:
         BotContext &ctx;
-        uint32_t feeTier;
+        pp_t feeTier;
 };
 
 }

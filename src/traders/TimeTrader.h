@@ -13,16 +13,14 @@ class TimeTrader : public OrderPairTrader
     public:
         struct Config : public BaseTraderConfig
         {
-            // How many seconds to sample for the high/low window
-            uint32_t seconds = 0;
-            // Minimum spread (10 = 0.1%)
-            uint32_t minSpread = 1000;
-            // Amount of spread to pad from the min/max
-            uint32_t paddingSpread = 100;
+            // How long to sample for the high/low window
+            utime_t sampleSize;
+            // The difference between low and high that must exist to mark a trade
+            pp_t minSpread = 10_Percent;
+            // Amount of spread to pad from the min/max (trade spread = minSpread - paddingSpread)
+            pp_t paddingSpread = 1_Percent;
             // How many spreads to maintain
             uint32_t numPairs = 1;
-            // The maximum price we will queue a sale for
-            uint32_t maxValue = 105'000'00;
         };
 
         TimeTrader(
@@ -41,13 +39,11 @@ class TimeTrader : public OrderPairTrader
     private:
         void reset();
 
-        bool patientOverride() const;
-
         Config conf;
 
-        uint64_t startTime;
-        uint32_t lowest;
-        uint32_t highest;
+        utime_t startTime;
+        usd_t lowest;
+        usd_t highest;
 };
 
 }

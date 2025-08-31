@@ -36,8 +36,8 @@ void CoinbaseUserInfo::query()
         ctx.data.get<CoinbaseInit>().setWalletInit();
     }
 
-    uint32_t fees = ctx.coinbase().getFeeTier();
-    if (fees > 0)
+    pp_t fees = ctx.coinbase().getFeeTier();
+    if (fees)
     {
         ctx.data.get<CoinbaseFeeTier>().setFeeTier(fees);
         ctx.data.get<CoinbaseInit>().setFeeTierInit();

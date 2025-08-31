@@ -1,39 +1,70 @@
 #pragma once
 
+#include <gtb/IntLiterals.h>
+
 #include <string>
-#include <stdint.h>
 
 namespace gtb
 {
 
+/**
+ * Utilities for converting between different usd/btc price types
+ */
 namespace IntegerUtils
 {
-    uint32_t usdToCents(
+    // From $X.YY format (or X.YYYYYYYY) to usd_t
+    usd_t fromUsdString(
         const std::string &usd);
 
-    uint64_t btcToSatoshi(
+    // Format a decipicodollar (usd_t) amount into $X.YY using cent granularity
+    std::string toUsdString(
+        usd_t picos);
+
+    // Possibly negative
+    std::string toUsdString(
+        int64_t picos);
+
+    // From fractional bitcoin format (X.YYYYYYYY) to btc_t
+    btc_t fromBtcString(
         const std::string &btc);
 
-    std::string centsToUsd(
-        uint32_t cents);
+    // Format satoshi's into fractional bitcoins
+    std::string toBtcString(
+        btc_t satoshi);
 
-    std::string centsToUsd(
-        int32_t cents);
+    // Value of 'satoshi' bitcoins at 'price'
+    usd_t getValue(
+        usd_t price,
+        btc_t satoshi);
 
-    std::string satoshiToBtc(
-        uint64_t satoshi);
+    // Number of bitcoins you could buy with 'transactionSize' USD at 'btcPrice' price
+    btc_t getSatoshiForPrice(
+        usd_t btcPrice,
+        usd_t transactionSize);
 
-    uint32_t getValueCents(
-        uint32_t priceCents,
-        uint64_t satoshi);
+    template<typename IntType>
+    IntType difference(
+        IntType lhs,
+        IntType rhs)
+    {
+        return lhs < rhs ? (rhs - lhs) : (lhs - rhs);
+    }
 
-    uint64_t getSatoshiForPrice(
-        uint32_t btcPriceCents,
-        uint32_t amountCents);
+    template<typename IntType>
+    IntType avg(
+        IntType lhs,
+        IntType rhs)
+    {
+        return IntType((lhs.value() + rhs.value()) / 2);
+    }
 
-    // I call it 'picodollars' but it's really 10^-13 dollars (10^-11 cents)
-    uint64_t usdToPico(
-        const std::string &str);
+    template<typename IntType>
+    pp_t fraction(
+        IntType numerator,
+        IntType denominator)
+    {
+        return pp_t(static_cast<uint32_t>((numerator.value() * pp_t(100_Percent).value()) / denominator.value()));
+    }
 }
 
 }

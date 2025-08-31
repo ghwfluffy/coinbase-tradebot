@@ -48,18 +48,16 @@ void PendingProfitsCalc::update()
     nextUpdate = SteadyClock::now() + std::chrono::minutes(2);
 
     // Sum the prices and satoshis
-    uint32_t spent = 0;
-    uint64_t assets = 0;
+    usd_t spent;
+    btc_t assets;
     for (const OrderPair &pair : orders)
     {
-        spent += pair.betCents;
+        spent += pair.bet;
         assets += pair.quantity;
     }
 
     // Convert satoshis to value at current market value
-    uint32_t value = IntegerUtils::getValueCents(ctx.data.get<BtcPrice>().getCents(), assets);
-    // Current value minus how much we spent
-    int32_t delta = static_cast<int32_t>(value) - static_cast<int32_t>(spent);
+    usd_t value = IntegerUtils::getValue(ctx.data.get<BtcPrice>().getPrice(), assets);
     // Update data model
-    ctx.data.get<PendingProfits>().setProfit(delta);
+    ctx.data.get<PendingProfits>().setProfit(spent, value);
 }

@@ -1,5 +1,5 @@
-# C++17
-set(CMAKE_CXX_STANDARD 17)
+# C++20
+set(CMAKE_CXX_STANDARD 20)
 
 # OpenSSL 3.1
 string(APPEND

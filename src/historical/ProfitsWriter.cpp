@@ -11,7 +11,6 @@ ProfitsWriter::ProfitsWriter(
     BotContext &ctx)
         : ctx(ctx)
 {
-    prevTime = 0;
     ctx.data.subscribe<Profits>(*this);
 }
 
@@ -19,7 +18,7 @@ void ProfitsWriter::process(
     const Profits &profits)
 {
     Profits::Data data = profits.getData();
-    uint64_t curTime = ctx.data.get<Time>().getTime();
+    utime_t curTime = ctx.data.get<Time>().getTime();
 
     std::lock_guard<std::mutex> lock(mtx);
     if (curTime > prevTime)
@@ -29,11 +28,11 @@ void ProfitsWriter::process(
         query << "INSERT INTO profits_and_losses "
             << "(time, purchased, sold, buy_fees, sell_fees, profit) "
             << "VALUES ("
-            << curTime << ","
-            << data.purchased << ","
-            << data.sold << ","
-            << data.buyFees << ","
-            << data.sellFees << ","
+            << curTime.value() << ","
+            << data.purchased.value() << ","
+            << data.sold.value() << ","
+            << data.buyFees.value() << ","
+            << data.sellFees.value() << ","
             << data.getProfit()
             << ")";
         if (!ctx.historicalDb.getConn().execute(query.str()))

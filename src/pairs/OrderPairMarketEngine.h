@@ -10,27 +10,27 @@ namespace gtb
  * Create a new order pair for a trader based
  * on it's configuration and the current market.
  *
- * Or adjust pending sales to potentially by discounted
+ * Or adjust pending sales to potentially be discounted
  * according to market conditions.
  */
 namespace OrderPairMarketEngine
 {
     OrderPair newSpread(
         const BaseTraderConfig &config,
-        uint32_t currentBtcPrice,
-        uint64_t currentTime,
-        uint32_t spread);
+        usd_t currentBtcPrice,
+        utime_t currentTime,
+        pp_t spread);
 
     OrderPair newStatic(
         const BaseTraderConfig &config,
-        uint64_t currentTime,
-        uint32_t buyPrice,
-        uint32_t sellPrice);
+        utime_t currentTime,
+        usd_t buyPrice,
+        usd_t sellPrice);
 
     void checkSale(
         OrderPair &pair,
         const BaseTraderConfig &config,
-        uint64_t currentTime);
+        utime_t currentTime);
 }
 
 }

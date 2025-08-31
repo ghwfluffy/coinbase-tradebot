@@ -37,22 +37,22 @@ CoinbaseOrder CoinbaseApi::parseOrder(
     // GET order
     if (data.contains("order_configuration") && data["order_configuration"].contains("limit_limit_gtc"))
     {
-        order.priceCents = IntegerUtils::usdToCents(
+        order.price = IntegerUtils::fromUsdString(
             data["order_configuration"]["limit_limit_gtc"]["limit_price"].get<std::string>()
         );
 
         // Buys
         if (data["order_configuration"]["limit_limit_gtc"].contains("quote_size"))
         {
-            uint32_t amountCents = IntegerUtils::usdToCents(
+            usd_t amount = IntegerUtils::fromUsdString(
                 data["order_configuration"]["limit_limit_gtc"]["quote_size"].get<std::string>()
             );
-            order.setQuantity(order.priceCents, amountCents);
+            order.setQuantity(order.price, amount);
         }
         // Sells
         else if (data["order_configuration"]["limit_limit_gtc"].contains("base_size"))
         {
-            order.quantity = IntegerUtils::btcToSatoshi(
+            order.quantity = IntegerUtils::fromBtcString(
                 data["order_configuration"]["limit_limit_gtc"]["base_size"].get<std::string>()
             );
         }
@@ -61,19 +61,19 @@ CoinbaseOrder CoinbaseApi::parseOrder(
     else
     {
         if (data.contains("avg_price"))
-            order.priceCents = IntegerUtils::usdToCents(data["avg_price"].get<std::string>());
+            order.price = IntegerUtils::fromUsdString(data["avg_price"].get<std::string>());
         else if (data.contains("limit_price"))
-            order.priceCents = IntegerUtils::usdToCents(data["limit_price"].get<std::string>());
+            order.price = IntegerUtils::fromUsdString(data["limit_price"].get<std::string>());
 
-        uint32_t amountCents = 0;
+        usd_t amount;
         if (data.contains("filled_value"))
-            amountCents += IntegerUtils::usdToCents(data["filled_value"].get<std::string>());
+            amount += IntegerUtils::fromUsdString(data["filled_value"].get<std::string>());
         if (data.contains("leaves_quantity"))
-            amountCents += IntegerUtils::usdToCents(data["leaves_quantity"].get<std::string>());
+            amount += IntegerUtils::fromUsdString(data["leaves_quantity"].get<std::string>());
         if (data.contains("total_fees"))
-            amountCents += IntegerUtils::usdToCents(data["total_fees"].get<std::string>());
+            amount += IntegerUtils::fromUsdString(data["total_fees"].get<std::string>());
 
-        order.setQuantity(order.priceCents, amountCents);
+        order.setQuantity(order.price, amount);
     }
 
     // Parse Created Time (convert to microseconds since epoch)
@@ -87,7 +87,7 @@ CoinbaseOrder CoinbaseApi::parseOrder(
         ss >> std::get_time(&tm, "%Y-%m-%dT%H:%M:%S");
 
         if (ss.fail())
-            order.createdTime = 0;
+            order.createdTime = {};
         else
         {
             // Convert to time_point (UTC assumed)
@@ -106,19 +106,19 @@ CoinbaseOrder CoinbaseApi::parseOrder(
             }
 
             // Convert time_point to microseconds since epoch
-            order.createdTime = static_cast<uint64_t>(
+            order.createdTime = utime_t(static_cast<uint64_t>(
                 std::chrono::duration_cast<std::chrono::microseconds>(
                     tp.time_since_epoch()
-                ).count());
+                ).count()));
         }
     }
 
     if (data.contains("total_fees"))
-        order.fees = IntegerUtils::usdToPico(data["total_fees"].get<std::string>());
+        order.fees = IntegerUtils::fromUsdString(data["total_fees"].get<std::string>());
 
     if (data.contains("filled_value"))
     {
-        order.beforeFees = IntegerUtils::usdToPico(data["filled_value"].get<std::string>());
+        order.beforeFees = IntegerUtils::fromUsdString(data["filled_value"].get<std::string>());
         if (order.buy)
             order.beforeFees += order.fees;
     }
@@ -134,15 +134,15 @@ nlohmann::json CoinbaseApi::serializeOrder(
     // Force maker, never taker
     gtc["post_only"] = true;
     // Most we want to buy/Least we want to sell it for
-    gtc["limit_price"] = IntegerUtils::centsToUsd(order.priceCents);
+    gtc["limit_price"] = IntegerUtils::toUsdString(order.price);
 
     // Include only one of base_size or quote_size
     // Buy we will go based off how much we want to spend
     if (order.buy)
-        gtc["quote_size"] = IntegerUtils::centsToUsd(order.valueCents());
+        gtc["quote_size"] = IntegerUtils::toUsdString(order.value());
     // Sell we will sell exactly how many Satoshi we bought
     else
-        gtc["base_size"] = IntegerUtils::satoshiToBtc(order.quantity);
+        gtc["base_size"] = IntegerUtils::toBtcString(order.quantity);
 
     nlohmann::json conf;
     conf["limit_limit_gtc"] = std::move(gtc);

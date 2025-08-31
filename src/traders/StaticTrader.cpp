@@ -31,8 +31,8 @@ void StaticTrader::handleNewPair(
     OrderPair pair = OrderPairMarketEngine::newStatic(
         conf,
         ctx.data.get<Time>().getTime(),
-        conf.buyCents,
-        conf.sellCents);
+        conf.buy,
+        conf.sell);
     if (!pair)
         return;
 

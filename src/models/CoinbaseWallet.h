@@ -1,8 +1,7 @@
 #pragma once
 
 #include <gtb/DataModel.h>
-
-#include <stdint.h>
+#include <gtb/IntLiterals.h>
 
 namespace gtb
 {
@@ -19,28 +18,28 @@ class CoinbaseWallet : public DataModel
 
         operator bool() const;
 
-        uint32_t getUsdCents() const;
-        uint64_t getBtcSatoshi() const;
+        usd_t getUsd() const;
+        btc_t getBtc() const;
 
-        uint32_t getAvailUsdCents() const;
-        uint64_t getAvailBtcSatoshi() const;
+        usd_t getAvailUsd() const;
+        btc_t getAvailBtc() const;
 
         void update(
-            uint32_t usd,
-            uint64_t btc,
-            uint32_t onHoldUsd,
-            uint64_t onHoldBtc);
+            usd_t usd,
+            btc_t btc,
+            usd_t onHoldUsd,
+            btc_t onHoldBtc);
 
         struct Data
         {
             operator bool() const;
 
-            // Includes on hold amounts
-            uint32_t usd = 0;
-            uint64_t btc = 0;
+            // Includes on hold amounts (decipicodollars)
+            usd_t usd;
+            btc_t btc;
 
-            uint32_t onHoldUsd = 0;
-            uint64_t onHoldBtc = 0;
+            usd_t onHoldUsd;
+            btc_t onHoldBtc;
         };
 
         void update(

@@ -78,3 +78,23 @@ void OrderPairTrader::handleExistingPairs(
         }
     }
 }
+
+// If we've queued our maximum number of pairs,
+// and there is a patienceOverride configured,
+// then we can exceed our maximum number of pairs
+// if we are patient enough to wait the override period
+// since the last pair was queued
+bool OrderPairTrader::patientOverride() const
+{
+    if (!conf.patienceOverride)
+        return false;
+
+    utime_t mostRecentTime;
+    for (const OrderPair &pair : orderPairs)
+    {
+        if (pair.created > mostRecentTime)
+            mostRecentTime = pair.created;
+    }
+
+    return mostRecentTime + conf.patienceOverride <= ctx.data.get<Time>().getTime();
+}

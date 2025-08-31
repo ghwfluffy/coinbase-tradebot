@@ -1,7 +1,8 @@
 #pragma once
 
-#include <string>
+#include <gtb/IntLiterals.h>
 
+#include <string>
 #include <stdint.h>
 
 namespace gtb
@@ -33,7 +34,7 @@ class MarketInfo
 
         MarketInfo(
             Market market = Market::None,
-            uint64_t time = 0);
+            utime_t time = {});
         MarketInfo(MarketInfo &&) = default;
         MarketInfo(const MarketInfo &) = default;
         MarketInfo &operator=(MarketInfo &&) = default;
@@ -45,14 +46,14 @@ class MarketInfo
         bool isWeekend() const;
         bool isWeekendNext() const;
 
-        uint64_t tillOpen() const;
-        uint64_t tillClosed() const;
+        utime_t tillOpen() const;
+        utime_t tillClosed() const;
 
-        uint64_t sinceOpen() const;
-        uint64_t sinceClosed() const;
+        utime_t sinceOpen() const;
+        utime_t sinceClosed() const;
 
         static std::string getTimeString(
-            uint64_t time);
+            utime_t time);
 
     private:
         Market market;

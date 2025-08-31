@@ -20,11 +20,11 @@ void ProfitsReader::initProfits(
     if (result.next())
     {
         ctx.data.get<Profits>().addOrderPair(
-            result[0].getUInt64(),
-            result[1].getUInt64(),
-            result[2].getUInt64(),
-            result[3].getUInt64());
+            usd_t(result[0].getUInt64()),
+            usd_t(result[1].getUInt64()),
+            usd_t(result[2].getUInt64()),
+            usd_t(result[3].getUInt64()));
         log::info("Initialized profits to %s.",
-            IntegerUtils::centsToUsd(ctx.data.get<Profits>().getProfit()).c_str());
+            IntegerUtils::toUsdString(ctx.data.get<Profits>().getProfit()).c_str());
     }
 }

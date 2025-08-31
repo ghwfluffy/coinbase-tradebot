@@ -1,8 +1,8 @@
 #pragma once
 
-#include <gtb/IntegerUtils.h>
 #include <gtb/Profits.h>
 #include <gtb/SteadyClock.h>
+#include <gtb/IntegerUtils.h>
 
 #include <list>
 #include <string>
@@ -29,12 +29,12 @@ struct OrderPair
     std::string algo;
     std::string buyOrder;
     std::string sellOrder;
-    uint32_t betCents = 0;
-    uint32_t buyPrice = 0;
-    uint32_t sellPrice = 0;
-    uint32_t origSellPrice = 0;
-    uint64_t quantity = 0;
-    uint64_t created = 0;
+    usd_t bet;
+    usd_t buyPrice;
+    usd_t sellPrice;
+    usd_t origSellPrice;
+    btc_t quantity;
+    utime_t created;
     State state = State::None;
     SteadyClock::TimePoint nextTry;
 
@@ -58,18 +58,12 @@ struct OrderPair
 
     operator bool() const
     {
-        return betCents > 0 && buyPrice > 0 && sellPrice > 0 && quantity > 0 &&
-            state > State::None;
+        return bet && buyPrice && sellPrice && state > State::None;
     };
 
-    uint32_t buyValue() const
+    usd_t sellValue() const
     {
-        return IntegerUtils::getValueCents(buyPrice, quantity);
-    }
-
-    uint32_t sellValue() const
-    {
-        return IntegerUtils::getValueCents(sellPrice, quantity);
+        return IntegerUtils::getValue(sellPrice, quantity);
     }
 };
 

@@ -48,7 +48,7 @@ void CoinbaseMarket::handleMessage(
     if (!json.contains("events") || !json["events"].is_array() || json["events"].empty())
         return;
 
-    uint64_t total = 0;
+    usd_t total;
     uint32_t count = 0;
     for (const nlohmann::json &event : json["events"])
     {
@@ -61,7 +61,7 @@ void CoinbaseMarket::handleMessage(
                 continue;
 
             std::string price = trade["price"].get<std::string>();
-            total += IntegerUtils::usdToCents(price);
+            total += IntegerUtils::fromUsdString(price);
             count++;
         }
     }
@@ -69,7 +69,7 @@ void CoinbaseMarket::handleMessage(
     if (count > 0)
     {
         time.setNow();
-        btc.setCents(static_cast<uint32_t>(total / count));
+        btc.setPrice(usd_t(total.value() / count));
         ctx.data.get<CoinbaseInit>().setBtcInit();
     }
 }

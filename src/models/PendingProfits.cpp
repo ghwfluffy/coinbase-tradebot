@@ -7,13 +7,13 @@ PendingProfits::PendingProfits()
     profit = 0;
 }
 
-int32_t PendingProfits::getProfit() const
+int64_t PendingProfits::getProfit() const
 {
     return profit;
 }
 
-void PendingProfits::setProfit(int32_t profit)
+void PendingProfits::setProfit(usd_t spent, usd_t assets)
 {
-    this->profit = profit;
+    this->profit = static_cast<int64_t>(assets.value()) - static_cast<int64_t>(spent.value());
     updated();
 }

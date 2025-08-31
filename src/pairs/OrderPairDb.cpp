@@ -48,15 +48,15 @@ bool selectQuery(
         from_string(result[col++].getString(), pair.state);
         pair.buyOrder = result[col++].getString();
         pair.sellOrder = result[col++].getString();
-        pair.betCents = result[col++].getUInt32();
-        pair.buyPrice = result[col++].getUInt32();
-        pair.sellPrice = result[col++].getUInt32();
-        pair.quantity = result[col++].getUInt64();
-        pair.created = result[col++].getUInt64();
-        pair.profit.purchased = result[col++].getUInt64();
-        pair.profit.buyFees = result[col++].getUInt64();
-        pair.profit.sold = result[col++].getUInt64();
-        pair.profit.sellFees = result[col++].getUInt64();
+        pair.bet = usd_t(result[col++].getUInt64());
+        pair.buyPrice = usd_t(result[col++].getUInt64());
+        pair.sellPrice = usd_t(result[col++].getUInt64());
+        pair.quantity = btc_t(result[col++].getUInt64());
+        pair.created = utime_t(result[col++].getUInt64());
+        pair.profit.purchased = usd_t(result[col++].getUInt64());
+        pair.profit.buyFees = usd_t(result[col++].getUInt64());
+        pair.profit.sold = usd_t(result[col++].getUInt64());
+        pair.profit.sellFees = usd_t(result[col++].getUInt64());
 
         pairs.push_back(std::move(pair));
     }
@@ -143,15 +143,15 @@ bool OrderPairDb::insert(
         << "'" << to_string(pair.state) << "',"
         << "'" << pair.buyOrder << "',"
         << "'" << pair.sellOrder << "',"
-        << pair.betCents << ","
-        << pair.buyPrice << ","
-        << pair.sellPrice << ","
-        << pair.quantity << ","
-        << pair.created << ","
-        << pair.profit.purchased << ","
-        << pair.profit.buyFees << ","
-        << pair.profit.sold << ","
-        << pair.profit.sellFees << ")";
+        << static_cast<unsigned long long>(pair.bet.value()) << ","
+        << pair.buyPrice.value() << ","
+        << pair.sellPrice.value() << ","
+        << pair.quantity.value() << ","
+        << pair.created.value() << ","
+        << pair.profit.purchased.value() << ","
+        << pair.profit.buyFees.value() << ","
+        << pair.profit.sold.value() << ","
+        << pair.profit.sellFees.value() << ")";
     if (!db.getConn().execute(oss.str()))
     {
         log::error("Failed to insert order pair '%s' in DB.", pair.uuid.c_str());
@@ -171,15 +171,15 @@ bool OrderPairDb::update(
         << "state='" << to_string(pair.state) << "',"
         << "buy_order_uuid='" << pair.buyOrder << "',"
         << "sell_order_uuid='" << pair.sellOrder << "',"
-        << "bet=" << pair.betCents << ","
-        << "buy_price=" << pair.buyPrice << ","
-        << "sell_price=" << pair.sellPrice << ","
-        << "quantity=" << pair.quantity << ","
-        << "created=" << pair.created << ","
-        << "final_purchased=" << pair.profit.purchased << ","
-        << "final_buy_fees=" << pair.profit.buyFees << ","
-        << "final_sold=" << pair.profit.sold << ","
-        << "final_sell_fees=" << pair.profit.sellFees << " "
+        << "bet=" << static_cast<unsigned long long>(pair.bet.value()) << ","
+        << "buy_price=" << pair.buyPrice.value() << ","
+        << "sell_price=" << pair.sellPrice.value() << ","
+        << "quantity=" << pair.quantity.value() << ","
+        << "created=" << pair.created.value() << ","
+        << "final_purchased=" << pair.profit.purchased.value() << ","
+        << "final_buy_fees=" << pair.profit.buyFees.value() << ","
+        << "final_sold=" << pair.profit.sold.value() << ","
+        << "final_sell_fees=" << pair.profit.sellFees.value() << " "
         << "WHERE uuid='" << pair.uuid << "'";
     if (!db.getConn().execute(oss.str()))
     {

@@ -15,7 +15,7 @@ namespace
 {
 
 // Convert YYYY-mm-dd into time-since-epoch in microseconds
-uint64_t dateToMicro(
+utime_t dateToMicro(
     const std::string &date)
 {
     struct tm tm = {};
@@ -24,7 +24,7 @@ uint64_t dateToMicro(
 
     // Use timegm to interpret tm as UTC.
     time_t seconds = timegm(&tm);
-    return static_cast<uint64_t>(seconds) * 1000000ULL;
+    return utime_t(static_cast<uint64_t>(seconds) * 1000000ULL);
 }
 
 }
@@ -37,12 +37,12 @@ MockMarket::MockMarket(
         , ctx(ctx)
 {
     if (start.empty())
-        curTime = 0;
+        curTime = {};
     else
         curTime = dateToMicro(start);
 
     if (end.empty())
-        endTime = 4102444800000000ULL; // 2100 AD
+        endTime = utime_t(4102444800000000ULL); // 2100 AD
     else
         endTime = dateToMicro(end);
 }
@@ -59,8 +59,8 @@ void MockMarket::process()
         "SELECT time, price FROM btc_price "
         "WHERE time>=%llu AND time<=%llu "
         "ORDER BY time ASC LIMIT 1",
-        static_cast<unsigned long long>(curTime),
-        static_cast<unsigned long long>(endTime));
+        static_cast<unsigned long long>(curTime.value()),
+        static_cast<unsigned long long>(endTime.value()));
 
     DatabaseResult res = conn.query(szQuery);
     if (!res)
@@ -80,12 +80,12 @@ void MockMarket::process()
         {
             auto lock = ctx.data.get<MockLock>().lock();
 
-            uint64_t time = res[0].getUInt64();
-            uint32_t price = res[1].getUInt32();
+            utime_t time = utime_t(res[0].getUInt64());
+            usd_t price = usd_t(res[1].getUInt64());
             ctx.data.get<Time>().setTime(time);
-            ctx.data.get<BtcPrice>().setCents(price);
+            ctx.data.get<BtcPrice>().setPrice(price);
 
-            curTime = time + 1;
+            curTime = time + utime_t(1);
         }
 
         // Wait for the action pool thread to finish executing all downstream actions
