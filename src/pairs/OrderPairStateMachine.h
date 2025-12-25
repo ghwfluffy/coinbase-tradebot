@@ -1,6 +1,5 @@
 #pragma once
 
-#include <gtb/Database.h>
 #include <gtb/BotContext.h>
 
 #include <gtb/BtcPrice.h>
@@ -21,7 +20,6 @@ class OrderPairStateMachine
     public:
         OrderPairStateMachine(
             BotContext &ctx,
-            Database &db,
             BaseTraderConfig conf);
         OrderPairStateMachine(OrderPairStateMachine &&) = default;
         OrderPairStateMachine(const OrderPairStateMachine &) = default;
@@ -29,11 +27,7 @@ class OrderPairStateMachine
         OrderPairStateMachine &operator=(const OrderPairStateMachine &) = delete;
         ~OrderPairStateMachine() = default;
 
-        void churn(
-            std::list<OrderPair> &orderPairs,
-            bool force = false);
-
-        void churn(
+        bool churn(
             OrderPair &pair,
             bool force = false);
 
@@ -67,7 +61,6 @@ class OrderPairStateMachine
             const BtcPrice &price);
 
         BotContext &ctx;
-        Database &db;
         BaseTraderConfig conf;
         SteadyClock::TimePoint nextTrade;
 };

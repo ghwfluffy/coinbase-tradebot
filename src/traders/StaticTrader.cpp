@@ -24,7 +24,7 @@ void StaticTrader::handleNewPair(
     (void)price;
 
     // We already have an order pair created
-    if (!orderPairs.empty())
+    if (orderPairs.size() > 0)
         return;
 
     // Add a new order pair for our static buy price
@@ -37,7 +37,7 @@ void StaticTrader::handleNewPair(
         return;
 
     // Add the pair
-    if (!OrderPairDb::insert(db, pair))
+    if (!orderPairs.insert(pair))
     {
         log::error("Failed to insert new order pair for static trader '%s' in database.",
             conf.name.c_str());
@@ -46,5 +46,4 @@ void StaticTrader::handleNewPair(
 
     log::info("Created new pair for static trader '%s'.", conf.name.c_str());
     stateMachine.logChange(OrderPair::State::None, pair);
-    orderPairs.push_back(std::move(pair));
 }

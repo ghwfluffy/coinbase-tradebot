@@ -2,7 +2,6 @@
 #include <gtb/CoinbaseOrderBook.h>
 
 #include <gtb/OrderPairMarketEngine.h>
-#include <gtb/OrderPairDb.h>
 
 #include <gtb/MockMode.h>
 #include <gtb/Time.h>
@@ -23,29 +22,19 @@ const usd_t KEEP_ACTIVE_ORDER_WINDOW = 100_Dollars;
 
 OrderPairStateMachine::OrderPairStateMachine(
     BotContext &ctx,
-    Database &db,
     BaseTraderConfig conf)
         : ctx(ctx)
-        , db(db)
         , conf(std::move(conf))
 {
 }
 
-void OrderPairStateMachine::churn(
-    std::list<OrderPair> &orderPairs,
-    bool force)
-{
-    for (OrderPair &pair : orderPairs)
-        churn(pair, force);
-}
-
-void OrderPairStateMachine::churn(
+bool OrderPairStateMachine::churn(
     OrderPair &pair,
     bool force)
 {
     // This pair is not ready to act yet
     if (pair.nextTry > SteadyClock::now() && !force)
-        return;
+        return false;
 
     OrderPair::State startState = pair.state;
 
@@ -85,8 +74,10 @@ void OrderPairStateMachine::churn(
     if (pair.state != startState)
     {
         logChange(startState, pair);
-        OrderPairDb::update(db, pair);
+        return true;
     }
+
+    return false;
 }
 
 void OrderPairStateMachine::checkBuyState(
@@ -202,8 +193,11 @@ void OrderPairStateMachine::handlePending(
     if (conf.pendingPairExpiration &&
         ctx.data.get<Time>().getTime() > (pair.created + conf.pendingPairExpiration))
     {
+        // TODO: Too much logs
+#if 0
         log::info("Canceling stale pending pair '%s'.",
             pair.uuid.c_str());
+#endif
         pair.state = OrderPair::State::Canceled;
         return;
     }
@@ -238,10 +232,13 @@ void OrderPairStateMachine::handlePending(
         pair.state = OrderPair::State::BuyActive;
         pair.buyOrder = order.uuid;
 
+        // TODO: Too much logs
+#if 0
         log::info("Created new '%s' buy order '%s' for pair '%s'.",
             conf.name.c_str(),
             pair.buyOrder.c_str(),
             pair.uuid.c_str());
+#endif
 
         // Update wallet after order created
         if (!ctx.data.get<MockMode>())
@@ -322,10 +319,13 @@ void OrderPairStateMachine::handleHolding(
         pair.state = OrderPair::State::SellActive;
         pair.sellOrder = order.uuid;
 
+        // TODO: Too much logs
+#if 0
         log::info("Created new '%s' sell order '%s' for pair '%s'.",
             conf.name.c_str(),
             pair.sellOrder.c_str(),
             pair.uuid.c_str());
+#endif
 
         // Update wallet after order created
         if (!ctx.data.get<MockMode>())
@@ -371,6 +371,11 @@ void OrderPairStateMachine::logChange(
     OrderPair::State startState,
     const OrderPair &pair)
 {
+    // TODO: Too much logs
+    return;
+    if (!(pair.state == OrderPair::State::Holding || pair.state == OrderPair::State::Complete))
+        return;
+
     log::info("Spread '%s' pair '%s' updated '%s' => '%s' (%s -> %s) @ (%s -> %s).",
         conf.name.c_str(),
         pair.uuid.c_str(),

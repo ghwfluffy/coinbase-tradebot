@@ -1,6 +1,5 @@
 #include <gtb/OrderPairTrader.h>
 #include <gtb/CoinbaseInit.h>
-#include <gtb/OrderPairDb.h>
 #include <gtb/Log.h>
 
 using namespace gtb;
@@ -10,7 +9,7 @@ OrderPairTrader::OrderPairTrader(
     const BaseTraderConfig &conf)
         : ctx(ctx)
         , conf(conf)
-        , stateMachine(ctx, db, conf)
+        , stateMachine(ctx, conf)
 {
     loadDatabase();
 
@@ -20,8 +19,7 @@ OrderPairTrader::OrderPairTrader(
 
 void OrderPairTrader::loadDatabase()
 {
-    OrderPairDb::initDb(db);
-    orderPairs = OrderPairDb::select(db, conf.name);
+    orderPairs.init(conf.name);
     log::info("Read %zu pairs for trader '%s' from database.",
         orderPairs.size(),
         conf.name.c_str());
@@ -31,6 +29,10 @@ void OrderPairTrader::process(
     const BtcPrice &price)
 {
     if (!ctx.data.get<CoinbaseInit>())
+        return;
+
+    // Sane validate
+    if (price.getPrice() < 10'000_Dollars)
         return;
 
     std::lock_guard<std::mutex> lock(mtx);
@@ -57,26 +59,22 @@ void OrderPairTrader::handleExistingPairs(
     bool force)
 {
     // Handle each order pair
-    stateMachine.churn(orderPairs, force);
+    for (auto [uuid, pair] : orderPairs.getPairs())
+    {
+        if (stateMachine.churn(pair, force))
+            orderPairs.update(pair);
+    }
 
     // Stop tracking completed states
-    auto iter = orderPairs.begin();
-    while (iter != orderPairs.end())
-    {
-        OrderPair &pair = (*iter);
+    std::vector<OrderPair> completed = orderPairs.popComplete();
+    for (OrderPair &pair : completed)
+        handleComplete(pair);
+}
 
-        if (pair.state >= OrderPair::State::Complete)
-        {
-            log::info("Removing completed order pair '%s' from trader '%s'.",
-                pair.uuid.c_str(),
-                conf.name.c_str());
-            iter = orderPairs.erase(iter);
-        }
-        else
-        {
-            ++iter;
-        }
-    }
+void OrderPairTrader::handleComplete(
+    OrderPair &pair)
+{
+    (void)pair;
 }
 
 // If we've queued our maximum number of pairs,
@@ -89,12 +87,5 @@ bool OrderPairTrader::patientOverride() const
     if (!conf.patienceOverride)
         return false;
 
-    utime_t mostRecentTime;
-    for (const OrderPair &pair : orderPairs)
-    {
-        if (pair.created > mostRecentTime)
-            mostRecentTime = pair.created;
-    }
-
-    return mostRecentTime + conf.patienceOverride <= ctx.data.get<Time>().getTime();
+    return orderPairs.patientOverride(conf.patienceOverride, ctx.data.get<Time>().getTime());
 }

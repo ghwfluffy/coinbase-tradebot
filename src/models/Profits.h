@@ -24,6 +24,7 @@ class Profits : public DataModel
 
         int64_t getProfit() const;
         usd_t getVolume() const;
+        uint64_t getVolumeCents() const;
 
         void addOrderPair(
             usd_t purchased,
@@ -49,6 +50,7 @@ class Profits : public DataModel
     private:
         std::mutex mtx;
         Data data;
+        uint64_t volumeCents;
 };
 
 }

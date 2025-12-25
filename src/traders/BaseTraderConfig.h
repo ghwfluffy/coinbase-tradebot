@@ -2,7 +2,7 @@
 
 #include <gtb/MarketTimeTraderConfig.h>
 
-#include <list>
+#include <vector>
 
 namespace gtb
 {
@@ -20,7 +20,7 @@ struct BaseTraderConfig
     // Remove pending pairs that haven't filled in this much time (0=diabled)
     utime_t pendingPairExpiration;
 
-    std::list<MarketTimeTraderConfig> marketParams;
+    std::vector<MarketTimeTraderConfig> marketParams;
 };
 
 }

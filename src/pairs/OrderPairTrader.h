@@ -8,6 +8,7 @@
 #include <gtb/CoinbaseOrderBook.h>
 
 #include <gtb/OrderPair.h>
+#include <gtb/TrackedOrderPairs.h>
 #include <gtb/OrderPairStateMachine.h>
 
 #include <list>
@@ -42,13 +43,14 @@ class OrderPairTrader
         virtual void handleNewPair(
             const BtcPrice &price) = 0;
 
+        virtual void handleComplete(
+            OrderPair &pair);
+
         bool patientOverride() const;
 
         BotContext &ctx;
         BaseTraderConfig conf;
-
-        Database db;
-        std::list<OrderPair> orderPairs;
+        TrackedOrderPairs orderPairs;
         OrderPairStateMachine stateMachine;
 
     private:

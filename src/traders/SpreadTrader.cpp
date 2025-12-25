@@ -1,8 +1,6 @@
 #include <gtb/SpreadTrader.h>
 
 #include <gtb/OrderPairMarketEngine.h>
-#include <gtb/OrderPairUtils.h>
-#include <gtb/OrderPairDb.h>
 #include <gtb/Time.h>
 #include <gtb/Log.h>
 
@@ -31,25 +29,32 @@ void SpreadTrader::handleNewPair(
     // Find the closest order pair
     bool first = true;
     usd_t closestDistance;
-    for (const OrderPair &pair : orderPairs)
+    for (const auto &[uuid, other] : orderPairs.getPairs())
     {
-        usd_t buyDistance = IntegerUtils::difference(pair.buyPrice, price.getPrice());
-        usd_t sellDistance = IntegerUtils::difference(pair.sellPrice, price.getPrice());
-        usd_t midDistance = IntegerUtils::avg(buyDistance, sellDistance);
+        bool firstOther = true;
+        usd_t closestOtherDistance;
+        for (usd_t myPrice : std::vector<usd_t> {
+            pair.buyPrice,
+            pair.sellPrice,
+            IntegerUtils::avg(pair.buyPrice, pair.sellPrice),
+            price.getPrice()})
+        {
+            usd_t buyDistance = IntegerUtils::difference(other.buyPrice, myPrice);
+            usd_t sellDistance = IntegerUtils::difference(other.sellPrice, myPrice);
+            usd_t midDistance = IntegerUtils::difference(IntegerUtils::avg(other.sellPrice, other.buyPrice), myPrice);
+            usd_t distance = std::min(buyDistance, sellDistance);
+            distance = std::min(distance, midDistance);
+            if (firstOther || distance < closestOtherDistance)
+                closestOtherDistance = distance;
+        }
 
-        usd_t distance = buyDistance;
-        if (sellDistance < distance)
-            distance = sellDistance;
-        if (midDistance < distance)
-            distance = midDistance;
-
-        if (first || distance < closestDistance)
-            closestDistance = distance;
+        if (first || closestOtherDistance < closestDistance)
+            closestDistance = closestOtherDistance;
         first = false;
     }
 
     // Check if that's far enough away to want to create a new spread
-    usd_t spread = pair.sellPrice - pair.buyPrice;
+    usd_t spread = (pair.sellPrice - pair.buyPrice) * conf.buffer;
     bool wantNew = first || closestDistance > spread;
 
     // Not far enough to consider a new pair
@@ -58,25 +63,27 @@ void SpreadTrader::handleNewPair(
 
     // We need to decide if we can cancel something first
     // Try to cancel the furthest pending pair
-    if (conf.num_pairs <= orderPairs.size())
+    while (conf.numPairs <= orderPairs.size())
     {
-        if (!OrderPairUtils::cancelPending(db, price.getPrice(), conf.name, orderPairs))
-            return;
+        if (!orderPairs.cancelPending(price.getPrice()))
+            break;
     }
 
     // We have too many orders already and we haven't been patient enough to exceed max
-    if (conf.num_pairs <= orderPairs.size() && !patientOverride())
+    if (conf.numPairs <= orderPairs.size() && !patientOverride())
         return;
 
     // Add the pair
-    if (!OrderPairDb::insert(db, pair))
+    if (!orderPairs.insert(pair))
     {
         log::error("Failed to insert new order pair for spread '%s' in database.",
             conf.name.c_str());
         return;
     }
 
+    // TODO: Too much logs
+#if 0
     log::info("Created new pair for spread '%s'.", conf.name.c_str());
+#endif
     stateMachine.logChange(OrderPair::State::None, pair);
-    orderPairs.push_back(std::move(pair));
 }

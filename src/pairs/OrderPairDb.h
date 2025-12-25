@@ -3,7 +3,7 @@
 #include <gtb/OrderPair.h>
 #include <gtb/Database.h>
 
-#include <list>
+#include <vector>
 
 namespace gtb
 {
@@ -19,14 +19,14 @@ namespace OrderPairDb
     void initDb(
         Database &db);
 
-    std::list<OrderPair> select(
+    std::vector<OrderPair> select(
         Database &db,
         const std::string &algorithm = std::string(),
         bool activeOnly = true);
 
     bool selectBought(
         Database &db,
-        std::list<OrderPair> &orders);
+        std::vector<OrderPair> &orders);
 
     bool remove(
         Database &db,

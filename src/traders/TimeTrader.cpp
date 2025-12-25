@@ -1,7 +1,5 @@
 #include <gtb/TimeTrader.h>
 #include <gtb/IntegerUtils.h>
-#include <gtb/OrderPairUtils.h>
-#include <gtb/OrderPairDb.h>
 #include <gtb/Time.h>
 #include <gtb/Uuid.h>
 #include <gtb/Log.h>
@@ -63,7 +61,6 @@ void TimeTrader::handleNewPair(
     // Setup the pair
     OrderPair pair;
     pair.algo = conf.name;
-    pair.uuid = Uuid::generate();
     pair.state = OrderPair::State::Pending;
     pair.created = time;
     usd_t padding = mid * conf.paddingSpread;
@@ -77,9 +74,9 @@ void TimeTrader::handleNewPair(
 
     // We need to decide if we can cancel something first
     // Try to cancel the furthest pending pair
-    while (conf.numPairs >= orderPairs.size())
+    while (conf.numPairs <= orderPairs.size())
     {
-        if (!OrderPairUtils::cancelPending(db, price.getPrice(), conf.name, orderPairs))
+        if (!orderPairs.cancelPending(price.getPrice()))
             break;
     }
 
@@ -88,7 +85,7 @@ void TimeTrader::handleNewPair(
         return;
 
     // Add the pair
-    if (!OrderPairDb::insert(db, pair))
+    if (!orderPairs.insert(pair))
     {
         log::error("Failed to insert new order pair for time trader '%s' in database.",
             conf.name.c_str());
@@ -97,5 +94,4 @@ void TimeTrader::handleNewPair(
 
     log::info("Created new pair for time trader '%s'.", conf.name.c_str());
     stateMachine.logChange(OrderPair::State::None, pair);
-    orderPairs.push_back(std::move(pair));
 }

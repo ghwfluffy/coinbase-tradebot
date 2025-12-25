@@ -35,6 +35,8 @@ void PendingProfitsCalc::process(
 
 void PendingProfitsCalc::update()
 {
+    // TODO: This should be maintained not recalculated
+#if 0
     // Get all the orders where we have bought but haven't sold
     std::list<OrderPair> orders;
     bool success = OrderPairDb::selectBought(db, orders);
@@ -60,4 +62,5 @@ void PendingProfitsCalc::update()
     usd_t value = IntegerUtils::getValue(ctx.data.get<BtcPrice>().getPrice(), assets);
     // Update data model
     ctx.data.get<PendingProfits>().setProfit(spent, value);
+#endif
 }

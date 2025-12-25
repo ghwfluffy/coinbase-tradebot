@@ -18,9 +18,9 @@ class SpreadTrader : public OrderPairTrader
             // Percentage points spread (10 = 0.1%)
             pp_t spread = 10_Percent;
             // How many spreads to maintain
-            uint32_t num_pairs = 1;
+            uint32_t numPairs = 1;
             // How much to buffer between each spred (25 = 25% of spread value)
-            pp_t buffer_percent = 25_Percent;
+            pp_t buffer = 25_Percent;
         };
 
         SpreadTrader(

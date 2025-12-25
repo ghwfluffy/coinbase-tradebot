@@ -20,11 +20,11 @@ struct MarketPeriodModifier
 };
 
 // Determine what modifiers should be applied to the order pair
-std::list<MarketPeriodModifier> getPeriodModifiers(
+std::vector<MarketPeriodModifier> getPeriodModifiers(
     const BaseTraderConfig &config,
     utime_t time)
 {
-    std::list<MarketPeriodModifier> modifiers;
+    std::vector<MarketPeriodModifier> modifiers;
 
     for (const MarketTimeTraderConfig &params : config.marketParams)
     {
@@ -231,6 +231,7 @@ void applyNewOrderModifier(
     // Be super sure our math didn't roll something over
     if (buyPrice > pair.buyPrice || sellPrice < pair.sellPrice)
     {
+#if 0
         log::error("Overflow while calculating '%s %s' ramp modifier.\n"
                     "[buy %s - %s], [sell %s - %s] - mid %s\n"
                     "%lu spread + %lu additional\n"
@@ -246,6 +247,7 @@ void applyNewOrderModifier(
             static_cast<unsigned long>(additionalSpread.value()),
             IntegerUtils::toUsdString(diff).c_str(),
             IntegerUtils::toUsdString(diffHalf).c_str());
+#endif
         pair.buyPrice = {};
         return;
     }
@@ -262,7 +264,7 @@ void applyNewOrderModifiers(
     OrderPair &pair)
 {
     // Get modifiers based on market value
-    std::list<MarketPeriodModifier> modifiers = getPeriodModifiers(config, currentTime);
+    std::vector<MarketPeriodModifier> modifiers = getPeriodModifiers(config, currentTime);
 
     // Apply
     for (const MarketPeriodModifier &modifier : modifiers)
@@ -442,7 +444,7 @@ void OrderPairMarketEngine::checkSale(
     }
 
     // Get modifiers based on market value
-    std::list<MarketPeriodModifier> modifiers = getPeriodModifiers(config, currentTime);
+    std::vector<MarketPeriodModifier> modifiers = getPeriodModifiers(config, currentTime);
 
     // Apply
     for (const MarketPeriodModifier &modifier : modifiers)

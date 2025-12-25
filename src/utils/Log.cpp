@@ -35,6 +35,7 @@ void log::info(const char *psz, ...)
     std::string msg;
     VARIADIC_STRING(psz, msg);
     printf("[%s] [ INFO  ] %s\n", getTime().c_str(), msg.c_str());
+    fflush(stdout);
 }
 
 void log::error(const char *psz, ...)
@@ -42,4 +43,5 @@ void log::error(const char *psz, ...)
     std::string msg;
     VARIADIC_STRING(psz, msg);
     printf("[%s] [ ERROR ] %s\n", getTime().c_str(), msg.c_str());
+    fflush(stdout);
 }

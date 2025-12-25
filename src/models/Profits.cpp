@@ -1,11 +1,13 @@
 #include <gtb/Profits.h>
 #include <gtb/Log.h>
+#include <gtb/IntegerUtils.h>
 
 using namespace gtb;
 
 Profits::Profits(Profits &&rhs)
     : data(rhs.data)
 {
+    volumeCents = 0;
 }
 
 int64_t Profits::getProfit() const
@@ -20,6 +22,12 @@ usd_t Profits::getVolume() const
     return data.purchased + data.sold;
 }
 
+uint64_t Profits::getVolumeCents() const
+{
+    std::lock_guard<std::mutex> lock(const_cast<std::mutex &>(mtx));
+    return volumeCents;
+}
+
 Profits::Data Profits::getData() const
 {
     std::lock_guard<std::mutex> lock(const_cast<std::mutex &>(mtx));
@@ -32,16 +40,41 @@ void Profits::addOrderPair(
     usd_t buyFees,
     usd_t sellFees)
 {
-    if (!purchased || !sold)
+    if (!purchased && !sold)
         return;
 
     // Atomic
     {
         std::lock_guard<std::mutex> lock(mtx);
+        volumeCents += purchased / 1_Cents;
+        volumeCents += sold / 1_Cents;
+
         data.purchased += purchased;
         data.sold += sold;
         data.buyFees += buyFees;
         data.sellFees += sellFees;
+
+        // Normalize (prevent rollovers)
+        if (data.purchased > data.sold)
+        {
+            data.purchased = data.purchased - data.sold;
+            data.sold = 0_Dollars;
+        }
+        else
+        {
+            data.sold = data.sold - data.purchased;
+            data.purchased = 0_Dollars;
+        }
+        if (data.buyFees > data.sellFees)
+        {
+            data.buyFees = data.buyFees - data.sellFees;
+            data.sellFees = 0_Dollars;
+        }
+        else
+        {
+            data.sellFees = data.sellFees - data.buyFees;
+            data.buyFees = 0_Dollars;
+        }
     }
 
     updated();

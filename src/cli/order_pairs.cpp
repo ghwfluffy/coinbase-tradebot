@@ -42,8 +42,8 @@ int main(int argc, const char *argv[])
 
     Database db;
     OrderPairDb::initDb(db);
-    std::list<OrderPair> orders = OrderPairDb::select(db);
-    orders.sort(
+    std::vector<OrderPair> orders = OrderPairDb::select(db);
+    std::sort(orders.begin(), orders.end(),
         [](const OrderPair &lhs, const OrderPair &rhs) -> bool
         {
 #if 0

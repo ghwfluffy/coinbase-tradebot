@@ -30,7 +30,7 @@ std::string getBoughtStates()
 bool selectQuery(
     Database &db,
     const std::string &query,
-    std::list<OrderPair> &pairs)
+    std::vector<OrderPair> &pairs)
 {
     DatabaseResult result = db.getConn().query(query);
     if (!result)
@@ -78,7 +78,7 @@ void OrderPairDb::initDb(
     db.init(dbFile, SCHEMA_FILE);
 }
 
-std::list<OrderPair> OrderPairDb::select(
+std::vector<OrderPair> OrderPairDb::select(
     Database &db,
     const std::string &algorithm,
     bool activeOnly)
@@ -93,7 +93,7 @@ std::list<OrderPair> OrderPairDb::select(
     if (activeOnly)
         query += " AND state IN (" + getActiveStates() + ")";
 
-    std::list<OrderPair> orders;
+    std::vector<OrderPair> orders;
     if (!selectQuery(db, query, orders))
         log::error("Failed to query order pairs for algorithm '%s'.", algorithm.c_str());
 
@@ -102,7 +102,7 @@ std::list<OrderPair> OrderPairDb::select(
 
 bool OrderPairDb::selectBought(
     Database &db,
-    std::list<OrderPair> &orders)
+    std::vector<OrderPair> &orders)
 {
     std::string query;
     query += "SELECT ";

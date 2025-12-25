@@ -6,5 +6,5 @@ namespace gtb::Version2
 {
     void init(
         TradeBot &bot,
-        bool mock);
+        bool mock = false);
 }

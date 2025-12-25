@@ -1,4 +1,28 @@
+Efficiency
+[x] TrackedOrderPairs map instead of O(n) loops
+    [x] .size
+    [x] Remove OrderPairUtils
+[x] Callgrind
+[ ] list -> vector
+[ ] Find other O(n) loops
+[\] New algorithm:
+    - track the min and max window of the previous 48 hours
+        - track min/max in 20 minute intervals
+    - if we ever exit 2% diff of the min or max of the 24 hours before last 24 hours:
+        - fire sale all assets
+        - pause for 6 hours before making new trades
+[ ] Integrate websockpp.diff into cmake so it applies automatically
+Cleanup commented out code
+[ ] Logging level configuration
+    "TODO: Too much logging"
+[ ] PendingProfitsCalc maintain value instead of calculating
+Docs
+[ ] SQL Schema
+[ ] Market Engine
+[ ] Traders
+[ ] Index / TOC / Indexing?
 Misc
+[ ] unbuffer stdout
 [ ] buffer_percent, num_pairs -> camelCase
 [\] CLI tools
 [ ] Move CoinbaseCredential to conf
@@ -9,6 +33,17 @@ Misc
 [ ] // XXX: Going to make sure we only run 1 trade per 30 seconds while testing / "Too soon?" codify
 [ ] Mock random percent chance trade is not executed
 Trading Algorithms
+[\] v2: The Hammer
+    [x] Start 30k
+    [x] Buy $20 every $20 change and sell in $20 change
+    [ ] Add 30-day-window calculations
+    [ ] Optimize algorithm
+        [ ] ConstantTrader needs to update Profits
+    [ ] Cleanup changes
+    [ ] Some way to pause orders if fee tier doesnt match volume (yet)
+    [ ] Some way to discount orders
+    [ ] Some way to incorporate the market times?
+    [ ] Spread volume up on buy not just sell
 [ ] Updates
     [ ] track modifiers on order pairs
     [ ] Use new pending patience config

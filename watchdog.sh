@@ -13,11 +13,12 @@ HIGH_ALL_MEMORY=2529000 # 2.5GB
 
 BOTPID=0
 WATCHPID=0
+WATCHME=()
 
 cleanup() {
     kill -TERM "${WATCHPID}" 2>/dev/null || true
     kill -TERM "${BOTPID}" 2>/dev/null || true
-    wait "${WATCHPID}" "${BOTPID}"
+    wait "${WATCHME[@]}" "${BOTPID}"
     exit 0
 }
 trap cleanup SIGINT SIGTERM
@@ -62,10 +63,12 @@ watchMemory() {
 }
 
 # Start memory watcher in the background
-watchMemory &
-WATCHPID=$!
+#watchMemory &
+#WATCHPID=$!
+#WATCHME+=(${WATCHPID})
 
 # Run tradebot under massif
+# Check for memory allocations
 VALGRIND=(
     valgrind
     --tool=massif
@@ -74,6 +77,7 @@ VALGRIND=(
     --max-stackframe=50000000
 )
 
+# Check for leaks
 VALGRIND=(
     valgrind
     --tool=memcheck
@@ -83,12 +87,30 @@ VALGRIND=(
     -v
 )
 
+# Check for performance
+VALGRIND=(
+    valgrind
+    --tool=callgrind
+    --callgrind-out-file=callgrind.out
+    #--instr-atstart=yes
+    -v
+)
+
+ARGS=(
+    -v 2 # Version 2
+    -m # Mock
+)
+
 logFile() {
     echo "--log-file=valgrind-$(date +%s).log"
 }
 
 while true; do
-    "${VALGRIND[@]}" $(logFile) ./build/tradebot &
+    "${VALGRIND[@]}" $(logFile) ./build/tradebot "${ARGS[@]}" &
     BOTPID=$!
     wait "${BOTPID}"
+    # Don't loop on callgrind
+    if echo "${VALGRIND[@]}" | grep -q "callgrind"; then
+        break
+    fi
 done

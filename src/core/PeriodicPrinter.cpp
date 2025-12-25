@@ -43,12 +43,15 @@ void PeriodicPrinter::process(
 
     usd_t btcValue = IntegerUtils::getValue(price, btc);
 
+#if 0
     int64_t profit = ctx.data.get<Profits>().getProfit();
     int64_t pending = ctx.data.get<PendingProfits>().getProfit();
+#endif
 
     std::string mockTime;
     if (ctx.data.get<MockMode>())
         mockTime = MarketInfo::getTimeString(time.getTime()) + " | ";
+#if 0
     log::info("%sSTATUS | BTC: %s | Wallet: $%s USD + $%s BTC = $%s | SellProfit: $%s | Profit: $%s | Volume: $%s",
         mockTime.c_str(),
         IntegerUtils::toUsdString(price).c_str(),
@@ -58,6 +61,16 @@ void PeriodicPrinter::process(
         IntegerUtils::toUsdString(pending).c_str(),
         IntegerUtils::toUsdString(profit).c_str(),
         IntegerUtils::toUsdString(ctx.data.get<Profits>().getVolume()).c_str());
+#else
+    printf("%sSTATUS | BTC: %s | Wallet: $%s USD + $%s BTC = $%s (Volume: $%lu.%02lu)\n",
+        mockTime.c_str(),
+        IntegerUtils::toUsdString(price).c_str(),
+        IntegerUtils::toUsdString(usd).c_str(),
+        IntegerUtils::toUsdString(btcValue).c_str(),
+        IntegerUtils::toUsdString(usd + btcValue).c_str(),
+        ctx.data.get<Profits>().getVolumeCents() / 100,
+        ctx.data.get<Profits>().getVolumeCents() % 100);
+#endif
 
     if (ctx.data.get<MockMode>())
         nextPrint = now + std::chrono::days(1);

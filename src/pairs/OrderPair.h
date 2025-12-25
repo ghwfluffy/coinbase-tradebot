@@ -4,7 +4,7 @@
 #include <gtb/SteadyClock.h>
 #include <gtb/IntegerUtils.h>
 
-#include <list>
+#include <vector>
 #include <string>
 #include <stdint.h>
 
@@ -41,7 +41,7 @@ struct OrderPair
     Profits::Data profit;
 
     // TODO: Add to database
-    std::list<std::string> modifiers;
+    std::vector<std::string> modifiers;
 
     std::string getModifiers() const
     {
