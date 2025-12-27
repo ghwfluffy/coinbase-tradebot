@@ -152,7 +152,7 @@ bool WindowTrader::fireSale(
 
 void WindowTrader::pauseTrading()
 {
-    log::info("Window trader '%s' pausing trading.", conf.name.c_str());
+    log::debug("Window trader '%s' pausing trading.", conf.name.c_str());
     pauseTimer = SteadyClock::now() + std::chrono::minutes(conf.pauseDuration / 1_Minutes);
     prevActionPrice = usd_t();
 }
@@ -160,7 +160,7 @@ void WindowTrader::pauseTrading()
 void WindowTrader::pauseTrading(
     utime_t duration)
 {
-    log::info("Window trader '%s' pausing trading for %llu minutes.",
+    log::debug("Window trader '%s' pausing trading for %llu minutes.",
         conf.name.c_str(),
         static_cast<unsigned long long>(duration / 1_Minutes));
     pauseTimer = SteadyClock::now() + std::chrono::minutes(duration / 1_Minutes);
@@ -317,7 +317,7 @@ void WindowTrader::applyExtremeGuards(
     {
         if (!isHighPaused())
         {
-            log::info("Window trader '%s' pausing new buys: price %s above P%u=%s.",
+            log::debug("Window trader '%s' pausing new buys: price %s above P%u=%s.",
                 conf.name.c_str(),
                 IntegerUtils::toUsdString(price.getPrice()).c_str(),
                 conf.highPausePercentile,
@@ -335,7 +335,7 @@ void WindowTrader::applyExtremeGuards(
 
     if (lowGuard && price.getPrice() <= lowGuard && deepDrop)
     {
-        log::info("Window trader '%s' defensive exit: price %s below P%u=%s.",
+        log::debug("Window trader '%s' defensive exit: price %s below P%u=%s.",
             conf.name.c_str(),
             IntegerUtils::toUsdString(price.getPrice()).c_str(),
             conf.lowExitPercentile,
@@ -587,7 +587,7 @@ void WindowTrader::handleSell(
                 order.createdTime = ctx.data.get<Time>().getTime();
                 if (ctx.coinbase().submitOrder(order))
                 {
-                    log::info("Window trader '%s' soft exit %s BTC @ %s (softGuard=%s).",
+                    log::debug("Window trader '%s' soft exit %s BTC @ %s (softGuard=%s).",
                         conf.name.c_str(),
                         IntegerUtils::toBtcString(order.quantity).c_str(),
                         IntegerUtils::toUsdString(order.price).c_str(),

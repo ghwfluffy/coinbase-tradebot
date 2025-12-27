@@ -92,9 +92,8 @@ void initMock(
     [[maybe_unused]] int x = system("cp data/historical.sqlite data/mock_historical.sqlite");
     ctx.historicalDb.init("data/mock_historical.sqlite", "./schema/historical.sql");
 
-    // Mock coinbase API
-    constexpr const pp_t FEE_TIER = 15_PercentagePoints;
-    ctx.setCoinbase(std::make_unique<MockCoinbase>(ctx, FEE_TIER));
+    // Mock coinbase API (volume-tracked; fee tier derived from rolling volume)
+    ctx.setCoinbase(std::make_unique<MockCoinbase>(ctx));
 
     // Initial state
     ctx.data.get<CoinbaseInit>().setFullInit();

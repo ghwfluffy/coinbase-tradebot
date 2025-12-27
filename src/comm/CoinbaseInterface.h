@@ -27,6 +27,13 @@ class CoinbaseInterface
 
         virtual pp_t getFeeTier() = 0;
 
+        virtual big_usd_t getVolume() = 0;
+
+        // Optional hook for mocks to track rolling volume.
+        virtual void recordVolume(
+            big_usd_t /*amount*/,
+            utime_t /*time*/) {}
+
     protected:
         CoinbaseInterface() = default;
         CoinbaseInterface(CoinbaseInterface &&) = default;

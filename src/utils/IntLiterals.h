@@ -33,6 +33,14 @@ namespace gtb
         return usd_t(v * 10'000'000'000'000ULL);
     }
 
+    // million dollars → decipicodollars
+    inline big_usd_t operator"" _MillionDollars(unsigned long long v) {
+        BigInt bn(static_cast<uint64_t>(v));
+        bn *= BigInt(1'000'000ULL);
+        bn *= BigInt(1'000'000'000'000ULL);
+        return big_usd_t(std::move(bn));
+    }
+
     // 1/10^13 of a dollar
     constexpr usd_t operator"" _Decipicodollars(unsigned long long v) {
         return usd_t(v);

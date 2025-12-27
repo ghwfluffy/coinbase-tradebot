@@ -4,10 +4,9 @@
 #include <gtb/Log.h>
 #include <gtb/IntegerUtils.h>
 #include <gtb/Profits.h>
-
+#include <gtb/CoinbaseFeeTier.h>
 #include <gtb/CoinbaseOrderBook.h>
 #include <gtb/CoinbaseWallet.h>
-#include <gtb/CoinbaseFeeTier.h>
 
 using namespace gtb;
 
@@ -178,6 +177,10 @@ void MockUserTrades::process(
             ctx.data.get<Profits>().addOrderPair(order.beforeFees, usd_t(), order.fees, usd_t());
         else
             ctx.data.get<Profits>().addOrderPair(usd_t(), order.beforeFees, usd_t(), order.fees);
+
+        // Track rolling volume (count notional of the trade) and update fee tier model.
+        ctx.coinbase().recordVolume(big_usd_t(order.beforeFees), ctx.data.get<Time>().getTime());
+        ctx.data.get<CoinbaseFeeTier>().setFeeTier(ctx.coinbase().getFeeTier());
         updates.push_back(order);
     }
 

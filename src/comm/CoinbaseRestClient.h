@@ -48,6 +48,11 @@ class CoinbaseRestClient : public CoinbaseInterface
 
         pp_t getFeeTier() final;
 
+        big_usd_t getVolume() final;
+        void recordVolume(
+            big_usd_t amount,
+            utime_t time) final;
+
     private:
         RestClient client;
         CoinbaseCredential credential;

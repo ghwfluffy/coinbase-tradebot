@@ -307,3 +307,41 @@ pp_t CoinbaseRestClient::getFeeTier()
     fee.resize(4, '0');
     return pp_t(static_cast<uint32_t>(atoi(fee.c_str())));
 }
+
+big_usd_t CoinbaseRestClient::getVolume()
+{
+    HttpResponse resp = get("brokerage/transaction_summary");
+    // Retry at least once to handle transient issues
+    if (!resp)
+    {
+        log::error("Retrying transaction summary query.");
+        resp = get("brokerage/transaction_summary");
+    }
+
+    if (!resp)
+    {
+        log::error("Failed to query Coinbase transactions summary: %s",
+            getError(resp).c_str());
+        return {};
+    }
+
+    if (!resp.data.contains("fee_tier"))
+    {
+        log::error("Coinbase transaction summary malformed.");
+        return {};
+    }
+
+    // Parse response (`"usd_volume": "12784563.42"`)
+    std::string volume = resp.data["fee_tier"]["usd_volume"].get<std::string>();
+
+    // TODO: Convert to big_usd_t
+    (void)volume;
+    return {};
+}
+
+void CoinbaseRestClient::recordVolume(
+    big_usd_t,
+    utime_t)
+{
+    // Real API tracks its own rolling volume; noop here.
+}

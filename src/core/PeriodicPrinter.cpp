@@ -42,13 +42,17 @@ void PeriodicPrinter::process(
     btc_t btc = ctx.data.get<CoinbaseWallet>().getBtc();
 
     usd_t btcValue = IntegerUtils::getValue(price, btc);
+    usd_t total = usd + btcValue;
+    unsigned int btcPct = 0.0;
+    if (total)
+        btcPct = IntegerUtils::fraction(btcValue, total).value();
 
-    log::status("BTC: %s | Wallet: $%s USD + $%s BTC = $%s | Volume: %s",
+    log::status("BTC: $%s | Wallet: $%s (%3u%% BTC) | Volume: %s (fee %.2f%%)",
         IntegerUtils::toUsdString(price).c_str(),
-        IntegerUtils::toUsdString(usd).c_str(),
-        IntegerUtils::toUsdString(btcValue).c_str(),
-        IntegerUtils::toUsdString(usd + btcValue).c_str(),
-        IntegerUtils::toUsdCompact(ctx.data.get<Profits>().getVolume()).c_str());
+        IntegerUtils::toUsdString(total).c_str(),
+        btcPct,
+        IntegerUtils::toUsdCompact(ctx.coinbase().getVolume()).c_str(),
+        static_cast<double>(ctx.coinbase().getFeeTier().value()) / 100.0);
 
     if (ctx.data.get<MockMode>())
         nextPrint = now + std::chrono::days(1);
