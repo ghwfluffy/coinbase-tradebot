@@ -62,14 +62,12 @@ void VolumeTrader::process(
         // Sell complete, do next buy
         if (order.buy == false)
         {
-            ctx.data.get<Profits>().addOrderPair(usd_t(), order.value(), usd_t(), usd_t());
             order = CoinbaseOrder();
             log::trade("Volume trader '%s' SELL filled.", conf.name.c_str());
         }
         else
         {
             // Buy complete, queue sell
-            ctx.data.get<Profits>().addOrderPair(order.value(), usd_t(), usd_t(), usd_t());
             order.uuid.clear();
             order.buy = false;
             order.price = price.getPrice() + 2_Dollars;

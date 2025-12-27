@@ -214,7 +214,7 @@ usd_t IntegerUtils::getPrice(
     BigInt one_btc{btc_t(1_Bitcoins).value()};
     BigInt price_bn = (value * one_btc) / satoshi;
 
-    uint64_t price = price_bn.to_uint64();
+    uint64_t price = price_bn.toUint64();
     return usd_t(price);
 }
 
@@ -241,4 +241,26 @@ btc_t IntegerUtils::getSatoshiForPrice(
     uint64_t quantity = 0;
     mul_div_u64_bn(uiT, uiSatoshi, uiPrice, quantity);
     return btc_t(quantity);
+}
+
+std::string IntegerUtils::toUsdCompact(
+    usd_t amount)
+{
+    uint64_t dollars = amount / usd_t(1_Dollars);
+    if (dollars >= 1'000'000)
+    {
+        double millions = static_cast<double>(dollars) / 1'000'000.0;
+        char buf[32] = {};
+        snprintf(buf, sizeof(buf), "$%.1fM", millions);
+        return std::string(buf);
+    }
+    if (dollars >= 1'000)
+    {
+        double thousands = static_cast<double>(dollars) / 1'000.0;
+        char buf[32] = {};
+        snprintf(buf, sizeof(buf), "$%.1fK", thousands);
+        return std::string(buf);
+    }
+
+    return "$" + toUsdString(amount);
 }

@@ -11,7 +11,7 @@ Snapshot of the conventions used in this codebase (indentation, braces, naming, 
 
 ## Naming
 - Types and classes: PascalCase (`TradeBot`, `DataController`, `OrderPairStateMachine`).
-- Functions/methods: lowerCamelCase (`initMock`, `addProcessor`, `getCtx`).
+- Functions/methods: lowerCamelCase (`initMock`, `addProcessor`, `getCtx`); avoid snake_case for new functions.
 - Variables: lowerCamelCase for locals/parameters (`mock`, `bot`, `version`, `ctx`); uppercase snake for constants/macros (`WEBSOCKETPP_INCLUDE`).
 - Enums/states: PascalCase values (`Pending`, `BuyActive`, `Holding`).
 

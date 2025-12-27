@@ -78,7 +78,7 @@ BigInt::operator bool() const
     return bn && !BN_is_zero(bn);
 }
 
-uint64_t BigInt::to_uint64() const
+uint64_t BigInt::toUint64() const
 {
     if (!bn)
         return 0;
@@ -104,6 +104,36 @@ uint64_t BigInt::to_uint64() const
     for (unsigned char b : buf)
         v = (v << 8) | static_cast<uint64_t>(b);
     return v;
+}
+
+int64_t BigInt::toInt64() const
+{
+    if (!bn)
+        return 0;
+
+    bool neg = BN_is_negative(bn);
+    uint64_t mag = toUint64();
+    if (neg)
+    {
+        if (mag > static_cast<uint64_t>(std::numeric_limits<int64_t>::max()) + 1ULL)
+        {
+            log::error("BigNum negative magnitude does not fit into int64_t");
+            return 0;
+        }
+        return -static_cast<int64_t>(mag);
+    }
+    if (mag > static_cast<uint64_t>(std::numeric_limits<int64_t>::max()))
+    {
+        log::error("BigNum does not fit into int64_t");
+        return 0;
+    }
+    return static_cast<int64_t>(mag);
+    return static_cast<int64_t>(mag);
+}
+
+bool BigInt::isNegative() const
+{
+    return bn && BN_is_negative(bn);
 }
 
 BigInt &BigInt::operator+=(const BigInt &rhs)

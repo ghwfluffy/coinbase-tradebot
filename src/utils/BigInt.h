@@ -16,7 +16,9 @@ class BigInt
         ~BigInt();
 
         operator bool() const;
-        uint64_t to_uint64() const;
+        uint64_t toUint64() const;
+        int64_t toInt64() const;
+        bool isNegative() const;
 
         // arithmetic assignment
         BigInt &operator+=(const BigInt &rhs);

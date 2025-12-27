@@ -32,6 +32,13 @@ struct StrongTypedBigInt
 
     explicit operator bool() const { return static_cast<bool>(v); }
 
+    template<class Rep>
+    StrongTypedBigInt &operator=(StrongTypedInt<Rep, Tag> o)
+    {
+        v = BigInt(static_cast<uint64_t>(o.value()));
+        return *this;
+    }
+
     // Comparisons (only same Tag)
     friend bool operator==(const StrongTypedBigInt &a, const StrongTypedBigInt &b) { return a.v == b.v; }
     friend bool operator!=(const StrongTypedBigInt &a, const StrongTypedBigInt &b) { return !(a == b); }

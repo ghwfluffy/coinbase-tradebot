@@ -79,6 +79,10 @@ namespace IntegerUtils
     {
         return pp_t(static_cast<uint32_t>((numerator.value() * pp_t(100_Percent).value()) / denominator.value()));
     }
+
+    // Compact formatting for USD values (e.g., $1.2K, $3M) using usd_t input.
+    std::string toUsdCompact(
+        usd_t amount);
 }
 
 }

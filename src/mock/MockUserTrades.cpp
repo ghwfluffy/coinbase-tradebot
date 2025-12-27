@@ -3,6 +3,7 @@
 
 #include <gtb/Log.h>
 #include <gtb/IntegerUtils.h>
+#include <gtb/Profits.h>
 
 #include <gtb/CoinbaseOrderBook.h>
 #include <gtb/CoinbaseWallet.h>
@@ -172,6 +173,11 @@ void MockUserTrades::process(
         // Update order as complete
         order.state = CoinbaseOrder::State::Filled;
         order.cleanupTime = SteadyClock::now() + std::chrono::minutes(2);
+        // Record realized P&L
+        if (order.buy)
+            ctx.data.get<Profits>().addOrderPair(order.beforeFees, usd_t(), order.fees, usd_t());
+        else
+            ctx.data.get<Profits>().addOrderPair(usd_t(), order.beforeFees, usd_t(), order.fees);
         updates.push_back(order);
     }
 

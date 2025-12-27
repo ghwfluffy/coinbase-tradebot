@@ -29,11 +29,11 @@ void ProfitsWriter::process(
             << "(time, purchased, sold, buy_fees, sell_fees, profit) "
             << "VALUES ("
             << curTime.value() << ","
-            << data.purchased.value() << ","
-            << data.sold.value() << ","
-            << data.buyFees.value() << ","
-            << data.sellFees.value() << ","
-            << data.getProfit()
+            << data.purchased.value().toUint64() << ","
+            << data.sold.value().toUint64() << ","
+            << data.buyFees.value().toUint64() << ","
+            << data.sellFees.value().toUint64() << ","
+            << data.getProfit().value().toInt64()
             << ")";
         if (!ctx.historicalDb.getConn().execute(query.str()))
             log::error("Failed to record historical profits.");

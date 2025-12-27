@@ -112,7 +112,7 @@ bool WindowTrader::fireSale(
         holding = btc_t();
 
         fireSaleUuid = order.uuid;
-        ctx.data.get<Profits>().addOrderPair(usd_t(), order.value(), usd_t(), usd_t());
+        ctx.data.get<Profits>().addOrderPair(usd_t(), order.beforeFees, usd_t(), order.fees);
         return true;
     }
 
@@ -261,7 +261,6 @@ void WindowTrader::handleBuy(
 #endif
 #endif
 
-        ctx.data.get<Profits>().addOrderPair(order.value(), usd_t(), usd_t(), usd_t());
         log::trade("Window trader '%s' BUY %s BTC @ %s (value %s).",
             conf.name.c_str(),
             IntegerUtils::toBtcString(order.quantity).c_str(),
@@ -344,7 +343,6 @@ void WindowTrader::handleSell(
     {
         setAction(price);
         holding -= amount;
-        ctx.data.get<Profits>().addOrderPair(usd_t(), order.value(), usd_t(), usd_t());
         log::trade("Window trader '%s' SELL %s BTC @ %s (value %s).",
             conf.name.c_str(),
             IntegerUtils::toBtcString(order.quantity).c_str(),

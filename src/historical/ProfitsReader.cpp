@@ -24,7 +24,8 @@ void ProfitsReader::initProfits(
             usd_t(result[1].getUInt64()),
             usd_t(result[2].getUInt64()),
             usd_t(result[3].getUInt64()));
+        usd_t profit = usd_t(ctx.data.get<Profits>().getProfit().value().toUint64());
         log::info("Initialized profits to %s.",
-            IntegerUtils::toUsdString(ctx.data.get<Profits>().getProfit()).c_str());
+            IntegerUtils::toUsdString(profit).c_str());
     }
 }

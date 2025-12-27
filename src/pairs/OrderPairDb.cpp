@@ -53,10 +53,10 @@ bool selectQuery(
         pair.sellPrice = usd_t(result[col++].getUInt64());
         pair.quantity = btc_t(result[col++].getUInt64());
         pair.created = utime_t(result[col++].getUInt64());
-        pair.profit.purchased = usd_t(result[col++].getUInt64());
-        pair.profit.buyFees = usd_t(result[col++].getUInt64());
-        pair.profit.sold = usd_t(result[col++].getUInt64());
-        pair.profit.sellFees = usd_t(result[col++].getUInt64());
+        pair.profit.purchased = big_usd_t(usd_t(result[col++].getUInt64()));
+        pair.profit.buyFees = big_usd_t(usd_t(result[col++].getUInt64()));
+        pair.profit.sold = big_usd_t(usd_t(result[col++].getUInt64()));
+        pair.profit.sellFees = big_usd_t(usd_t(result[col++].getUInt64()));
 
         pairs.push_back(std::move(pair));
     }

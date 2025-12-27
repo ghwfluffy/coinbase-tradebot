@@ -2,6 +2,7 @@
 
 #include <gtb/DataModel.h>
 #include <gtb/IntLiterals.h>
+#include <gtb/StrongTypedBigInt.h>
 
 #include <mutex>
 #include <stdint.h>
@@ -22,9 +23,14 @@ class Profits : public DataModel
         Profits &operator=(const Profits &) = delete;
         ~Profits() final = default;
 
-        int64_t getProfit() const;
-        usd_t getVolume() const;
-        uint64_t getVolumeCents() const;
+        big_usd_t getProfit() const;
+        big_usd_t getVolume() const;
+
+        void addOrderPair(
+            big_usd_t purchased,
+            big_usd_t sold,
+            big_usd_t buyFees,
+            big_usd_t sellFees);
 
         void addOrderPair(
             usd_t purchased,
@@ -34,12 +40,12 @@ class Profits : public DataModel
 
         struct Data
         {
-            usd_t purchased;
-            usd_t sold;
-            usd_t buyFees;
-            usd_t sellFees;
-            // Profit (cents) = (sold - sellFees - purchased - buyFees)
-            int64_t getProfit() const;
+            big_usd_t purchased;
+            big_usd_t sold;
+            big_usd_t buyFees;
+            big_usd_t sellFees;
+            // Profit = (sold - sellFees - purchased - buyFees)
+            big_usd_t getProfit() const;
         };
 
         void addOrderPair(
@@ -50,7 +56,6 @@ class Profits : public DataModel
     private:
         std::mutex mtx;
         Data data;
-        uint64_t volumeCents;
 };
 
 }
