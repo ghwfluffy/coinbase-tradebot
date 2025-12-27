@@ -48,7 +48,7 @@ bool MockCoinbase::submitOrder(
     {
         if (wallet.getAvailUsd() < order.value())
         {
-            log::error("Not enough USD to submit order.");
+            //log::error("Not enough USD to submit order."); TODO
             return false;
         }
         else if (!order.value())
@@ -61,7 +61,7 @@ bool MockCoinbase::submitOrder(
     {
         if (wallet.getAvailBtc() < order.quantity)
         {
-            log::error("Not enough BTC to submit order.");
+            //log::error("Not enough BTC to submit order."); TODO
             return false;
         }
         else if (!order.quantity)
@@ -140,7 +140,8 @@ bool MockCoinbase::cancelOrder(
 
     // Update orderbook
     order.state = CoinbaseOrder::State::Canceled;
-    order.cleanupTime = SteadyClock::now() + std::chrono::minutes(2);
+    order.cleanupTime = SteadyClock::now() + std::chrono::seconds(20);
+    //order.cleanupTime = SteadyClock::now() + std::chrono::minutes(2);
     orderBook.update(std::move(order));
 
     return true;

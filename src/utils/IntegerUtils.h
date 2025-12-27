@@ -1,6 +1,7 @@
 #pragma once
 
 #include <gtb/IntLiterals.h>
+#include <gtb/BigInt.h>
 
 #include <string>
 
@@ -36,6 +37,15 @@ namespace IntegerUtils
     usd_t getValue(
         usd_t price,
         btc_t satoshi);
+
+    // Price of 'satoshi' bitcoins purchased for 'value'
+    usd_t getPrice(
+        usd_t value,
+        btc_t satoshi);
+
+    usd_t getPrice(
+        const BigInt &value,
+        const BigInt &satoshi);
 
     // Number of bitcoins you could buy with 'transactionSize' USD at 'btcPrice' price
     btc_t getSatoshiForPrice(

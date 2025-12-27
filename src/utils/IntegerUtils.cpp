@@ -190,6 +190,34 @@ usd_t IntegerUtils::getValue(
     return usd_t(value);
 }
 
+usd_t IntegerUtils::getPrice(
+    usd_t value,
+    btc_t satoshi)
+{
+    // x/1btc = value/satoshi
+    // x = (value*1btc)/satoshi
+    uint64_t uiValue = value.value();
+    uint64_t uiSatoshi = satoshi.value();
+    uint64_t uiBTC = btc_t(1_Bitcoins).value();
+    uint64_t price = 0;
+    mul_div_u64_bn(uiValue, uiBTC, uiSatoshi, price);
+    return usd_t(price);
+}
+
+usd_t IntegerUtils::getPrice(
+    const BigInt &value,
+    const BigInt &satoshi)
+{
+    if (!value || !satoshi)
+        return usd_t();
+
+    BigInt one_btc{btc_t(1_Bitcoins).value()};
+    BigInt price_bn = (value * one_btc) / satoshi;
+
+    uint64_t price = price_bn.to_uint64();
+    return usd_t(price);
+}
+
 btc_t IntegerUtils::getSatoshiForPrice(
     usd_t btcPrice,
     usd_t transactionSize)

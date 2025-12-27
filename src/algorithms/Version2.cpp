@@ -14,6 +14,8 @@
 #include <gtb/SpreadTrader.h>
 #include <gtb/ConstantTrader.h>
 #include <gtb/ConstantSpreadTrader.h>
+#include <gtb/WindowTrader.h>
+#include <gtb/VolumeTrader.h>
 
 #include <gtb/MockMode.h>
 #include <gtb/MockMarket.h>
@@ -60,7 +62,7 @@ void initMock(
     // Source: Historical market data
     std::vector<std::string> range = {
         //"2025-05-01", "",//"2025-06-30",
-        "2025-01-25", "2025-02-01",
+        //"2025-01-25", "2025-02-10",
         "", ""
     };
     bot.addSource(std::make_unique<MockMarket>(ctx, range[0], range[1]));
@@ -158,6 +160,7 @@ void Version2::init(
         bot.addProcessor(std::make_unique<SpreadTrader>(ctx, conf));
     }
 #endif
+#if 0
     // Trader: Const Spread
     {
         ConstantSpreadTrader::Config conf;
@@ -171,4 +174,52 @@ void Version2::init(
 
         bot.addProcessor(std::make_unique<ConstantSpreadTrader>(ctx, conf));
     }
+#endif
+    // Trader: Window
+#if 1
+    {
+        WindowTrader::Config conf;
+        conf.name = "Window";
+        conf.takeProfitDelta = 20_Dollars;
+        conf.windowSize = 48_Hours;
+        conf.candleSize = 20_Minutes;
+        //conf.takeProfitDelta = 20_Dollars;
+        conf.pauseDuration = 12_Hours;
+        conf.highWindowBuffer = 20_Percent;
+        conf.lowWindowBuffer = 20_Percent;
+        conf.fireWindowBuffer = 10_PercentagePoints;
+        //conf.highWindowBuffer = 40_Percent;
+        //conf.lowWindowBuffer = 1_Percent;//10_PercentagePoints;
+        conf.betSize = 200_Dollars;
+        conf.buyDelta = 2_Dollars;
+        conf.sellFrequency = 10_Seconds;
+        //conf.spendLimit = 15'000_Dollars;
+
+        bot.addProcessor(std::make_unique<WindowTrader>(ctx, conf));
+    }
+#endif
+#if 0
+    {
+        VolumeTrader::Config conf;
+        conf.name = "Volume";
+        bot.addProcessor(std::make_unique<VolumeTrader>(ctx, conf));
+    }
+#endif
+    // TODO: No longer supports multiple
+#if 0
+    {
+        WindowTrader::Config conf;
+        conf.name = "Window Small";
+        conf.takeProfitDelta = 2_Dollars;
+        conf.pauseDuration = 6_Hours;
+        conf.highWindowBuffer = 50_Percent;
+        conf.lowWindowBuffer = 10_PercentagePoints;
+        conf.betSize = 200_Dollars;
+        conf.buyDelta = 2_Dollars;
+        //conf.sellFrequency = 2_Minutes;
+        //conf.spendLimit = 15'000_Dollars;
+
+        bot.addProcessor(std::make_unique<WindowTrader>(ctx, conf));
+    }
+#endif
 }

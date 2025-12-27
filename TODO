@@ -1,16 +1,6 @@
 Efficiency
-[x] TrackedOrderPairs map instead of O(n) loops
-    [x] .size
-    [x] Remove OrderPairUtils
-[x] Callgrind
 [ ] list -> vector
 [ ] Find other O(n) loops
-[\] New algorithm:
-    - track the min and max window of the previous 48 hours
-        - track min/max in 20 minute intervals
-    - if we ever exit 2% diff of the min or max of the 24 hours before last 24 hours:
-        - fire sale all assets
-        - pause for 6 hours before making new trades
 [ ] Integrate websockpp.diff into cmake so it applies automatically
 Cleanup commented out code
 [ ] Logging level configuration
@@ -22,6 +12,7 @@ Docs
 [ ] Traders
 [ ] Index / TOC / Indexing?
 Misc
+[ ] StrongTypedBigInt
 [ ] unbuffer stdout
 [ ] buffer_percent, num_pairs -> camelCase
 [\] CLI tools
