@@ -1,7 +1,6 @@
 Efficiency
 [ ] list -> vector
 [ ] Find other O(n) loops
-[ ] Integrate websockpp.diff into cmake so it applies automatically
 Cleanup commented out code
 [ ] Logging level configuration
     "TODO: Too much logging"
