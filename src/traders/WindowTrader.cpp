@@ -86,8 +86,8 @@ bool WindowTrader::fireSale(
     if (!btc)
     {
         // TODO: Subroutine window reset
-        totalSpent = BigInt();
-        totalPurchased = BigInt();
+        totalSpent = big_usd_t();
+        totalPurchased = big_btc_t();
 
         while (candles.size() > 1)
             candles.erase(candles.begin());
@@ -220,7 +220,7 @@ void WindowTrader::handleBuy(
     // Don't increase our buy average
     if (totalSpent && totalPurchased)
     {
-        usd_t avgPrice = IntegerUtils::getPrice(totalSpent, totalPurchased);
+    usd_t avgPrice = IntegerUtils::getPrice(totalSpent, totalPurchased);
         if (avgPrice && price.getPrice() > avgPrice + conf.buyDelta)
             return;
     }
@@ -251,8 +251,8 @@ void WindowTrader::handleBuy(
         c.totalSpent += conf.betSize;
         c.totalPurchased += order.quantity;
 #else
-        totalSpent += BigInt(order.value().value());
-        totalPurchased += BigInt(order.quantity.value());
+        totalSpent += order.value();
+        totalPurchased += order.quantity;
 #if 0
         log::info("%s|%s|%s",
             IntegerUtils::toUsdString(price.getPrice()).c_str(),
@@ -307,7 +307,7 @@ void WindowTrader::handleSell(
     }
 #endif
 
-    usd_t avgPrice = IntegerUtils::getPrice(totalSpent, totalPurchased);
+        usd_t avgPrice = IntegerUtils::getPrice(totalSpent, totalPurchased);
     if (!avgPrice)
         return;
 #if 0
@@ -352,8 +352,8 @@ void WindowTrader::handleSell(
             IntegerUtils::toUsdString(order.value()).c_str());
 
         // TODO: Adjusting buy price on sale?
-        totalSpent += BigInt(order.value().value() / 2);
-        totalPurchased += BigInt(order.quantity.value() / 2);
+        totalSpent += usd_t(order.value().value() / 2);
+        totalPurchased += btc_t(order.quantity.value() / 2);
     }
 }
 
@@ -369,8 +369,8 @@ void WindowTrader::requeueSale(
         log::trade("Window trader '%s' fire sale complete.", conf.name.c_str());
         fireSaleUuid.clear();
 
-        totalSpent = BigInt();
-        totalPurchased = BigInt();
+        totalSpent = big_usd_t();
+        totalPurchased = big_btc_t();
 
         while (candles.size() > 1)
             candles.erase(candles.begin());

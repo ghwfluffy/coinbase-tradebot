@@ -218,6 +218,13 @@ usd_t IntegerUtils::getPrice(
     return usd_t(price);
 }
 
+usd_t IntegerUtils::getPrice(
+    const big_usd_t &value,
+    const big_btc_t &satoshi)
+{
+    return getPrice(value.value(), satoshi.value());
+}
+
 btc_t IntegerUtils::getSatoshiForPrice(
     usd_t btcPrice,
     usd_t transactionSize)

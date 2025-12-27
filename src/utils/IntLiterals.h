@@ -1,16 +1,19 @@
 #pragma once
 
 #include <gtb/StrongTypedInt.h>
+#include <gtb/StrongTypedBigInt.h>
 
 namespace gtb
 {
     // Satoshi
     struct btc_tag {};
     using btc_t = StrongTypedInt<uint64_t, btc_tag>;
+    using big_btc_t = StrongTypedBigInt<btc_tag>;
 
     // Decipicodollars
     struct usd_tag {};
     using usd_t = StrongTypedInt<uint64_t, usd_tag>;
+    using big_usd_t = StrongTypedBigInt<usd_tag>;
 
     // Microseconds
     struct utime_tag {};

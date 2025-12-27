@@ -47,6 +47,10 @@ namespace IntegerUtils
         const BigInt &value,
         const BigInt &satoshi);
 
+    usd_t getPrice(
+        const big_usd_t &value,
+        const big_btc_t &satoshi);
+
     // Number of bitcoins you could buy with 'transactionSize' USD at 'btcPrice' price
     btc_t getSatoshiForPrice(
         usd_t btcPrice,

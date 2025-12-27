@@ -5,7 +5,7 @@
 #include <gtb/BtcPrice.h>
 #include <gtb/SteadyClock.h>
 #include <gtb/IntLiterals.h>
-#include <gtb/BigInt.h>
+#include <gtb/StrongTypedBigInt.h>
 
 #include <set>
 #include <mutex>
@@ -142,8 +142,8 @@ class WindowTrader
         SteadyClock::TimePoint pauseTimer;
 
         btc_t holding;
-        BigInt totalSpent;
-        BigInt totalPurchased;
+        big_usd_t totalSpent;
+        big_btc_t totalPurchased;
 };
 
 }
