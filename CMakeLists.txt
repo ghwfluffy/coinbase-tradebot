@@ -2,13 +2,13 @@ cmake_minimum_required(VERSION 3.16)
 project(gtb)
 
 # Dependencies
-set(WEBSOCKETPP_INCLUDE websocketpp)
-set(JWTCPP_INCLUDE jwt-cpp/include)
+set(WEBSOCKETPP_INCLUDE libs/websocketpp)
+set(JWTCPP_INCLUDE libs/jwt-cpp/include)
 find_package(OpenSSL REQUIRED)
 find_package(Boost REQUIRED system thread)
 find_package(SQLite3 REQUIRED)
 include(cmake/cpr.cmake)
-add_subdirectory(googletest)
+add_subdirectory(libs/googletest)
 
 # Build configuration
 include(cmake/cxxflags.cmake)

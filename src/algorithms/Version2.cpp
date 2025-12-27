@@ -43,12 +43,12 @@ void initMock(
 
     ctx.data.initData(MockMode(true));
     SteadyClock::setMockTime(ctx.data.get<Time>());
-    unlink("mock_trader.sqlite");
-    OrderPairDb::setDbFile("mock_trader.sqlite");
+    unlink("data/mock_trader.sqlite");
+    OrderPairDb::setDbFile("data/mock_trader.sqlite");
     // XXX: Use a copy of the historical database
     // so our fast reads dont interrupt the active tradebot by holding a read lock
-    [[maybe_unused]] int x = system("cp historical.sqlite mock_historical.sqlite");
-    ctx.historicalDb.init("mock_historical.sqlite", "./schema/historical.sql");
+    [[maybe_unused]] int x = system("cp data/historical.sqlite data/mock_historical.sqlite");
+    ctx.historicalDb.init("data/mock_historical.sqlite", "./schema/historical.sql");
 
     // Mock coinbase API
     constexpr const pp_t FEE_TIER = 0_Percent;

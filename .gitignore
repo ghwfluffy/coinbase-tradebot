@@ -1,6 +1,7 @@
 *.swp
 .venv
 __pycache__
+data/
 secrets/
 logs/
 bak/
