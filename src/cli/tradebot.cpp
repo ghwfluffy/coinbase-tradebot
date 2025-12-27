@@ -1,6 +1,7 @@
 #include <gtb/TradeBot.h>
 #include <gtb/ArgParser.h>
 #include <gtb/AlgorithmFactory.h>
+#include <gtb/Log.h>
 
 namespace
 {
@@ -18,6 +19,7 @@ int main(int argc, const char *argv[])
 
     parser.addCategory("Testing");
     parser.addSwitch('m', "mock", "Run the algorithm against historical data");
+    parser.addSwitch("no-trade-logs", "Disable trade-level logging (default: enabled)");
 
     // Parse
     gtb::Args args = parser.parse(argc, argv);
@@ -31,6 +33,11 @@ int main(int argc, const char *argv[])
     bool mock = false;
     if (args.hasArg("mock"))
         mock = true;
+
+    bool tradeLogs = true;
+    if (args.hasArg("no-trade-logs"))
+        tradeLogs = false;
+    gtb::log::setTradeLoggingEnabled(tradeLogs);
 
     gtb::TradeBot bot;
     if (!gtb::AlgorithmFactory::provision(bot, version, mock))

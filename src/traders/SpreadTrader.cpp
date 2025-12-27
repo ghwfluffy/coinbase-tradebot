@@ -81,9 +81,6 @@ void SpreadTrader::handleNewPair(
         return;
     }
 
-    // TODO: Too much logs
-#if 0
-    log::info("Created new pair for spread '%s'.", conf.name.c_str());
-#endif
+    log::trade("Created new pair for spread '%s'.", conf.name.c_str());
     stateMachine.logChange(OrderPair::State::None, pair);
 }

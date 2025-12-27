@@ -106,7 +106,7 @@ bool WindowTrader::fireSale(
     order.createdTime = ctx.data.get<Time>().getTime();
     if (ctx.coinbase().submitOrder(order))
     {
-        log::info("Window trader '%s' fire sale %s BTC.",
+        log::trade("Window trader '%s' fire sale %s BTC.",
             conf.name.c_str(),
             IntegerUtils::toBtcString(btc).c_str());
         holding = btc_t();
@@ -262,6 +262,11 @@ void WindowTrader::handleBuy(
 #endif
 
         ctx.data.get<Profits>().addOrderPair(order.value(), usd_t(), usd_t(), usd_t());
+        log::trade("Window trader '%s' BUY %s BTC @ %s (value %s).",
+            conf.name.c_str(),
+            IntegerUtils::toBtcString(order.quantity).c_str(),
+            IntegerUtils::toUsdString(order.price).c_str(),
+            IntegerUtils::toUsdString(order.value()).c_str());
     }
 }
 
@@ -340,6 +345,11 @@ void WindowTrader::handleSell(
         setAction(price);
         holding -= amount;
         ctx.data.get<Profits>().addOrderPair(usd_t(), order.value(), usd_t(), usd_t());
+        log::trade("Window trader '%s' SELL %s BTC @ %s (value %s).",
+            conf.name.c_str(),
+            IntegerUtils::toBtcString(order.quantity).c_str(),
+            IntegerUtils::toUsdString(order.price).c_str(),
+            IntegerUtils::toUsdString(order.value()).c_str());
 
         // TODO: Adjusting buy price on sale?
         totalSpent += BigInt(order.value().value() / 2);
@@ -356,7 +366,7 @@ void WindowTrader::requeueSale(
     CoinbaseOrder order = ctx.data.get<CoinbaseOrderBook>().getOrder(fireSaleUuid);
     if (!order || order.state == CoinbaseOrder::Filled)
     {
-        log::info("Fire sale complete.");
+        log::trade("Window trader '%s' fire sale complete.", conf.name.c_str());
         fireSaleUuid.clear();
 
         totalSpent = BigInt();

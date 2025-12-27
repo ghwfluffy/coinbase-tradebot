@@ -14,6 +14,8 @@ using namespace gtb;
 namespace
 {
 
+bool tradeLoggingEnabled = true;
+
 std::string getTime()
 {
     auto now = std::chrono::system_clock::now();
@@ -44,4 +46,20 @@ void log::error(const char *psz, ...)
     VARIADIC_STRING(psz, msg);
     printf("[%s] [ ERROR ] %s\n", getTime().c_str(), msg.c_str());
     fflush(stdout);
+}
+
+void log::trade(const char *psz, ...)
+{
+    if (!tradeLoggingEnabled)
+        return;
+
+    std::string msg;
+    VARIADIC_STRING(psz, msg);
+    printf("[%s] [ TRADE ] %s\n", getTime().c_str(), msg.c_str());
+    fflush(stdout);
+}
+
+void log::setTradeLoggingEnabled(bool enabled)
+{
+    tradeLoggingEnabled = enabled;
 }

@@ -2,8 +2,6 @@ Efficiency
 [ ] list -> vector
 [ ] Find other O(n) loops
 Cleanup commented out code
-[ ] Logging level configuration
-    "TODO: Too much logging"
 [ ] PendingProfitsCalc maintain value instead of calculating
 Docs
 [ ] SQL Schema

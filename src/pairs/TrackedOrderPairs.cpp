@@ -85,12 +85,9 @@ bool TrackedOrderPairs::cancelPair(
         return false;
     }
 
-    // TODO: Too much logging
-#if 0
-    log::info("Removed stale pair '%s' for '%s'.",
+    log::trade("Removed stale pair '%s' for '%s'.",
         pair.uuid.c_str(),
         algorithm.c_str());
-#endif
 
     // Remove from tracking
     orderPairs.erase(iter);
@@ -123,12 +120,9 @@ std::vector<OrderPair> TrackedOrderPairs::popComplete()
 
         if (pair.state >= OrderPair::State::Complete)
         {
-            // TODO: Too much logs
-#if 0
-            log::info("Removing completed order pair '%s' from trader '%s'.",
+            log::trade("Removing completed order pair '%s' from trader '%s'.",
                 pair.uuid.c_str(),
-                conf.name.c_str());
-#endif
+                algorithm.c_str());
             completed.push_back(std::move(pair));
             iter = orderPairs.erase(iter);
         }
@@ -162,4 +156,3 @@ bool TrackedOrderPairs::patientOverride(
 
     return mostRecentTime + conf <= curTime;
 }
-

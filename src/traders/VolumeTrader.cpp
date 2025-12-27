@@ -4,6 +4,7 @@
 #include <gtb/CoinbaseOrderBook.h>
 #include <gtb/CoinbaseWallet.h>
 #include <gtb/CoinbaseInit.h>
+#include <gtb/Log.h>
 
 using namespace gtb;
 
@@ -39,6 +40,12 @@ void VolumeTrader::process(
         order.createdTime = ctx.data.get<Time>().getTime();
         if (!ctx.coinbase().submitOrder(order))
             order = CoinbaseOrder();
+        else
+            log::trade("Volume trader '%s' BUY order queued %s BTC @ %s (value %s).",
+                conf.name.c_str(),
+                IntegerUtils::toBtcString(order.quantity).c_str(),
+                IntegerUtils::toUsdString(order.price).c_str(),
+                IntegerUtils::toUsdString(order.value()).c_str());
         return;
     }
 
@@ -57,6 +64,7 @@ void VolumeTrader::process(
         {
             ctx.data.get<Profits>().addOrderPair(usd_t(), order.value(), usd_t(), usd_t());
             order = CoinbaseOrder();
+            log::trade("Volume trader '%s' SELL filled.", conf.name.c_str());
         }
         else
         {
@@ -72,6 +80,12 @@ void VolumeTrader::process(
 
             if (!btc || !ctx.coinbase().submitOrder(order))
                 order = CoinbaseOrder();
+            else
+                log::trade("Volume trader '%s' SELL order queued %s BTC @ %s (value %s).",
+                    conf.name.c_str(),
+                    IntegerUtils::toBtcString(order.quantity).c_str(),
+                    IntegerUtils::toUsdString(order.price).c_str(),
+                    IntegerUtils::toUsdString(order.value()).c_str());
         }
         return;
     }
@@ -100,6 +114,12 @@ void VolumeTrader::process(
             order.price = price.getPrice() + 2_Dollars;
             if (!ctx.coinbase().submitOrder(order))
                 order = CoinbaseOrder();
+            else
+                log::trade("Volume trader '%s' SELL requeued %s BTC @ %s (value %s).",
+                    conf.name.c_str(),
+                    IntegerUtils::toBtcString(order.quantity).c_str(),
+                    IntegerUtils::toUsdString(order.price).c_str(),
+                    IntegerUtils::toUsdString(order.value()).c_str());
         }
     }
 }

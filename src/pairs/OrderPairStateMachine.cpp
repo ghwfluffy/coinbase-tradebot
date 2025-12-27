@@ -193,11 +193,8 @@ void OrderPairStateMachine::handlePending(
     if (conf.pendingPairExpiration &&
         ctx.data.get<Time>().getTime() > (pair.created + conf.pendingPairExpiration))
     {
-        // TODO: Too much logs
-#if 0
-        log::info("Canceling stale pending pair '%s'.",
+        log::trade("Canceling stale pending pair '%s'.",
             pair.uuid.c_str());
-#endif
         pair.state = OrderPair::State::Canceled;
         return;
     }
@@ -232,13 +229,10 @@ void OrderPairStateMachine::handlePending(
         pair.state = OrderPair::State::BuyActive;
         pair.buyOrder = order.uuid;
 
-        // TODO: Too much logs
-#if 0
-        log::info("Created new '%s' buy order '%s' for pair '%s'.",
+        log::trade("Created new '%s' buy order '%s' for pair '%s'.",
             conf.name.c_str(),
             pair.buyOrder.c_str(),
             pair.uuid.c_str());
-#endif
 
         // Update wallet after order created
         if (!ctx.data.get<MockMode>())
@@ -319,13 +313,10 @@ void OrderPairStateMachine::handleHolding(
         pair.state = OrderPair::State::SellActive;
         pair.sellOrder = order.uuid;
 
-        // TODO: Too much logs
-#if 0
-        log::info("Created new '%s' sell order '%s' for pair '%s'.",
+        log::trade("Created new '%s' sell order '%s' for pair '%s'.",
             conf.name.c_str(),
             pair.sellOrder.c_str(),
             pair.uuid.c_str());
-#endif
 
         // Update wallet after order created
         if (!ctx.data.get<MockMode>())
@@ -371,12 +362,7 @@ void OrderPairStateMachine::logChange(
     OrderPair::State startState,
     const OrderPair &pair)
 {
-    // TODO: Too much logs
-    return;
-    if (!(pair.state == OrderPair::State::Holding || pair.state == OrderPair::State::Complete))
-        return;
-
-    log::info("Spread '%s' pair '%s' updated '%s' => '%s' (%s -> %s) @ (%s -> %s).",
+    log::trade("Spread '%s' pair '%s' updated '%s' => '%s' (%s -> %s) @ (%s -> %s).",
         conf.name.c_str(),
         pair.uuid.c_str(),
         to_string(startState).c_str(),

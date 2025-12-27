@@ -48,7 +48,7 @@ bool MockCoinbase::submitOrder(
     {
         if (wallet.getAvailUsd() < order.value())
         {
-            //log::error("Not enough USD to submit order."); TODO
+            log::error("Not enough USD to submit order.");
             return false;
         }
         else if (!order.value())
@@ -61,7 +61,7 @@ bool MockCoinbase::submitOrder(
     {
         if (wallet.getAvailBtc() < order.quantity)
         {
-            //log::error("Not enough BTC to submit order."); TODO
+            log::error("Not enough BTC to submit order.");
             return false;
         }
         else if (!order.quantity)

@@ -47,10 +47,7 @@ void ConstantSpreadTrader::handleNewPair(
         return;
     }
 
-    // TODO: Too much logs
-#if 0
-    log::info("Created new pair for const spread '%s'.", conf.name.c_str());
-#endif
+    log::trade("Created new pair for const spread '%s'.", conf.name.c_str());
     lastBuyPrice = pair.buyPrice;
     stateMachine.logChange(OrderPair::State::None, pair);
 }
