@@ -19,7 +19,8 @@ int main(int argc, const char *argv[])
 
     parser.addCategory("Testing");
     parser.addSwitch('m', "mock", "Run the algorithm against historical data");
-    parser.addSwitch("no-trade-logs", "Disable trade-level logging (default: enabled)");
+    parser.addSwitch("trade-logs", "Enable trade-level logging (default: disabled)");
+    parser.addSwitch("debug-logs", "Enable debug-level logging (off by default)");
 
     // Parse
     gtb::Args args = parser.parse(argc, argv);
@@ -34,10 +35,12 @@ int main(int argc, const char *argv[])
     if (args.hasArg("mock"))
         mock = true;
 
-    bool tradeLogs = true;
-    if (args.hasArg("no-trade-logs"))
-        tradeLogs = false;
+    bool tradeLogs = false;
+    if (args.hasArg("trade-logs"))
+        tradeLogs = true;
     gtb::log::setTradeLoggingEnabled(tradeLogs);
+    if (args.hasArg("debug-logs"))
+        gtb::log::setDebugLoggingEnabled(true);
 
     gtb::TradeBot bot;
     if (!gtb::AlgorithmFactory::provision(bot, version, mock))

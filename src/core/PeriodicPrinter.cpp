@@ -43,24 +43,12 @@ void PeriodicPrinter::process(
 
     usd_t btcValue = IntegerUtils::getValue(price, btc);
 
-    std::string mockTime;
-    if (ctx.data.get<MockMode>())
-        mockTime = MarketInfo::getTimeString(time.getTime()) + " | ";
-    int64_t profit = ctx.data.get<Profits>().getProfit().value().toInt64();
-    bool profitNeg = profit < 0;
-    usd_t profitAbs = usd_t(static_cast<uint64_t>(profitNeg ? -profit : profit));
-
-    usd_t volume = usd_t(ctx.data.get<Profits>().getVolume().value().toUint64());
-
-    printf("%sSTATUS | BTC: %s | Wallet: $%s USD + $%s BTC = $%s | Profit: %s$%s | Volume: %s\n",
-        mockTime.c_str(),
+    log::status("BTC: %s | Wallet: $%s USD + $%s BTC = $%s | Volume: %s",
         IntegerUtils::toUsdString(price).c_str(),
         IntegerUtils::toUsdString(usd).c_str(),
         IntegerUtils::toUsdString(btcValue).c_str(),
         IntegerUtils::toUsdString(usd + btcValue).c_str(),
-        profitNeg ? "-" : "",
-        IntegerUtils::toUsdString(profitAbs).c_str(),
-        IntegerUtils::toUsdCompact(volume).c_str());
+        IntegerUtils::toUsdCompact(ctx.data.get<Profits>().getVolume()).c_str());
 
     if (ctx.data.get<MockMode>())
         nextPrint = now + std::chrono::days(1);

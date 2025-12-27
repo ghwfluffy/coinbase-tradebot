@@ -78,22 +78,20 @@ BigInt::operator bool() const
     return bn && !BN_is_zero(bn);
 }
 
-uint64_t BigInt::toUint64() const
+bool BigInt::tryToUint64(uint64_t &out) const
 {
+    out = 0;
     if (!bn)
-        return 0;
+        return true;
 
     const int bits = BN_num_bits(bn);
     if (bits < 0)
     {
         log::error("BN_num_bits failed");
-        return 0;
+        return false;
     }
     if (bits > 64)
-    {
-        log::error("BigNum does not fit into uint64_t");
-        return 0;
-    }
+        return false;
 
     unsigned char buf[8] = {0};
     const int rc = BN_bn2binpad(bn, buf, sizeof(buf));
@@ -103,32 +101,47 @@ uint64_t BigInt::toUint64() const
     uint64_t v = 0;
     for (unsigned char b : buf)
         v = (v << 8) | static_cast<uint64_t>(b);
+    out = v;
+    return true;
+}
+
+uint64_t BigInt::toUint64() const
+{
+    uint64_t v = 0;
+    if (!tryToUint64(v))
+        log::error("BigNum does not fit into uint64_t");
     return v;
+}
+
+bool BigInt::tryToInt64(int64_t &out) const
+{
+    out = 0;
+    if (!bn)
+        return true;
+
+    bool neg = BN_is_negative(bn);
+    uint64_t mag = 0;
+    if (!tryToUint64(mag))
+        return false;
+    if (neg)
+    {
+        if (mag > static_cast<uint64_t>(std::numeric_limits<int64_t>::max()) + 1ULL)
+            return false;
+        out = -static_cast<int64_t>(mag);
+        return true;
+    }
+    if (mag > static_cast<uint64_t>(std::numeric_limits<int64_t>::max()))
+        return false;
+    out = static_cast<int64_t>(mag);
+    return true;
 }
 
 int64_t BigInt::toInt64() const
 {
-    if (!bn)
-        return 0;
-
-    bool neg = BN_is_negative(bn);
-    uint64_t mag = toUint64();
-    if (neg)
-    {
-        if (mag > static_cast<uint64_t>(std::numeric_limits<int64_t>::max()) + 1ULL)
-        {
-            log::error("BigNum negative magnitude does not fit into int64_t");
-            return 0;
-        }
-        return -static_cast<int64_t>(mag);
-    }
-    if (mag > static_cast<uint64_t>(std::numeric_limits<int64_t>::max()))
-    {
+    int64_t v = 0;
+    if (!tryToInt64(v))
         log::error("BigNum does not fit into int64_t");
-        return 0;
-    }
-    return static_cast<int64_t>(mag);
-    return static_cast<int64_t>(mag);
+    return v;
 }
 
 bool BigInt::isNegative() const

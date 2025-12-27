@@ -264,3 +264,33 @@ std::string IntegerUtils::toUsdCompact(
 
     return "$" + toUsdString(amount);
 }
+
+std::string IntegerUtils::toUsdCompact(
+    big_usd_t amount)
+{
+    // Convert to whole dollars before compact formatting; if it doesn't fit, bail out.
+    BigInt div = amount.value() / BigInt(1'000'000'000'000ULL); // 1_Dollars underlying value
+    uint64_t dollars = 0;
+    if (!div.tryToUint64(dollars))
+        return "$INF";
+
+    if (dollars >= 1'000'000)
+    {
+        double millions = static_cast<double>(dollars) / 1'000'000.0;
+        char buf[32] = {};
+        snprintf(buf, sizeof(buf), "$%.1fM", millions);
+        return std::string(buf);
+    }
+    if (dollars >= 1'000)
+    {
+        double thousands = static_cast<double>(dollars) / 1'000.0;
+        char buf[32] = {};
+        snprintf(buf, sizeof(buf), "$%.1fK", thousands);
+        return std::string(buf);
+    }
+
+    char usd[64] = {};
+    snprintf(usd, sizeof(usd), "$%llu.00",
+        static_cast<unsigned long long>(dollars));
+    return std::string(usd);
+}

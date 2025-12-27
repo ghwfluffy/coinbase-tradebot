@@ -5,6 +5,9 @@
 #include <gtb/CoinbaseOrderBook.h>
 #include <gtb/Log.h>
 
+#include <algorithm>
+#include <cmath>
+
 using namespace gtb;
 
 WindowTrader::Candle::Candle()
@@ -12,11 +15,27 @@ WindowTrader::Candle::Candle()
     start = SteadyClock::now();
 }
 
+namespace
+{
+    constexpr std::chrono::seconds DEBUG_RATE_LIMIT{10};
+}
 WindowTrader::WindowTrader(
     BotContext &ctx,
     Config config)
         : ctx(ctx)
         , conf(config)
+        , prevActionPrice()
+        , prevActionTime()
+        , fireSaleUuid()
+        , pauseTimer()
+        , highPauseTimer()
+        , crashUntil()
+        , holding()
+        , totalSpent()
+        , totalPurchased()
+        , highWaterPrice()
+        , lastBuyPrice()
+        , debugState{usd_t(), usd_t(), btc_t(), SteadyClock::TimePoint()}
 {
     ctx.data.subscribe<BtcPrice>(*this);
 }
@@ -33,6 +52,8 @@ void WindowTrader::process(
     // Check/Update candle
     checkCandle(price);
 
+    auto closes = getCloses();
+
     // Not enough data yet
     if (candles.size() < 2)
         return;
@@ -46,7 +67,11 @@ void WindowTrader::process(
     if (checkMarketBottom(price))
         return;
 
-    handleBuy(price);
+    applyExtremeGuards(price, closes);
+    if (isPaused())
+        return;
+
+    handleBuy(price, closes);
     handleSell(price);
 }
 
@@ -64,6 +89,7 @@ void WindowTrader::checkCandle(
 
     if (!c.maxPrice || c.maxPrice < price.getPrice())
         c.maxPrice = price.getPrice();
+    c.closePrice = price.getPrice();
 
     // Too many candles
     if (candles.size() > utime_t(conf.windowSize / conf.candleSize).value())
@@ -72,7 +98,12 @@ void WindowTrader::checkCandle(
 
 bool WindowTrader::isPaused() const
 {
-    return pauseTimer > SteadyClock::now();
+    return pauseTimer > SteadyClock::now() || crashUntil > SteadyClock::now();
+}
+
+bool WindowTrader::isHighPaused() const
+{
+    return highPauseTimer > SteadyClock::now();
 }
 
 bool WindowTrader::fireSale(
@@ -123,6 +154,16 @@ void WindowTrader::pauseTrading()
 {
     log::info("Window trader '%s' pausing trading.", conf.name.c_str());
     pauseTimer = SteadyClock::now() + std::chrono::minutes(conf.pauseDuration / 1_Minutes);
+    prevActionPrice = usd_t();
+}
+
+void WindowTrader::pauseTrading(
+    utime_t duration)
+{
+    log::info("Window trader '%s' pausing trading for %llu minutes.",
+        conf.name.c_str(),
+        static_cast<unsigned long long>(duration / 1_Minutes));
+    pauseTimer = SteadyClock::now() + std::chrono::minutes(duration / 1_Minutes);
     prevActionPrice = usd_t();
 }
 
@@ -200,9 +241,160 @@ usd_t WindowTrader::getWindowSize() const
     return maxPrice - minPrice;
 }
 
-void WindowTrader::handleBuy(
-    const BtcPrice &price)
+namespace
 {
+usd_t percentile(std::vector<usd_t> values, uint32_t pct)
+{
+    if (values.empty())
+        return {};
+    std::sort(values.begin(), values.end(), [](usd_t a, usd_t b) { return a.value() < b.value(); });
+    if (pct >= 100)
+        return values.back();
+    double span = static_cast<double>(values.size() - 1);
+    size_t idx = static_cast<size_t>((span * static_cast<double>(pct)) / 100.0);
+    return values[idx];
+}
+
+double volatilityRatio(const std::vector<usd_t> &closes)
+{
+    if (closes.size() < 2)
+        return 0.0;
+    double sum = 0.0;
+    for (usd_t v : closes)
+        sum += static_cast<double>(v.value());
+    double mean = sum / static_cast<double>(closes.size());
+    if (mean <= std::numeric_limits<double>::epsilon())
+        return 0.0;
+
+    double var = 0.0;
+    for (usd_t v : closes)
+    {
+        double diff = static_cast<double>(v.value()) - mean;
+        var += diff * diff;
+    }
+    var /= static_cast<double>(closes.size() - 1);
+    double stddev = std::sqrt(var);
+    return stddev / mean;
+}
+}
+
+std::vector<usd_t> WindowTrader::getCloses() const
+{
+    std::vector<usd_t> closes;
+    closes.reserve(candles.size());
+    for (const auto &c : candles)
+    {
+        if (c.closePrice)
+            closes.push_back(c.closePrice);
+    }
+    return closes;
+}
+
+void WindowTrader::applyExtremeGuards(
+    const BtcPrice &price,
+    const std::vector<usd_t> &closes)
+{
+    if (!conf.enableAdaptiveBands || closes.size() < 5)
+        return;
+
+    usd_t highGuard = percentile(closes, conf.highPausePercentile);
+    usd_t lowGuard = percentile(closes, conf.lowExitPercentile);
+    // Simple mean as a sanity floor for crash detection.
+    usd_t meanPrice;
+    if (!closes.empty())
+    {
+        BigInt sum;
+        for (usd_t v : closes)
+            sum += BigInt(v.value());
+        BigInt denom(static_cast<uint64_t>(closes.size()));
+        BigInt avgBn = sum / denom;
+        uint64_t avgVal = avgBn.toUint64();
+        meanPrice = usd_t(avgVal);
+    }
+    auto now = SteadyClock::now();
+
+    if (highGuard && price.getPrice() >= highGuard)
+    {
+        if (!isHighPaused())
+        {
+            log::info("Window trader '%s' pausing new buys: price %s above P%u=%s.",
+                conf.name.c_str(),
+                IntegerUtils::toUsdString(price.getPrice()).c_str(),
+                conf.highPausePercentile,
+                IntegerUtils::toUsdString(highGuard).c_str());
+        }
+        highPauseTimer = now + std::chrono::minutes(conf.extremePauseDuration / 1_Minutes);
+    }
+
+    bool deepDrop = false;
+    if (meanPrice && conf.crashExitDropPct)
+    {
+        usd_t dropThresh = meanPrice - (meanPrice * conf.crashExitDropPct);
+        deepDrop = price.getPrice() <= dropThresh;
+    }
+
+    if (lowGuard && price.getPrice() <= lowGuard && deepDrop)
+    {
+        log::info("Window trader '%s' defensive exit: price %s below P%u=%s.",
+            conf.name.c_str(),
+            IntegerUtils::toUsdString(price.getPrice()).c_str(),
+            conf.lowExitPercentile,
+            IntegerUtils::toUsdString(lowGuard).c_str());
+        if (fireSale(price))
+        {
+            crashUntil = SteadyClock::now() + std::chrono::minutes(conf.crashCooldown / 1_Minutes);
+            inCrash = true;
+            pauseTrading(conf.extremePauseDuration);
+        }
+    }
+}
+
+void WindowTrader::handleBuy(
+    const BtcPrice &price,
+    const std::vector<usd_t> &closes)
+{
+    usd_t curPrice = price.getPrice();
+
+    if (isHighPaused())
+        return;
+    if (inCrash && crashUntil > SteadyClock::now())
+        return;
+    if (inCrash)
+    {
+        auto closes = getCloses();
+        if (!closes.empty())
+        {
+            usd_t recovery = percentile(closes, conf.crashRecoveryPercentile);
+            if (recovery && price.getPrice() >= recovery)
+                inCrash = false;
+        }
+    }
+
+    // Trend guard (block buys in clear down-trend)
+    if (conf.trendGuardDelta && closes.size() > conf.trendLookbackCandles)
+    {
+        usd_t recent = closes.back();
+        size_t idx = closes.size() - std::min(conf.trendLookbackCandles, closes.size() - 1);
+        usd_t prior = closes[idx];
+        if (prior > recent && (prior - recent) >= conf.trendGuardDelta)
+            return;
+    }
+
+    // Exposure cap
+    if (conf.maxExposureUsd)
+    {
+        usd_t holdingValue = IntegerUtils::getValue(curPrice, holding);
+        if (holdingValue >= conf.maxExposureUsd)
+            return;
+    }
+    // Trader-specific capital cap
+    if (conf.capitalCap)
+    {
+        usd_t deployed = IntegerUtils::getValue(curPrice, holding);
+        if (deployed >= conf.capitalCap)
+            return;
+    }
+
 #if 0
     // Not enough change
     if (prevActionPrice && IntegerUtils::difference(prevActionPrice, price.getPrice()) < conf.buyDelta)
@@ -217,23 +409,84 @@ void WindowTrader::handleBuy(
     if (conf.spendLimit && conf.spendLimit <= IntegerUtils::getValue(price.getPrice(), holding))
         return;
 
-    // Don't increase our buy average
-    if (totalSpent && totalPurchased)
+    // Require spacing below last buy to avoid stacking too high.
+    if (conf.buySpacingPct && lastBuyPrice)
     {
-    usd_t avgPrice = IntegerUtils::getPrice(totalSpent, totalPurchased);
-        if (avgPrice && price.getPrice() > avgPrice + conf.buyDelta)
+        usd_t spacingThreshold = lastBuyPrice - (lastBuyPrice * conf.buySpacingPct);
+        if (curPrice > spacingThreshold)
             return;
     }
 
-    // Not in the buy window
-    if (price.getPrice() < getWindowMin() || price.getPrice() > getWindowMax())
+    // Don't increase our buy average
+    if (totalSpent && totalPurchased)
+    {
+        usd_t avgPrice = IntegerUtils::getPrice(totalSpent, totalPurchased);
+        if (avgPrice && curPrice > avgPrice + conf.buyDelta)
+            return;
+    }
+
+    // Not in the buy window (optionally percentile-based)
+    usd_t lower = getWindowMin();
+    usd_t upper = getWindowMax();
+    usd_t pctLower = lower;
+    usd_t pctUpper = upper;
+    if (conf.usePercentileBands || conf.enableAdaptiveBands)
+    {
+        if (!closes.empty())
+        {
+            pctLower = percentile(closes, conf.lowerPercentile);
+            pctUpper = percentile(closes, conf.upperPercentile);
+            lower = pctLower;
+            upper = pctUpper;
+        }
+    }
+    if (conf.enableAdaptiveBands && closes.size() >= 5)
+    {
+        usd_t bandLower = percentile(closes, conf.buyBandLowerPercentile);
+        usd_t bandUpper = percentile(closes, conf.buyBandUpperPercentile);
+        if (bandLower && curPrice < bandLower)
+            return; // too low; likely falling knife
+        if (bandUpper && curPrice > bandUpper)
+            return; // too high; avoid chasing
+    }
+    if (curPrice < lower || curPrice > upper)
         return;
+
+    // Volatility-aware bet sizing
+    usd_t betSize = conf.betSize;
+    if (conf.volatilityDampen)
+    {
+        double vol = volatilityRatio(closes);
+        double damp = static_cast<double>(conf.volatilityDampen.value()) / PP_SCALE;
+        double scale = 1.0 - (vol * damp);
+        double scaleMin = static_cast<double>(conf.minBetScale.value()) / PP_SCALE;
+        double scaleMax = static_cast<double>(conf.maxBetScale.value()) / PP_SCALE;
+        if (scale < scaleMin) scale = scaleMin;
+        if (scale > scaleMax) scale = scaleMax;
+        betSize = usd_t(static_cast<uint64_t>(static_cast<double>(conf.betSize.value()) * scale));
+        if (!betSize)
+            betSize = usd_t(1);
+        auto now = SteadyClock::now();
+        if (now >= debugState.lastLogTime + DEBUG_RATE_LIMIT)
+        {
+            log::debug("Window trader '%s' vol=%.4f scale=%.2f bet=%s lower=%s upper=%s pctL=%s pctU=%s",
+                conf.name.c_str(),
+                vol,
+                scale,
+                IntegerUtils::toUsdString(betSize).c_str(),
+                IntegerUtils::toUsdString(lower).c_str(),
+                IntegerUtils::toUsdString(upper).c_str(),
+                IntegerUtils::toUsdString(pctLower).c_str(),
+                IntegerUtils::toUsdString(pctUpper).c_str());
+            debugState.lastLogTime = now;
+        }
+    }
 
     // Place another bet
     CoinbaseOrder order;
     order.buy = true;
-    order.price = price.getPrice() - 2_Dollars;
-    order.quantity = IntegerUtils::getSatoshiForPrice(price.getPrice(), conf.betSize);
+    order.price = curPrice - 2_Dollars;
+    order.quantity = IntegerUtils::getSatoshiForPrice(curPrice, betSize);
     order.createdTime = ctx.data.get<Time>().getTime();
 
     // Enough money?
@@ -241,25 +494,34 @@ void WindowTrader::handleBuy(
     if (order.value() > wallet - 20_Dollars)
         return;
 
-    // TODO: Always assumes success
+    btc_t prevHolding = holding;
+    // Respect trader capital cap by resizing the order if needed.
+    if (conf.capitalCap)
+    {
+        usd_t deployed = IntegerUtils::getValue(curPrice, holding);
+        usd_t room = (conf.capitalCap > deployed) ? (conf.capitalCap - deployed) : usd_t();
+        if (room && order.value() > room)
+        {
+            order.quantity = IntegerUtils::getSatoshiForPrice(curPrice, room);
+            if (!order.quantity)
+                return;
+        }
+        else if (!room)
+        {
+            return;
+        }
+    }
+
     if (ctx.coinbase().submitOrder(order))
     {
         setAction(price);
         holding += order.quantity;
-#if 0
-        Candle &c = candles.back();
-        c.totalSpent += conf.betSize;
-        c.totalPurchased += order.quantity;
-#else
+
         totalSpent += order.value();
         totalPurchased += order.quantity;
-#if 0
-        log::info("%s|%s|%s",
-            IntegerUtils::toUsdString(price.getPrice()).c_str(),
-            IntegerUtils::toUsdString(order.value()).c_str(),
-            IntegerUtils::toBtcString(order.quantity).c_str());
-#endif
-#endif
+        lastBuyPrice = curPrice;
+        if (!prevHolding || curPrice > highWaterPrice)
+            highWaterPrice = curPrice;
 
         log::trade("Window trader '%s' BUY %s BTC @ %s (value %s).",
             conf.name.c_str(),
@@ -279,6 +541,9 @@ void WindowTrader::setAction(
 void WindowTrader::handleSell(
     const BtcPrice &price)
 {
+    if (holding && (!highWaterPrice || price.getPrice() > highWaterPrice))
+        highWaterPrice = price.getPrice();
+
     // Too soon
     if (prevActionTime.time && IntegerUtils::difference(prevActionTime.time, SteadyClock::now().time) < conf.sellFrequency)
         return;
@@ -292,44 +557,104 @@ void WindowTrader::handleSell(
     if (!totalPurchased)
         return;
 
-#if 0
-    // Calculate the average buy price from the previous candles
-    usd_t totalSpent;
-    btc_t totalPurchased;
-    for (size_t ui = 0; ui < conf.avgBuyPriceCandleCount; ui++)
-    {
-        if (ui + 1 >= candles.size())
-            break;
-        const Candle &c = candles[candles.size() - ui - 1];
-        totalSpent += c.totalSpent;
-        totalPurchased += c.totalPurchased;
-    }
-#endif
-
-        usd_t avgPrice = IntegerUtils::getPrice(totalSpent, totalPurchased);
+    usd_t avgPrice = IntegerUtils::getPrice(totalSpent, totalPurchased);
     if (!avgPrice)
         return;
-#if 0
-    if (!avgPrice)
-    {
-        log::error("Failed to calculate average buy price");
-        return;
-    }
-#endif
 
-    if (price.getPrice() < (avgPrice + conf.takeProfitDelta))
+    // Soft defensive exit if we drift below the safe band
+    if (conf.enableAdaptiveBands && conf.softExitPercentile > 0)
     {
-        //log::info("%s|%s", IntegerUtils::toUsdString(price.getPrice()).c_str(), IntegerUtils::toUsdString(avgPrice).c_str());
-        return;
+        auto closes = getCloses();
+        if (closes.size() >= 5)
+        {
+            usd_t softGuard = percentile(closes, conf.softExitPercentile);
+            if (softGuard && price.getPrice() <= softGuard)
+            {
+                btc_t amount = holding * conf.softExitSellRatio;
+                if (!amount || amount > holding)
+                    amount = holding;
+
+                btc_t have = ctx.data.get<CoinbaseWallet>().getAvailBtc();
+                if (!have)
+                    return;
+                if (amount > have)
+                    amount = have;
+
+                CoinbaseOrder order;
+                order.buy = false;
+                order.price = price.getPrice() + 2_Dollars;
+                order.quantity = amount;
+                order.createdTime = ctx.data.get<Time>().getTime();
+                if (ctx.coinbase().submitOrder(order))
+                {
+                    log::info("Window trader '%s' soft exit %s BTC @ %s (softGuard=%s).",
+                        conf.name.c_str(),
+                        IntegerUtils::toBtcString(order.quantity).c_str(),
+                        IntegerUtils::toUsdString(order.price).c_str(),
+                        IntegerUtils::toUsdString(softGuard).c_str());
+                    setAction(price);
+                    holding -= amount;
+                    totalSpent += usd_t(order.value().value() / 2);
+                    totalPurchased += btc_t(order.quantity.value() / 2);
+                    if (!holding)
+                        highWaterPrice = usd_t();
+                }
+                return;
+            }
+        }
     }
+
+    // Require profit after estimated fees
+    pp_t feeRate = ctx.coinbase().getFeeTier();
+    pp_t roundTripFee = feeRate + feeRate;
+    usd_t feeBuffer = avgPrice * roundTripFee;
+
+    usd_t target = avgPrice + feeBuffer + conf.takeProfitDelta + (avgPrice * conf.takeProfitVolBoost);
+
+    bool trailingTrigger = false;
+    usd_t trailingLimit;
+    if (conf.trailingDrop && highWaterPrice)
+    {
+        trailingLimit = highWaterPrice - (highWaterPrice * conf.trailingDrop);
+        if (price.getPrice() <= trailingLimit && price.getPrice() > avgPrice)
+            trailingTrigger = true;
+    }
+
+    if (!trailingTrigger && price.getPrice() < target)
+        return;
 
     btc_t amount = IntegerUtils::getSatoshiForPrice(avgPrice, conf.betSize);
-    if (amount > holding)
+    if (conf.partialSellRatio.value() != PP_SCALE)
+        amount = holding * conf.partialSellRatio;
+    if (amount > holding || !amount)
         amount = holding;
+    // Debug log on change or rate limit
+    auto now = SteadyClock::now();
+    if ((price.getPrice() != debugState.lastSellPrice ||
+         target != debugState.lastSellTarget ||
+         amount != debugState.lastSellAmount) &&
+        now >= debugState.lastLogTime + DEBUG_RATE_LIMIT)
+    {
+        log::debug("Window trader '%s' sellCheck price=%s avg=%s feeBuf=%s target=%s highWater=%s trailStop=%s holding=%s sellAmt=%s",
+            conf.name.c_str(),
+            IntegerUtils::toUsdString(price.getPrice()).c_str(),
+            IntegerUtils::toUsdString(avgPrice).c_str(),
+            IntegerUtils::toUsdString(feeBuffer).c_str(),
+            IntegerUtils::toUsdString(target).c_str(),
+            IntegerUtils::toUsdString(highWaterPrice).c_str(),
+            IntegerUtils::toUsdString(trailingLimit).c_str(),
+            IntegerUtils::toBtcString(holding).c_str(),
+            IntegerUtils::toBtcString(amount).c_str());
+        debugState.lastSellPrice = price.getPrice();
+        debugState.lastSellTarget = target;
+        debugState.lastSellAmount = amount;
+        debugState.lastLogTime = now;
+    }
 
     btc_t have = ctx.data.get<CoinbaseWallet>().getAvailBtc();
     if (!have)
         return;
+
     if (amount > have)
         amount = have;
 
@@ -352,6 +677,15 @@ void WindowTrader::handleSell(
         // TODO: Adjusting buy price on sale?
         totalSpent += usd_t(order.value().value() / 2);
         totalPurchased += btc_t(order.quantity.value() / 2);
+        if (!holding)
+            highWaterPrice = usd_t();
+    }
+    else
+    {
+        log::debug("Window trader '%s' sell submit failed for %s BTC @ %s.",
+            conf.name.c_str(),
+            IntegerUtils::toBtcString(order.quantity).c_str(),
+            IntegerUtils::toUsdString(order.price).c_str());
     }
 }
 

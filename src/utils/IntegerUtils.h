@@ -83,6 +83,9 @@ namespace IntegerUtils
     // Compact formatting for USD values (e.g., $1.2K, $3M) using usd_t input.
     std::string toUsdCompact(
         usd_t amount);
+
+    std::string toUsdCompact(
+        big_usd_t amount);
 }
 
 }

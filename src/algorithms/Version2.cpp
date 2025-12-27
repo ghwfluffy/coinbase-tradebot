@@ -56,7 +56,7 @@ void initMock(
 
     // Initial state
     ctx.data.get<CoinbaseInit>().setFullInit();
-    ctx.data.get<CoinbaseWallet>().update(20'000_Dollars, 0_Bitcoins, 0_Dollars, 0_Bitcoins);
+    ctx.data.get<CoinbaseWallet>().update(30'000_Dollars, 0_Bitcoins, 0_Dollars, 0_Bitcoins);
     ctx.data.get<CoinbaseFeeTier>().setFeeTier(ctx.coinbase().getFeeTier());
 
     // Source: Historical market data
@@ -176,50 +176,76 @@ void Version2::init(
     }
 #endif
     // Trader: Window
-#if 1
+    auto addWindow = [&](WindowTrader::Config conf) {
+        bot.addProcessor(std::make_unique<WindowTrader>(ctx, conf));
+    };
+
+    // Core mean reversion bucket
     {
         WindowTrader::Config conf;
-        conf.name = "Window";
-        conf.takeProfitDelta = 20_Dollars;
+        conf.name = "Window-Core";
+        conf.takeProfitDelta = 8_Dollars;
         conf.windowSize = 48_Hours;
         conf.candleSize = 20_Minutes;
-        //conf.takeProfitDelta = 20_Dollars;
         conf.pauseDuration = 12_Hours;
         conf.highWindowBuffer = 20_Percent;
         conf.lowWindowBuffer = 20_Percent;
         conf.fireWindowBuffer = 10_PercentagePoints;
-        //conf.highWindowBuffer = 40_Percent;
-        //conf.lowWindowBuffer = 1_Percent;//10_PercentagePoints;
-        conf.betSize = 200_Dollars;
+        conf.betSize = 450_Dollars;
         conf.buyDelta = 2_Dollars;
-        conf.sellFrequency = 10_Seconds;
-        //conf.spendLimit = 15'000_Dollars;
-
-        bot.addProcessor(std::make_unique<WindowTrader>(ctx, conf));
+        conf.sellFrequency = 6_Seconds;
+        conf.capitalCap = 25'000_Dollars;
+        addWindow(conf);
     }
-#endif
+
+    // Shorter-term, tighter bands for churn
+    {
+        WindowTrader::Config conf;
+        conf.name = "Window-Short";
+        conf.takeProfitDelta = 5_Dollars;
+        conf.windowSize = 24_Hours;
+        conf.candleSize = 10_Minutes;
+        conf.pauseDuration = 6_Hours;
+        conf.highWindowBuffer = 15_Percent;
+        conf.lowWindowBuffer = 15_Percent;
+        conf.fireWindowBuffer = 5_PercentagePoints;
+        conf.betSize = 280_Dollars;
+        conf.buyDelta = 2_Dollars;
+        conf.sellFrequency = 6_Seconds;
+        conf.capitalCap = 12'000_Dollars;
+        conf.highPausePercentile = 93;
+        conf.lowExitPercentile = 3;
+        conf.buyBandLowerPercentile = 20;
+        conf.buyBandUpperPercentile = 65;
+        addWindow(conf);
+    }
+
+    // Longer-term, wider bands for crash riding
+    {
+        WindowTrader::Config conf;
+        conf.name = "Window-Long";
+        conf.takeProfitDelta = 11_Dollars;
+        conf.windowSize = 72_Hours;
+        conf.candleSize = 30_Minutes;
+        conf.pauseDuration = 18_Hours;
+        conf.highWindowBuffer = 25_Percent;
+        conf.lowWindowBuffer = 25_Percent;
+        conf.fireWindowBuffer = 10_PercentagePoints;
+        conf.betSize = 320_Dollars;
+        conf.buyDelta = 3_Dollars;
+        conf.sellFrequency = 8_Seconds;
+        conf.capitalCap = 12'000_Dollars;
+        conf.highPausePercentile = 96;
+        conf.lowExitPercentile = 2;
+        conf.buyBandLowerPercentile = 25;
+        conf.buyBandUpperPercentile = 70;
+        addWindow(conf);
+    }
 #if 0
     {
         VolumeTrader::Config conf;
         conf.name = "Volume";
         bot.addProcessor(std::make_unique<VolumeTrader>(ctx, conf));
-    }
-#endif
-    // TODO: No longer supports multiple
-#if 0
-    {
-        WindowTrader::Config conf;
-        conf.name = "Window Small";
-        conf.takeProfitDelta = 2_Dollars;
-        conf.pauseDuration = 6_Hours;
-        conf.highWindowBuffer = 50_Percent;
-        conf.lowWindowBuffer = 10_PercentagePoints;
-        conf.betSize = 200_Dollars;
-        conf.buyDelta = 2_Dollars;
-        //conf.sellFrequency = 2_Minutes;
-        //conf.spendLimit = 15'000_Dollars;
-
-        bot.addProcessor(std::make_unique<WindowTrader>(ctx, conf));
     }
 #endif
 }

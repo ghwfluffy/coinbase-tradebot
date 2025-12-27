@@ -9,6 +9,7 @@
 
 #include <set>
 #include <mutex>
+#include <vector>
 
 namespace gtb
 {
@@ -43,6 +44,23 @@ namespace gtb
  *  - If the current price exceeds this average by at least
  *    Config::takeProfitDelta, sells Config::betSize (USD) worth
  *    of position.
+ *
+ * Additional controls:
+ *  - buyDelta: minimum price move from last action before a new buy.
+ *  - sellFrequency: minimum time between sells.
+ *  - spendLimit / maxExposureUsd: cap notional deployed (0 = no cap).
+ *  - pauseDuration: cooldown after a fire sale; no buys during pause.
+ *  - fireWindowBuffer: triggers a fire sale when price drops below the window
+ *    floor by this buffer (and then pauses).
+ *  - highWindowBuffer / lowWindowBuffer: tighten the upper/lower bounds of the
+ *    window to avoid buying near extremes.
+ *  - adaptive bands: pause new buys above a rolling high percentile and trigger
+ *    a defensive exit + pause below a low percentile.
+ *  - percentile bands: optional lower/upper bands using historical closes
+ *    (e.g., 20th/80th percentile) instead of raw min/max.
+ *  - trend guard: optional downward-trend blocker for buys.
+ *  - volatility dampening: optional bet sizing scale based on price volatility.
+ *  - partial exits: optional fraction of holdings to sell per take-profit.
  */
 class WindowTrader
 {
@@ -75,6 +93,51 @@ class WindowTrader
             usd_t takeProfitDelta = 2_Dollars;
             // Required profit over average buy price to trigger a sale
             usd_t buyDelta = 20_Dollars;
+
+            // Percentile bands (disabled by default)
+            bool usePercentileBands = false;
+            uint32_t lowerPercentile = 20; // 20th percentile
+            uint32_t upperPercentile = 80; // 80th percentile
+
+            // Trend guard: block buys if recent trend is down more than this
+            usd_t trendGuardDelta = 0_Dollars; // 0 = disabled
+            size_t trendLookbackCandles = 2;
+
+            // Volatility dampening (scale bet size when volatile). 0 = disabled.
+            pp_t volatilityDampen = 0_Percent;
+            pp_t minBetScale = 50_Percent;
+            pp_t maxBetScale = 100_Percent;
+
+            // Adaptive band trading: use recent percentiles to define a safe zone.
+            bool enableAdaptiveBands = true;
+            uint32_t highPausePercentile = 95; // pause new buys above this percentile
+            uint32_t lowExitPercentile = 2;    // fire-sale + pause below this percentile
+            uint32_t buyBandLowerPercentile = 25;
+            uint32_t buyBandUpperPercentile = 70;
+            uint32_t softExitPercentile = 10;    // reduce exposure below this percentile
+            pp_t softExitSellRatio = 25_Percent; // portion to shed on soft exit
+            utime_t extremePauseDuration = 4_Hours;
+            // Crash handling: stay paused after a crash until recovery.
+            utime_t crashCooldown = 6_Hours;
+            uint32_t crashRecoveryPercentile = 50;
+            pp_t crashExitDropPct = 2_Percent; // also require this drop from mean before fire-sale
+
+            // Dynamic take-profit boost based on volatility (as % of avg price).
+            pp_t takeProfitVolBoost = 0_Percent;
+            // Trailing drop from high water to lock gains (0 = disabled).
+            pp_t trailingDrop = 0_Percent;
+
+            // Require buys to be spaced by this percent below last buy (0 = disabled).
+            pp_t buySpacingPct = 0_Percent;
+
+            // Exposure cap (0 = no cap)
+            usd_t maxExposureUsd = 0_Dollars;
+            // Capital allocation cap for this trader (0 = unlimited). Lets multiple
+            // traders share a wallet without stomping each other's funds.
+            usd_t capitalCap = 0_Dollars;
+
+            // Partial exit ratio (percentage of holding to sell per take-profit)
+            pp_t partialSellRatio = 100_Percent;
         };
 
         WindowTrader(
@@ -94,7 +157,10 @@ class WindowTrader
             const BtcPrice &price);
 
         bool isPaused() const;
+        bool isHighPaused() const;
         void pauseTrading();
+        void pauseTrading(
+            utime_t duration);
 
         bool checkMarketBottom(
             const BtcPrice &price);
@@ -104,7 +170,8 @@ class WindowTrader
             const BtcPrice &price);
 
         void handleBuy(
-            const BtcPrice &price);
+            const BtcPrice &price,
+            const std::vector<usd_t> &closes);
         void handleSell(
             const BtcPrice &price);
 
@@ -112,6 +179,10 @@ class WindowTrader
         usd_t getWindowMin() const;
         usd_t getWindowSize() const;
         usd_t getFireMin() const;
+        std::vector<usd_t> getCloses() const;
+        void applyExtremeGuards(
+            const BtcPrice &price,
+            const std::vector<usd_t> &closes);
 
         void setAction(
             const BtcPrice &price);
@@ -123,11 +194,9 @@ class WindowTrader
         {
             SteadyClock::TimePoint start;
 
-            usd_t totalSpent;
-            btc_t totalPurchased;
-
             usd_t minPrice;
             usd_t maxPrice;
+            usd_t closePrice;
 
             Candle();
         };
@@ -140,10 +209,24 @@ class WindowTrader
 
         std::string fireSaleUuid;
         SteadyClock::TimePoint pauseTimer;
+        SteadyClock::TimePoint highPauseTimer;
+        SteadyClock::TimePoint crashUntil;
+        bool inCrash = false;
 
         btc_t holding;
         big_usd_t totalSpent;
         big_btc_t totalPurchased;
+        usd_t highWaterPrice;
+        usd_t lastBuyPrice;
+
+        // Debug log throttling
+        struct DebugState
+        {
+            usd_t lastSellPrice;
+            usd_t lastSellTarget;
+            btc_t lastSellAmount;
+            SteadyClock::TimePoint lastLogTime;
+        } debugState;
 };
 
 }
