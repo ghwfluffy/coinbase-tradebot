@@ -7,10 +7,12 @@ High-level goals and behaviors for the rolling window mean-reversion trader.
 - **Buy posture**:
   - Only buys inside a safe band: min/max window with optional percentile bands; adaptive middle band (default P20–P60) blocks chasing highs or catching falling knives.
   - Spacing and trend guards prevent stacking too close or buying through clear downtrends.
+  - Buys can be forced to sit a fixed dollar *and* percent below the running average cost (`buyDelta`, `buyBelowPct`) so new buys are meaningful discounts.
   - Bet size can scale with volatility to reduce size in choppy markets.
 - **Sell posture**:
-  - Profit-take vs. average cost plus fee buffer and configurable delta; partial exits allowed.
+  - Profit-take vs. average cost plus fee buffer and configurable delta or percent lift (`takeProfitDelta`, `takeProfitPct`); partial exits allowed.
   - Trailing/high-water and volatility boosts tighten exits when momentum fades.
+  - Stop-loss band can shed part of the position if price sinks a set percent below the running average.
   - Soft exits shed part of the position when price drifts below a low percentile, even without profit, to reduce exposure.
 - **Crash/spike handling**:
   - Defensive fire-sale when price pierces the low percentile guard; sets a crash cooldown and pauses re-entry until a percentile-based recovery is seen.

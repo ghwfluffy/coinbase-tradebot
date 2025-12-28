@@ -439,6 +439,12 @@ void WindowTrader::handleBuy(
         usd_t avgPrice = IntegerUtils::getPrice(totalSpent, totalPurchased);
         if (avgPrice && curPrice > avgPrice + conf.buyDelta)
             return;
+        if (avgPrice && conf.buyBelowPct)
+        {
+            usd_t maxPrice = avgPrice - (avgPrice * conf.buyBelowPct);
+            if (curPrice > maxPrice)
+                return;
+        }
     }
 
     // Not in the buy window (optionally percentile-based)
@@ -633,12 +639,72 @@ void WindowTrader::handleSell(
         }
     }
 
+    // Stop-loss relative to average cost: shed a chunk if price sags below avg.
+    if (conf.stopLossPct)
+    {
+        usd_t stopThreshold = avgPrice - (avgPrice * conf.stopLossPct);
+        if (price.getPrice() <= stopThreshold)
+        {
+            if (!sellUuid.empty())
+            {
+                CoinbaseOrder existing = ctx.data.get<CoinbaseOrderBook>().getOrder(sellUuid);
+                if (existing && existing.state == CoinbaseOrder::Open)
+                    return;
+                if (!existing || existing.state == CoinbaseOrder::Filled || existing.state == CoinbaseOrder::Canceled)
+                    sellUuid.clear();
+            }
+
+            btc_t have = ctx.data.get<CoinbaseWallet>().getAvailBtc();
+            if (!have || !holding)
+                return;
+            btc_t amount = holding * conf.partialSellRatio;
+            if (!amount || amount > holding)
+                amount = holding;
+            if (amount > have)
+                amount = have;
+            if (!amount)
+                return;
+
+            CoinbaseOrder order;
+            order.buy = false;
+            order.price = IntegerUtils::makerSellPrice(price.getPrice());
+            order.quantity = amount;
+            order.createdTime = ctx.data.get<Time>().getTime();
+            btc_t haveNow = ctx.data.get<CoinbaseWallet>().getAvailBtc();
+            if (order.quantity > haveNow)
+                return;
+            if (ctx.coinbase().submitOrder(order))
+            {
+                sellUuid = order.uuid;
+                setAction(price);
+                holding -= amount;
+                log::debug("Window trader '%s' stop-loss sell %s BTC @ %s (stop=%s avg=%s).",
+                    conf.name.c_str(),
+                    IntegerUtils::toBtcString(order.quantity).c_str(),
+                    IntegerUtils::toUsdString(order.price).c_str(),
+                    IntegerUtils::toUsdString(stopThreshold).c_str(),
+                    IntegerUtils::toUsdString(avgPrice).c_str());
+                totalSpent += usd_t(order.value().value() / 2);
+                totalPurchased += btc_t(order.quantity.value() / 2);
+                if (!holding)
+                    highWaterPrice = usd_t();
+            }
+            return;
+        }
+    }
+
     // Require profit after estimated fees
     pp_t feeRate = ctx.coinbase().getFeeTier();
     pp_t roundTripFee = feeRate + feeRate;
     usd_t feeBuffer = avgPrice * roundTripFee;
 
     usd_t target = avgPrice + feeBuffer + conf.takeProfitDelta + (avgPrice * conf.takeProfitVolBoost);
+    if (conf.takeProfitPct)
+    {
+        usd_t pctTarget = avgPrice + (avgPrice * conf.takeProfitPct);
+        if (pctTarget > target)
+            target = pctTarget;
+    }
 
     bool trailingTrigger = false;
     usd_t trailingLimit;

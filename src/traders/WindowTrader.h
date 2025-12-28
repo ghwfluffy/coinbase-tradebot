@@ -91,8 +91,12 @@ class WindowTrader
             size_t avgBuyPriceCandleCount = 2;
             // Required profit over average buy price to trigger a sale
             usd_t takeProfitDelta = 2_Dollars;
+            // Additional take-profit as a percent of avg price (0 = disabled).
+            pp_t takeProfitPct = 0_Percent;
             // Required profit over average buy price to trigger a sale
             usd_t buyDelta = 20_Dollars;
+            // Only buy when price is at least this percent below avg price (0 = disabled).
+            pp_t buyBelowPct = 0_Percent;
 
             // Percentile bands (disabled by default)
             bool usePercentileBands = false;
@@ -138,6 +142,8 @@ class WindowTrader
 
             // Partial exit ratio (percentage of holding to sell per take-profit)
             pp_t partialSellRatio = 100_Percent;
+            // Stop-loss trigger as percent below average cost (0 = disabled).
+            pp_t stopLossPct = 0_Percent;
         };
 
         WindowTrader(
