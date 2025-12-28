@@ -55,13 +55,14 @@ void initMock(
 
     // Initial state
     ctx.data.get<CoinbaseInit>().setFullInit();
-    ctx.data.get<CoinbaseWallet>().update(30'000_Dollars, 0_Bitcoins, 0_Dollars, 0_Bitcoins);
+    ctx.data.get<CoinbaseWallet>().update(50'000_Dollars, 0_Bitcoins, 0_Dollars, 0_Bitcoins);
     ctx.data.get<CoinbaseFeeTier>().setFeeTier(ctx.coinbase().getFeeTier());
 
     // Source: Historical market data
     std::vector<std::string> range = {
         //"2025-05-01", "",//"2025-06-30",
-        //"2025-01-25", "2025-02-10",
+        //"2025-01-25", "2025-01-27",
+        "2025-01-25", "2025-05-01",
         "", ""
     };
     bot.addSource(std::make_unique<MockMarket>(ctx, range[0], range[1]));
@@ -138,42 +139,7 @@ void Version2::init(
         initProd(bot);
 
     BotContext &ctx = bot.getCtx();
-#if 0
-    bot.addProcessor(std::make_unique<ConstantTrader>(ctx, 500_Dollars, 2_Dollars));
-    //bot.addProcessor(std::make_unique<ConstantTrader>(ctx, 50_Dollars, 20_Dollars));
-    //bot.addProcessor(std::make_unique<ConstantTrader>(ctx, 100_Dollars, 200_Dollars));
-#endif
-#if 0
-    // Trader: Spread
-    {
-        SpreadTrader::Config conf;
-        conf.name = "Spread";
-        conf.spread = 20_PercentagePoints;
-        conf.bet = 200_Dollars;
-        //conf.numPairs = 1;
-        conf.numPairs = 30'000 / 200;
-        conf.buffer = 20_PercentagePoints;
-        conf.maxValue = 110'000_Dollars;
-        //conf.marketParams.push_back(getMarketConf());
 
-        bot.addProcessor(std::make_unique<SpreadTrader>(ctx, conf));
-    }
-#endif
-#if 0
-    // Trader: Const Spread
-    {
-        ConstantSpreadTrader::Config conf;
-        conf.name = "ConstSpread";
-        conf.windowSize = 2_Dollars;
-        conf.bet = 20_Dollars;
-        //conf.buffer = 20_PercentagePoints; // TODO: N/A
-        conf.maxValue = 110'000_Dollars;
-        conf.pendingPairExpiration = 1_Hours;
-        //conf.marketParams.push_back(getMarketConf());
-
-        bot.addProcessor(std::make_unique<ConstantSpreadTrader>(ctx, conf));
-    }
-#endif
     // Trader: Window
     auto addWindow = [&](WindowTrader::Config conf) {
         bot.addProcessor(std::make_unique<WindowTrader>(ctx, conf));
@@ -240,11 +206,10 @@ void Version2::init(
         conf.buyBandUpperPercentile = 70;
         addWindow(conf);
     }
-#if 0
+
     {
         VolumeTrader::Config conf;
         conf.name = "Volume";
         bot.addProcessor(std::make_unique<VolumeTrader>(ctx, conf));
     }
-#endif
 }

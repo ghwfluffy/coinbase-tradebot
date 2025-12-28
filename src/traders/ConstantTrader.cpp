@@ -69,7 +69,7 @@ void ConstantTrader::queueBuy(
     // Try to place new order
     CoinbaseOrder order;
     order.buy = true;
-    order.setQuantity(price.getPrice() - 2_Dollars, betSize);
+    order.setQuantity(IntegerUtils::makerBuyPrice(price.getPrice()), betSize);
     order.createdTime = ctx.data.get<Time>().getTime();
     if (ctx.coinbase().submitOrder(order))
     {
@@ -91,7 +91,7 @@ void ConstantTrader::queueSell(
     if (haveBtc <= 0_Satoshi)
         return;
 
-    usd_t sellPrice = price.getPrice() + 2_Dollars;
+    usd_t sellPrice = IntegerUtils::makerSellPrice(price.getPrice());
     usd_t estBuyPrice = price.getPrice() - windowSize;
     btc_t quantity = IntegerUtils::getSatoshiForPrice(estBuyPrice, betSize);
     if (quantity > haveBtc)

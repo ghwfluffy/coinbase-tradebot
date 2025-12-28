@@ -67,7 +67,7 @@ class WindowTrader
     public:
         struct Config
         {
-            std::string name;
+        std::string name;
             // How big of a window to track
             utime_t windowSize = 48_Hours;
             // Don't buy within this amount of the upper part of the window
@@ -208,16 +208,19 @@ class WindowTrader
         SteadyClock::TimePoint prevActionTime;
 
         std::string fireSaleUuid;
+        std::string buyUuid;
+        std::string sellUuid;
         SteadyClock::TimePoint pauseTimer;
         SteadyClock::TimePoint highPauseTimer;
         SteadyClock::TimePoint crashUntil;
         bool inCrash = false;
 
-        btc_t holding;
+        btc_t holding; // tracks trader-owned BTC (buys minus sells)
         big_usd_t totalSpent;
         big_btc_t totalPurchased;
         usd_t highWaterPrice;
         usd_t lastBuyPrice;
+        usd_t pendingBuyUsd;
 
         // Debug log throttling
         struct DebugState

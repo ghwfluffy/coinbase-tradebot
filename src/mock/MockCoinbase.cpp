@@ -6,6 +6,7 @@
 
 #include <gtb/CoinbaseOrderBook.h>
 #include <gtb/CoinbaseWallet.h>
+#include <gtb/IntegerUtils.h>
 #include <gtb/Time.h>
 
 using namespace gtb;
@@ -49,7 +50,11 @@ bool MockCoinbase::submitOrder(
     {
         if (wallet.getAvailUsd() < order.value())
         {
-            log::error("Not enough USD to submit order.");
+            log::error("Not enough USD to submit order. request=%s avail=%s wallet=%s onHold=%s",
+                IntegerUtils::toUsdString(order.value()).c_str(),
+                IntegerUtils::toUsdString(wallet.getAvailUsd()).c_str(),
+                IntegerUtils::toUsdString(wallet.getUsd()).c_str(),
+                IntegerUtils::toUsdString(wallet.getOnHoldUsd()).c_str());
             return false;
         }
         else if (!order.value())
@@ -60,20 +65,38 @@ bool MockCoinbase::submitOrder(
     }
     else
     {
-        if (wallet.getAvailBtc() < order.quantity)
-        {
-            log::error("Not enough BTC to submit order.");
-            return false;
-        }
-        else if (!order.quantity)
+        btc_t avail = wallet.getAvailBtc();
+        if (!order.quantity)
         {
             log::error("Cannot submit invalid null sell.");
+            return false;
+        }
+        if (avail < order.quantity)
+        {
+            log::error("Not enough BTC to submit order. request=%s avail=%s wallet=%s onHold=%s",
+                IntegerUtils::toBtcString(order.quantity).c_str(),
+                IntegerUtils::toBtcString(avail).c_str(),
+                IntegerUtils::toBtcString(wallet.getBtc()).c_str(),
+                IntegerUtils::toBtcString(wallet.getOnHoldBtc()).c_str());
             return false;
         }
     }
 
     // Update on hold amounts
     CoinbaseWallet::Data walletData = wallet.getData();
+    // Reject sells if not enough free BTC when considering on-hold (extra guard).
+    if (!order.buy)
+    {
+        if (walletData.btc < order.quantity || walletData.btc - walletData.onHoldBtc < order.quantity)
+        {
+            log::error("Not enough BTC to submit order. request=%s avail=%s wallet=%s onHold=%s",
+                IntegerUtils::toBtcString(order.quantity).c_str(),
+                IntegerUtils::toBtcString(wallet.getAvailBtc()).c_str(),
+                IntegerUtils::toBtcString(wallet.getBtc()).c_str(),
+                IntegerUtils::toBtcString(wallet.getOnHoldBtc()).c_str());
+            return false;
+        }
+    }
     if (order.buy)
         walletData.onHoldUsd += order.value();
     else

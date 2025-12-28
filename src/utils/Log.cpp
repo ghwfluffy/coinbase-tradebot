@@ -4,6 +4,7 @@
 #include <stdio.h>
 
 #include <iostream>
+#include <fstream>
 #include <sstream>
 #include <iomanip>
 #include <chrono>
@@ -14,8 +15,11 @@ using namespace gtb;
 namespace
 {
 
-bool tradeLoggingEnabled = true;
+bool debugLoggingEnabled = false;
+bool tradeLoggingEnabled = false;
+
 uint64_t mockNowMicros = 0;
+FILE *logFile = nullptr;
 
 std::string getTime()
 {
@@ -37,30 +41,46 @@ std::string getTime()
     return time_stream.str();
 }
 
+void writeLog(
+    const char *level,
+    const std::string &msg)
+{
+    std::ostringstream out;
+    out << '[' << getTime() << "] " << level << ' ' << msg;
+    std::string line = out.str();
+
+    fputs(line.c_str(), stdout);
+    fputc('\n', stdout);
+    fflush(stdout);
+    if (logFile)
+    {
+        fputs(line.c_str(), logFile);
+        fputc('\n', logFile);
+        fflush(logFile);
+    }
+}
+
 }
 
 void log::info(const char *psz, ...)
 {
     std::string msg;
     VARIADIC_STRING(psz, msg);
-    printf("[%s] [  INFO  ] %s\n", getTime().c_str(), msg.c_str());
-    fflush(stdout);
+    writeLog("[  INFO  ]", msg);
 }
 
 void log::error(const char *psz, ...)
 {
     std::string msg;
     VARIADIC_STRING(psz, msg);
-    printf("[%s] [ ERROR  ] %s\n", getTime().c_str(), msg.c_str());
-    fflush(stdout);
+    writeLog("[ ERROR  ]", msg);
 }
 
 void log::status(const char *psz, ...)
 {
     std::string msg;
     VARIADIC_STRING(psz, msg);
-    printf("[%s] [ STATUS ] %s\n", getTime().c_str(), msg.c_str());
-    fflush(stdout);
+    writeLog("[ STATUS ]", msg);
 }
 
 void log::trade(const char *psz, ...)
@@ -70,8 +90,7 @@ void log::trade(const char *psz, ...)
 
     std::string msg;
     VARIADIC_STRING(psz, msg);
-    printf("[%s] [ TRADE  ] %s\n", getTime().c_str(), msg.c_str());
-    fflush(stdout);
+    writeLog("[ TRADE  ]", msg);
 }
 
 void log::setTradeLoggingEnabled(bool enabled)
@@ -84,11 +103,6 @@ bool log::isTradeLoggingEnabled()
     return tradeLoggingEnabled;
 }
 
-namespace
-{
-bool debugLoggingEnabled = false;
-}
-
 void log::debug(const char *psz, ...)
 {
     if (!debugLoggingEnabled)
@@ -96,8 +110,7 @@ void log::debug(const char *psz, ...)
 
     std::string msg;
     VARIADIC_STRING(psz, msg);
-    printf("[%s] [ DEBUG ] %s\n", getTime().c_str(), msg.c_str());
-    fflush(stdout);
+    writeLog("[ DEBUG ]", msg);
 }
 
 void log::setDebugLoggingEnabled(bool enabled)
@@ -112,5 +125,23 @@ bool log::isDebugLoggingEnabled()
 
 void log::setMockNowMicros(uint64_t micros)
 {
+    if (!mockNowMicros)
+        info("Updating logs to use Mocked time.");
     mockNowMicros = micros;
+}
+
+void log::setLogFile(const std::string &path)
+{
+    if (logFile)
+    {
+        fclose(logFile);
+        logFile = nullptr;
+    }
+
+    if (path.empty())
+        return;
+
+    logFile = fopen(path.c_str(), "a");
+    if (!logFile)
+        fprintf(stderr, "Failed to open log file '%s'.\n", path.c_str());
 }

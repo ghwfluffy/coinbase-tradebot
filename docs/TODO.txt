@@ -1,15 +1,17 @@
+Cleanup
+[ ] Subroutine mock setup
+[ ] Factory for market conditions
+[ ] PendingProfitsCalc maintain value instead of calculating
+    - Remove concept?
 Efficiency
 [ ] list -> vector
 [ ] Find other O(n) loops
-Cleanup commented out code
-[ ] PendingProfitsCalc maintain value instead of calculating
 Docs
 [ ] SQL Schema
 [ ] Market Engine
 [ ] Traders
 [ ] Index / TOC / Indexing?
 Misc
-[ ] StrongTypedBigInt
 [ ] unbuffer stdout
 [ ] buffer_percent, num_pairs -> camelCase
 [\] CLI tools
@@ -17,21 +19,9 @@ Misc
 [ ] Better INVALID_LIMIT_PRICE_POST_ONLY handling
 [ ] watchdog fork
 [ ] clang static analyzer
-[ ] mock 30 day trading volume
 [ ] // XXX: Going to make sure we only run 1 trade per 30 seconds while testing / "Too soon?" codify
 [ ] Mock random percent chance trade is not executed
 Trading Algorithms
-[\] v2: The Hammer
-    [x] Start 30k
-    [x] Buy $20 every $20 change and sell in $20 change
-    [ ] Add 30-day-window calculations
-    [ ] Optimize algorithm
-        [ ] ConstantTrader needs to update Profits
-    [ ] Cleanup changes
-    [ ] Some way to pause orders if fee tier doesnt match volume (yet)
-    [ ] Some way to discount orders
-    [ ] Some way to incorporate the market times?
-    [ ] Spread volume up on buy not just sell
 [ ] Updates
     [ ] track modifiers on order pairs
     [ ] Use new pending patience config

@@ -1,4 +1,4 @@
-# C++ Coinbase Bitcoin Trading Bot
+# Ghw Trade Bot
 
 A C++20 trading bot for **Coinbase** focused on **BTC** market (`BTC-USD`).
 Uses REST for account/orders and WebSocket for market data/user events.

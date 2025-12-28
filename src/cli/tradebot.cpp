@@ -6,7 +6,7 @@
 namespace
 {
 
-constexpr const unsigned int DEFAULT_VERSION = 1;
+constexpr const unsigned int DEFAULT_VERSION = 2;
 
 }
 
@@ -21,12 +21,23 @@ int main(int argc, const char *argv[])
     parser.addSwitch('m', "mock", "Run the algorithm against historical data");
     parser.addSwitch("trade-logs", "Enable trade-level logging (default: disabled)");
     parser.addSwitch("debug-logs", "Enable debug-level logging (off by default)");
+    parser.addCategory("Logging");
+    parser.addParam("log-file", "Write logs to this file (also prints to stdout)");
 
     // Parse
     gtb::Args args = parser.parse(argc, argv);
     if (args.hasError())
         return 1;
 
+    // Logging
+    if (args.hasArg("log-file"))
+        gtb::log::setLogFile(args.getArg("log-file"));
+    if (args.hasArg("trade-logs"))
+        gtb::log::setTradeLoggingEnabled(true);
+    if (args.hasArg("debug-logs"))
+        gtb::log::setDebugLoggingEnabled(true);
+
+    // Setup tradebot
     unsigned int version = DEFAULT_VERSION;
     if (args.hasArg("version"))
         version = args.getUInt("version");
@@ -34,13 +45,6 @@ int main(int argc, const char *argv[])
     bool mock = false;
     if (args.hasArg("mock"))
         mock = true;
-
-    bool tradeLogs = false;
-    if (args.hasArg("trade-logs"))
-        tradeLogs = true;
-    gtb::log::setTradeLoggingEnabled(tradeLogs);
-    if (args.hasArg("debug-logs"))
-        gtb::log::setDebugLoggingEnabled(true);
 
     gtb::TradeBot bot;
     if (!gtb::AlgorithmFactory::provision(bot, version, mock))

@@ -23,6 +23,8 @@ class CoinbaseWallet : public DataModel
 
         usd_t getAvailUsd() const;
         btc_t getAvailBtc() const;
+        usd_t getOnHoldUsd() const { return values.onHoldUsd; }
+        btc_t getOnHoldBtc() const { return values.onHoldBtc; }
 
         void update(
             usd_t usd,

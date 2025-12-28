@@ -35,6 +35,7 @@ WindowTrader::WindowTrader(
         , totalPurchased()
         , highWaterPrice()
         , lastBuyPrice()
+        , pendingBuyUsd()
         , debugState{usd_t(), usd_t(), btc_t(), SteadyClock::TimePoint()}
 {
     ctx.data.subscribe<BtcPrice>(*this);
@@ -49,6 +50,16 @@ void WindowTrader::process(
     if (price.getPrice() <= 10'000_Dollars)
         return;
 
+    // Sync logical holding with wallet balances so we never try to trade BTC we do not
+    // actually control (including coins on hold by other traders).
+    CoinbaseWallet &wallet = ctx.data.get<CoinbaseWallet>();
+    btc_t walletBtc = wallet.getBtc();
+    btc_t walletAvailBtc = wallet.getAvailBtc();
+    if (holding > walletBtc)
+        holding = walletBtc;
+    if (holding > walletAvailBtc)
+        holding = walletAvailBtc;
+
     // Check/Update candle
     checkCandle(price);
 
@@ -62,6 +73,19 @@ void WindowTrader::process(
     requeueSale(price);
     if (isPaused())
         return;
+
+    // If a previous buy order is still open, wait for it to resolve before placing another.
+    if (!buyUuid.empty())
+    {
+        CoinbaseOrder existing = ctx.data.get<CoinbaseOrderBook>().getOrder(buyUuid);
+        if (existing && existing.state == CoinbaseOrder::Open)
+            return;
+        if (!existing || existing.state == CoinbaseOrder::Filled || existing.state == CoinbaseOrder::Canceled)
+        {
+            buyUuid.clear();
+            pendingBuyUsd = usd_t();
+        }
+    }
 
     // If we fall below the market fire sale and pause
     if (checkMarketBottom(price))
@@ -110,15 +134,13 @@ bool WindowTrader::fireSale(
     const BtcPrice &price)
 {
     btc_t btc = ctx.data.get<CoinbaseWallet>().getAvailBtc();
-#if 0
     if (btc > holding)
         btc = holding;
-#endif
     if (!btc)
     {
-        // TODO: Subroutine window reset
         totalSpent = big_usd_t();
         totalPurchased = big_btc_t();
+        holding = btc_t();
 
         while (candles.size() > 1)
             candles.erase(candles.begin());
@@ -132,7 +154,7 @@ bool WindowTrader::fireSale(
     // Try to sell everything we got
     CoinbaseOrder order;
     order.buy = false;
-    order.price = price.getPrice() + 2_Dollars;
+    order.price = IntegerUtils::makerSellPrice(price.getPrice());
     order.quantity = btc;
     order.createdTime = ctx.data.get<Time>().getTime();
     if (ctx.coinbase().submitOrder(order))
@@ -395,15 +417,9 @@ void WindowTrader::handleBuy(
             return;
     }
 
-#if 0
-    // Not enough change
-    if (prevActionPrice && IntegerUtils::difference(prevActionPrice, price.getPrice()) < conf.buyDelta)
-        return;
-#else
     // Too soon
     if (prevActionTime.time && IntegerUtils::difference(prevActionTime.time, SteadyClock::now().time) < conf.sellFrequency)
         return;
-#endif
 
     // Max invested
     if (conf.spendLimit && conf.spendLimit <= IntegerUtils::getValue(price.getPrice(), holding))
@@ -485,7 +501,7 @@ void WindowTrader::handleBuy(
     // Place another bet
     CoinbaseOrder order;
     order.buy = true;
-    order.price = curPrice - 2_Dollars;
+    order.price = IntegerUtils::makerBuyPrice(curPrice);
     order.quantity = IntegerUtils::getSatoshiForPrice(curPrice, betSize);
     order.createdTime = ctx.data.get<Time>().getTime();
 
@@ -498,7 +514,7 @@ void WindowTrader::handleBuy(
     // Respect trader capital cap by resizing the order if needed.
     if (conf.capitalCap)
     {
-        usd_t deployed = IntegerUtils::getValue(curPrice, holding);
+        usd_t deployed = IntegerUtils::getValue(curPrice, holding) + pendingBuyUsd;
         usd_t room = (conf.capitalCap > deployed) ? (conf.capitalCap - deployed) : usd_t();
         if (room && order.value() > room)
         {
@@ -512,8 +528,15 @@ void WindowTrader::handleBuy(
         }
     }
 
+    // Re-read available USD just before submit to avoid racing other traders.
+    usd_t availNow = ctx.data.get<CoinbaseWallet>().getAvailUsd();
+    if (order.value() > availNow)
+        return;
+
     if (ctx.coinbase().submitOrder(order))
     {
+        buyUuid = order.uuid;
+        pendingBuyUsd = order.value();
         setAction(price);
         holding += order.quantity;
 
@@ -579,14 +602,20 @@ void WindowTrader::handleSell(
                     return;
                 if (amount > have)
                     amount = have;
+                if (!amount)
+                    return;
 
                 CoinbaseOrder order;
                 order.buy = false;
-                order.price = price.getPrice() + 2_Dollars;
+                order.price = IntegerUtils::makerSellPrice(price.getPrice());
                 order.quantity = amount;
                 order.createdTime = ctx.data.get<Time>().getTime();
+                btc_t haveNow = ctx.data.get<CoinbaseWallet>().getAvailBtc();
+                if (order.quantity > haveNow)
+                    return;
                 if (ctx.coinbase().submitOrder(order))
                 {
+                    sellUuid = order.uuid;
                     log::debug("Window trader '%s' soft exit %s BTC @ %s (softGuard=%s).",
                         conf.name.c_str(),
                         IntegerUtils::toBtcString(order.quantity).c_str(),
@@ -651,21 +680,41 @@ void WindowTrader::handleSell(
         debugState.lastLogTime = now;
     }
 
+    // Only sell what this trader currently holds and what is available
+    // Avoid overlapping sells while one is open.
+    if (!sellUuid.empty())
+    {
+        CoinbaseOrder existing = ctx.data.get<CoinbaseOrderBook>().getOrder(sellUuid);
+        if (existing && existing.state == CoinbaseOrder::Open)
+            return;
+        if (!existing || existing.state == CoinbaseOrder::Filled || existing.state == CoinbaseOrder::Canceled)
+            sellUuid.clear();
+    }
+
     btc_t have = ctx.data.get<CoinbaseWallet>().getAvailBtc();
-    if (!have)
+    if (!have || !holding)
         return;
 
+    if (amount > holding)
+        amount = holding;
     if (amount > have)
         amount = have;
+    if (!amount)
+        return;
 
     CoinbaseOrder order;
     order.buy = false;
-    order.price = price.getPrice() + 2_Dollars;
+    order.price = IntegerUtils::makerSellPrice(price.getPrice());
     order.quantity = amount;
     order.createdTime = ctx.data.get<Time>().getTime();
-    // TODO: Always assumes success
+    // Final availability check just before submit to avoid racing other traders.
+    btc_t haveNow = ctx.data.get<CoinbaseWallet>().getAvailBtc();
+    if (order.quantity > haveNow)
+        return;
+
     if (ctx.coinbase().submitOrder(order))
     {
+        sellUuid = order.uuid;
         setAction(price);
         holding -= amount;
         log::trade("Window trader '%s' SELL %s BTC @ %s (value %s).",
@@ -674,18 +723,10 @@ void WindowTrader::handleSell(
             IntegerUtils::toUsdString(order.price).c_str(),
             IntegerUtils::toUsdString(order.value()).c_str());
 
-        // TODO: Adjusting buy price on sale?
         totalSpent += usd_t(order.value().value() / 2);
         totalPurchased += btc_t(order.quantity.value() / 2);
         if (!holding)
             highWaterPrice = usd_t();
-    }
-    else
-    {
-        log::debug("Window trader '%s' sell submit failed for %s BTC @ %s.",
-            conf.name.c_str(),
-            IntegerUtils::toBtcString(order.quantity).c_str(),
-            IntegerUtils::toUsdString(order.price).c_str());
     }
 }
 
@@ -710,7 +751,7 @@ void WindowTrader::requeueSale(
     }
 
     // This order is still good
-    if (order.state == CoinbaseOrder::Open && order.price < price.getPrice() + 2_Dollars)
+    if (order.state == CoinbaseOrder::Open && order.price < IntegerUtils::makerSellPrice(price.getPrice()))
         return;
 
     // Cancel open order

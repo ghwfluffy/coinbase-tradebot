@@ -14,6 +14,8 @@ bool AlgorithmFactory::provision(
     switch (version)
     {
         case 1:
+            log::error("Version 1 is deprecated.");
+            return false;
             Version1::init(bot, mock);
             return true;
         case 2:

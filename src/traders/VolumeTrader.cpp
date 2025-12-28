@@ -14,6 +14,7 @@ VolumeTrader::VolumeTrader(
         : ctx(ctx)
         , conf(config)
 {
+    resetState();
     ctx.data.subscribe<BtcPrice>(*this);
 }
 
@@ -26,98 +27,151 @@ void VolumeTrader::process(
     if (price.getPrice() <= 10'000_Dollars)
         return;
 
-    // Queue purchase
-    if (order.uuid.empty())
+    if (phase == Phase::Idle)
     {
-        // Enough money?
-        usd_t wallet = ctx.data.get<CoinbaseWallet>().getAvailUsd();
-        if (wallet < conf.betSize)
-            return;
-
-        order.buy = true;
-        order.price = price.getPrice() - 2_Dollars;
-        order.quantity = IntegerUtils::getSatoshiForPrice(price.getPrice(), conf.betSize);
-        order.createdTime = ctx.data.get<Time>().getTime();
-        if (!ctx.coinbase().submitOrder(order))
-            order = CoinbaseOrder();
-        else
-            log::trade("Volume trader '%s' BUY order queued %s BTC @ %s (value %s).",
-                conf.name.c_str(),
-                IntegerUtils::toBtcString(order.quantity).c_str(),
-                IntegerUtils::toUsdString(order.price).c_str(),
-                IntegerUtils::toUsdString(order.value()).c_str());
+        startBuy(price.getPrice());
         return;
     }
 
     CoinbaseOrder updated = ctx.data.get<CoinbaseOrderBook>().getOrder(order.uuid);
     if (!updated)
     {
-        order = CoinbaseOrder();
+        resetState();
         return;
     }
 
-    // Complete
     if (updated.state == CoinbaseOrder::Filled)
     {
-        // Sell complete, do next buy
-        if (order.buy == false)
-        {
-            order = CoinbaseOrder();
-            log::trade("Volume trader '%s' SELL filled.", conf.name.c_str());
-        }
-        else
-        {
-            // Buy complete, queue sell
-            order.uuid.clear();
-            order.buy = false;
-            order.price = price.getPrice() + 2_Dollars;
-
-            btc_t btc = ctx.data.get<CoinbaseWallet>().getAvailBtc();
-            if (btc < order.quantity)
-                order.quantity = btc;
-
-            if (!btc || !ctx.coinbase().submitOrder(order))
-                order = CoinbaseOrder();
-            else
-                log::trade("Volume trader '%s' SELL order queued %s BTC @ %s (value %s).",
-                    conf.name.c_str(),
-                    IntegerUtils::toBtcString(order.quantity).c_str(),
-                    IntegerUtils::toUsdString(order.price).c_str(),
-                    IntegerUtils::toUsdString(order.value()).c_str());
-        }
+        handleFilled(updated, price.getPrice());
         return;
     }
 
-    // Error state
     if (updated.state != CoinbaseOrder::Open)
     {
-        order = CoinbaseOrder();
+        resetState();
         return;
     }
 
-    // Buy price rose, cancel buy
-    if (updated.buy && updated.price < price.getPrice() - 20_Dollars)
+    handleOpen(updated, price.getPrice());
+}
+
+bool VolumeTrader::startBuy(
+    usd_t price)
+{
+    usd_t wallet = ctx.data.get<CoinbaseWallet>().getAvailUsd();
+    if (wallet < conf.betSize)
+        return false;
+
+    order = CoinbaseOrder();
+    order.buy = true;
+    order.price = IntegerUtils::makerBuyPrice(price);
+    order.quantity = IntegerUtils::getSatoshiForPrice(price, conf.betSize);
+    order.createdTime = ctx.data.get<Time>().getTime();
+    // Re-read availability right before submit to avoid racing other traders.
+    usd_t availNow = ctx.data.get<CoinbaseWallet>().getAvailUsd();
+    if (order.value() > availNow)
     {
-        if (ctx.coinbase().cancelOrder(order.uuid))
-            order = CoinbaseOrder();
+        order = CoinbaseOrder();
+        phase = Phase::Idle;
+        return false;
+    }
+    if (!ctx.coinbase().submitOrder(order))
+    {
+        order = CoinbaseOrder();
+        phase = Phase::Idle;
+        return false;
+    }
+
+    phase = Phase::BuyPending;
+    log::trade("Volume trader '%s' BUY order queued %s BTC @ %s (value %s).",
+        conf.name.c_str(),
+        IntegerUtils::toBtcString(order.quantity).c_str(),
+        IntegerUtils::toUsdString(order.price).c_str(),
+        IntegerUtils::toUsdString(order.value()).c_str());
+    return true;
+}
+
+bool VolumeTrader::startSell(
+    usd_t price)
+{
+    btc_t btc = ctx.data.get<CoinbaseWallet>().getAvailBtc();
+    if (!btc || btc < pendingQty)
+        return false;
+
+    order = CoinbaseOrder();
+    order.buy = false;
+    order.price = IntegerUtils::makerSellPrice(price);
+    order.quantity = pendingQty;
+    order.createdTime = ctx.data.get<Time>().getTime();
+
+    // Re-read availability right before submit to avoid racing other traders.
+    btc_t haveNow = ctx.data.get<CoinbaseWallet>().getAvailBtc();
+    if (order.quantity > haveNow)
+        return false;
+
+    if (!ctx.coinbase().submitOrder(order))
+    {
+        resetState();
+        return false;
+    }
+
+    phase = Phase::SellPending;
+    log::trade("Volume trader '%s' SELL order queued %s BTC @ %s (value %s).",
+        conf.name.c_str(),
+        IntegerUtils::toBtcString(order.quantity).c_str(),
+        IntegerUtils::toUsdString(order.price).c_str(),
+        IntegerUtils::toUsdString(order.value()).c_str());
+    return true;
+}
+
+void VolumeTrader::handleFilled(
+    const CoinbaseOrder &updated,
+    usd_t price)
+{
+    if (phase == Phase::BuyPending && updated.buy)
+    {
+        pendingQty = updated.quantity;
+        if (!startSell(price))
+            resetState();
+        return;
+    }
+
+    if (phase == Phase::SellPending && !updated.buy)
+    {
+        log::trade("Volume trader '%s' SELL filled.", conf.name.c_str());
+        resetState();
+        return;
+    }
+
+    resetState();
+}
+
+void VolumeTrader::handleOpen(
+    const CoinbaseOrder &updated,
+    usd_t price)
+{
+    // Buy price rose too far, cancel buy
+    if (phase == Phase::BuyPending && updated.price < price - 20_Dollars)
+    {
+        if (ctx.coinbase().cancelOrder(updated.uuid))
+            resetState();
         return;
     }
 
     // Sell price fell, requeue sell
-    if (!updated.buy && updated.price > price.getPrice() + 20_Dollars)
+    if (phase == Phase::SellPending && updated.price > price + 20_Dollars)
     {
-        if (ctx.coinbase().cancelOrder(order.uuid))
+        if (ctx.coinbase().cancelOrder(updated.uuid))
         {
-            order.buy = false;
-            order.price = price.getPrice() + 2_Dollars;
-            if (!ctx.coinbase().submitOrder(order))
-                order = CoinbaseOrder();
-            else
-                log::trade("Volume trader '%s' SELL requeued %s BTC @ %s (value %s).",
-                    conf.name.c_str(),
-                    IntegerUtils::toBtcString(order.quantity).c_str(),
-                    IntegerUtils::toUsdString(order.price).c_str(),
-                    IntegerUtils::toUsdString(order.value()).c_str());
+            startSell(price);
         }
+        return;
     }
+}
+
+void VolumeTrader::resetState()
+{
+    order = CoinbaseOrder();
+    pendingQty = btc_t();
+    phase = Phase::Idle;
 }

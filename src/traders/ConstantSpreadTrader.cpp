@@ -55,5 +55,6 @@ void ConstantSpreadTrader::handleNewPair(
 void ConstantSpreadTrader::handleComplete(
     OrderPair &pair)
 {
-    lastBuyPrice = pair.sellPrice - 2_Dollars - (conf.windowSize * 2);
+    // Track a maker-friendly threshold before opening the next buy.
+    lastBuyPrice = IntegerUtils::makerBuyPrice(pair.sellPrice, 2_Dollars + (conf.windowSize * 2));
 }

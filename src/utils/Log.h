@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
 
 namespace gtb::log
 {
@@ -27,4 +28,7 @@ namespace gtb::log
 
     // Allow mocking the timestamp source (e.g., mock time).
     void setMockNowMicros(uint64_t micros);
+
+    // Duplicate logs to a file path.
+    void setLogFile(const std::string &path);
 }

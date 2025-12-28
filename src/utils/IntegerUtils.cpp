@@ -294,3 +294,17 @@ std::string IntegerUtils::toUsdCompact(
         static_cast<unsigned long long>(dollars));
     return std::string(usd);
 }
+
+usd_t IntegerUtils::makerBuyPrice(
+    usd_t mid,
+    usd_t offset)
+{
+    return mid - offset;
+}
+
+usd_t IntegerUtils::makerSellPrice(
+    usd_t mid,
+    usd_t offset)
+{
+    return mid + offset;
+}

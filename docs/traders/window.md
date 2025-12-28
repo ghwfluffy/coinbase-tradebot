@@ -18,6 +18,8 @@ High-level goals and behaviors for the rolling window mean-reversion trader.
 - **Risk limits**:
   - Spend/exposure caps, per-trader capital caps (e.g., only deploy $20k from a larger wallet per trader), buy spacing, and pause timers limit runaway allocation.
   - Window reset on fire-sale to avoid stale anchors.
+ - **Order placement (maker bias)**:
+  - Prices for buys/sells are offset using shared helpers (`makerBuyPrice`/`makerSellPrice`) to prefer maker orders (e.g., ±$2) and keep fee tiers low.
 - **Logging/toggles**:
   - Trade-level logs can be toggled with `--trade-logs`; debug logs with `--debug-logs`. Mock time is reflected in logs for replay analysis.
 

@@ -13,5 +13,8 @@ all:
 	cmake --build . \
 	    -j$(THREADS)
 
+tests: all
+	./build/unit-tests
+
 clean:
 	rm -rf build

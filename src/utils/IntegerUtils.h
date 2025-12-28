@@ -86,6 +86,15 @@ namespace IntegerUtils
 
     std::string toUsdCompact(
         big_usd_t amount);
+
+    // Maker-friendly price adjustments to avoid taking.
+    usd_t makerBuyPrice(
+        usd_t mid,
+        usd_t offset = 2_Dollars);
+
+    usd_t makerSellPrice(
+        usd_t mid,
+        usd_t offset = 2_Dollars);
 }
 
 }

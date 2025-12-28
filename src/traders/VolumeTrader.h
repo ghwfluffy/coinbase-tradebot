@@ -1,8 +1,8 @@
 #pragma once
 
 #include <gtb/BotContext.h>
-
 #include <gtb/BtcPrice.h>
+#include <gtb/CoinbaseOrder.h>
 #include <gtb/IntLiterals.h>
 
 namespace gtb
@@ -33,9 +33,30 @@ class VolumeTrader
             const BtcPrice &price);
 
     private:
+        enum class Phase
+        {
+            Idle,
+            BuyPending,
+            SellPending
+        };
+
+        bool startBuy(
+            usd_t price);
+        bool startSell(
+            usd_t price);
+        void handleFilled(
+            const CoinbaseOrder &updated,
+            usd_t price);
+        void handleOpen(
+            const CoinbaseOrder &updated,
+            usd_t price);
+        void resetState();
+
         BotContext &ctx;
         Config conf;
 
+        Phase phase;
+        btc_t pendingQty;
         CoinbaseOrder order;
 };
 
