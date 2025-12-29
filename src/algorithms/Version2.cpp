@@ -16,6 +16,8 @@
 #include <gtb/ConstantSpreadTrader.h>
 #include <gtb/WindowTrader.h>
 #include <gtb/VolumeTrader.h>
+#include <gtb/MomentumTrader.h>
+#include <gtb/MovingAverageTrader.h>
 
 #include <gtb/MockMode.h>
 #include <gtb/MockMarket.h>
@@ -144,6 +146,12 @@ void Version2::init(
     auto addWindow = [&](WindowTrader::Config conf) {
         bot.addProcessor(std::make_unique<WindowTrader>(ctx, conf));
     };
+    auto addMomentum = [&](MomentumTrader::Config conf) {
+        bot.addProcessor(std::make_unique<MomentumTrader>(ctx, conf));
+    };
+    auto addMA = [&](MovingAverageTrader::Config conf) {
+        bot.addProcessor(std::make_unique<MovingAverageTrader>(ctx, conf));
+    };
 
     // Core mean reversion bucket
     {
@@ -235,5 +243,63 @@ void Version2::init(
         VolumeTrader::Config conf;
         conf.name = "Volume";
         bot.addProcessor(std::make_unique<VolumeTrader>(ctx, conf));
+    }
+
+    // Trend-follow breakout scalpers to complement mean reversion.
+    {
+        MomentumTrader::Config conf;
+        conf.name = "Momentum-Fast";
+        conf.windowSize = 6_Hours;
+        conf.breakoutPct = 30_PercentagePoints;
+        conf.takeProfitPct = 80_PercentagePoints;
+        conf.trailingDrop = 50_PercentagePoints;
+        conf.stopLossPct = 120_PercentagePoints;
+        conf.betSize = 250_Dollars;
+        conf.capitalCap = 6'000_Dollars;
+        addMomentum(conf);
+    }
+    {
+        MomentumTrader::Config conf;
+        conf.name = "Momentum-Swing";
+        conf.windowSize = 24_Hours;
+        conf.breakoutPct = 50_PercentagePoints;
+        conf.takeProfitPct = 120_PercentagePoints;
+        conf.trailingDrop = 70_PercentagePoints;
+        conf.stopLossPct = 200_PercentagePoints;
+        conf.betSize = 300_Dollars;
+        conf.capitalCap = 8'000_Dollars;
+        addMomentum(conf);
+    }
+
+    // Moving-average crossover to ride medium-term trends.
+    {
+        MovingAverageTrader::Config conf;
+        conf.name = "MA-Long";
+        conf.shortWindow = 24;
+        conf.longWindow = 96;
+        conf.candleSize = 15_Minutes;
+        conf.entryBuffer = 15_PercentagePoints;
+        conf.exitBuffer = 10_PercentagePoints;
+        conf.takeProfitPct = 200_PercentagePoints;
+        conf.stopLossPct = 120_PercentagePoints;
+        conf.trailingDrop = 80_PercentagePoints;
+        conf.betSize = 400_Dollars;
+        conf.capitalCap = 10'000_Dollars;
+        addMA(conf);
+    }
+    {
+        MovingAverageTrader::Config conf;
+        conf.name = "MA-Short";
+        conf.shortWindow = 12;
+        conf.longWindow = 36;
+        conf.candleSize = 5_Minutes;
+        conf.entryBuffer = 20_PercentagePoints;
+        conf.exitBuffer = 15_PercentagePoints;
+        conf.takeProfitPct = 150_PercentagePoints;
+        conf.stopLossPct = 100_PercentagePoints;
+        conf.trailingDrop = 70_PercentagePoints;
+        conf.betSize = 250_Dollars;
+        conf.capitalCap = 6'000_Dollars;
+        addMA(conf);
     }
 }
