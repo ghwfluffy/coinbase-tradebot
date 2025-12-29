@@ -1,6 +1,17 @@
 #include <gtb/Version2.h>
 #include <gtb/Log.h>
 
+#include <gtb/BtcHistoricalWriter.h>
+#include <gtb/CoinbaseMarket.h>
+#include <gtb/CoinbaseRestClient.h>
+#include <gtb/CoinbaseUserInfo.h>
+#include <gtb/CoinbaseUserTrades.h>
+#include <gtb/PeriodicPrinter.h>
+#include <gtb/PeriodicTimeUpdater.h>
+#include <gtb/WalletHistoricalWriter.h>
+
+#include <gtb/MockSetup.h>
+
 #include <gtb/SpreadTrader.h>
 #include <gtb/ConstantTrader.h>
 #include <gtb/ConstantSpreadTrader.h>
@@ -8,8 +19,6 @@
 #include <gtb/VolumeTrader.h>
 #include <gtb/MomentumTrader.h>
 #include <gtb/MovingAverageTrader.h>
-
-#include <gtb/MockSetup.h>
 
 using namespace gtb;
 
@@ -19,9 +28,33 @@ namespace
 void initProd(
     TradeBot &bot)
 {
-    (void)bot;
+    BotContext &ctx = bot.getCtx();
 
-    log::error("v2 production not hooked up");
+    ctx.historicalDb.init("data/v2_historical.sqlite", "./schema/v2_historical.sql");
+
+    // Real coinbase API
+    ctx.setCoinbase(std::make_unique<CoinbaseRestClient>());
+
+    // Source: Time updater
+    bot.addSource(std::make_unique<PeriodicTimeUpdater>(ctx));
+
+    // Source: Coinbase market
+    bot.addSource(std::make_unique<CoinbaseMarket>(ctx));
+
+    // Source: Coinbase user trades
+    bot.addSource(std::make_unique<CoinbaseUserTrades>(ctx));
+
+    // Source: Coinbase user info
+    bot.addSource(std::make_unique<CoinbaseUserInfo>(ctx));
+
+    // Processor: Record BTC prices
+    bot.addProcessor(std::make_unique<BtcHistoricalWriter>(ctx));
+
+    // Processor: Record wallet value
+    bot.addProcessor(std::make_unique<WalletHistoricalWriter>(ctx));
+
+    // Processor: Print periodic status updates
+    bot.addProcessor(std::make_unique<PeriodicPrinter>(ctx));
 }
 
 MockSetup::Config mockConf()

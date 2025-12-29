@@ -91,8 +91,6 @@ void Version1::init(
     TradeBot &bot,
     bool mock)
 {
-    log::info("Initializing Ghw Trade Bot version 1%s.", mock ? " - Mock Test" : "");
-
     // Setup sources, processors, and initial state
     if (mock)
         MockSetup::init(bot, mockConf());
