@@ -25,6 +25,7 @@
 #include <gtb/SpreadTrader.h>
 #include <gtb/StaticTrader.h>
 #include <gtb/TimeTrader.h>
+#include <gtb/MarketConfFactory.h>
 
 #include <gtb/MockMode.h>
 #include <gtb/MockMarket.h>
@@ -116,88 +117,6 @@ void initMock(
     bot.addProcessor(std::make_unique<PendingProfitsCalc>(ctx));
 }
 
-MarketPeriodConfig getRampedPeriodConf(bool hot)
-{
-    return {
-        .hot = hot,
-        .pausePeriod = 2_Hours,
-        .pauseAcceptLoss = (hot ? 10_PercentagePoints : 100_Percent),
-        .rampPeriod = 2_Hours,
-        .rampGrade = 200_Percent,
-    };
-}
-
-MarketPeriodConfig getPausedPeriodConf()
-{
-    return {
-        .hot = false,
-        .pausePeriod = 0_Seconds,
-        .pauseAcceptLoss = 0_Percent,
-        .rampPeriod = 0_Seconds,
-        .rampGrade = 0_Percent,
-    };
-}
-
-MarketTimeTraderConfig getMarketConf()
-{
-    return {
-        .market = MarketInfo::Market::BitcoinFutures,
-
-        // Open ----->
-        .openMarket = getRampedPeriodConf(true),
-        // Open -> Closed
-        .closingMarket = getPausedPeriodConf(),
-        // Closed ----->
-        .closedMarket = getPausedPeriodConf(),
-        // Closed -> Open
-        .openingMarket = getRampedPeriodConf(false),
-        // Open -> Weekend
-        .weekendingMarket = getPausedPeriodConf(),
-        // Weekend ---->
-        .weekendMarket = getPausedPeriodConf(),
-        // Weekend -> Open
-        .weekStartingMarket = getRampedPeriodConf(true),
-    };
-}
-
-#if 0
-MarketTimeTraderConfig getStockMarketConf()
-{
-    return {
-        .market = MarketInfo::Market::StockMarket,
-
-        // Open ----->
-        .openMarket = {
-            .hot = true,
-        },
-        // Open -> Closed
-        .closingMarket = {
-            .hot = true,
-        },
-        // Closed ----->
-        .closedMarket = {
-            .hot = false,
-        },
-        // Closed -> Open
-        .openingMarket = {
-            .hot = false,
-        },
-        // Open -> Weekend
-        .weekendingMarket = {
-            .hot = true,
-        },
-        // Weekend ---->
-        .weekendMarket = {
-            .hot = true,
-        },
-        // Weekend -> Open
-        .weekStartingMarket = {
-            .hot = true,
-        },
-    };
-}
-#endif
-
 }
 
 void Version1::init(
@@ -222,7 +141,7 @@ void Version1::init(
         conf.numPairs = 4;
         conf.buffer = 25_Percent;
         //conf.maxValue = 115'000_Dollars;
-        conf.marketParams.push_back(getMarketConf());
+        conf.marketParams.push_back(MarketConfFactory::preferNormalHours());
 
         bot.addProcessor(std::make_unique<SpreadTrader>(ctx, conf));
     }
@@ -236,7 +155,7 @@ void Version1::init(
         conf.numPairs = 10;
         conf.buffer = 10_Percent;
         //conf.maxValue = 115'000_Dollars;
-        conf.marketParams.push_back(getMarketConf());
+        conf.marketParams.push_back(MarketConfFactory::preferNormalHours());
 
         bot.addProcessor(std::make_unique<SpreadTrader>(ctx, conf));
     }
@@ -250,7 +169,7 @@ void Version1::init(
         conf.numPairs = 5;
         conf.buffer = 10_Percent;
         //conf.maxValue = 115'000_Dollars;
-        conf.marketParams.push_back(getMarketConf());
+        conf.marketParams.push_back(MarketConfFactory::preferNormalHours());
 
         bot.addProcessor(std::make_unique<SpreadTrader>(ctx, conf));
     }
@@ -290,7 +209,7 @@ void Version1::init(
         conf.numPairs = 10;
         //conf.maxValue = 115'000_Dollars;
         conf.enabled = true;
-        conf.marketParams.push_back(getMarketConf());
+        conf.marketParams.push_back(MarketConfFactory::preferNormalHours());
 
         bot.addProcessor(std::make_unique<TimeTrader>(ctx, conf));
     }
@@ -306,7 +225,7 @@ void Version1::init(
         conf.numPairs = 10;
         //conf.maxValue = 115'000_Dollars;
         conf.enabled = true;
-        conf.marketParams.push_back(getMarketConf());
+        conf.marketParams.push_back(MarketConfFactory::preferNormalHours());
 
         bot.addProcessor(std::make_unique<TimeTrader>(ctx, conf));
     }
@@ -322,7 +241,7 @@ void Version1::init(
         conf.numPairs = 100;
         //conf.maxValue = 115'000_Dollars;
         conf.enabled = true;
-        //conf.marketParams.push_back(getMarketConf());
+        //conf.marketParams.push_back(MarketConfFactory::preferNormalHours());
 
         bot.addProcessor(std::make_unique<TimeTrader>(ctx, conf));
     }
@@ -336,7 +255,7 @@ void Version1::init(
         conf.numPairs = 10;
         conf.buffer = 20_Percent;
         //conf.maxValue = 115'000_Dollars;
-        //conf.marketParams.push_back(getMarketConf());
+        //conf.marketParams.push_back(MarketConfFactory::preferNormalHours());
 
         bot.addProcessor(std::make_unique<SpreadTrader>(ctx, conf));
     }

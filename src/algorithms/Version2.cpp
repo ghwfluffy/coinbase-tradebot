@@ -9,8 +9,6 @@
 #include <gtb/CoinbaseInit.h>
 #include <gtb/CoinbaseFeeTier.h>
 
-#include <gtb/PendingProfitsCalc.h>
-
 #include <gtb/SpreadTrader.h>
 #include <gtb/ConstantTrader.h>
 #include <gtb/ConstantSpreadTrader.h>
@@ -74,57 +72,7 @@ void initMock(
 
     // Processor: Print periodic status updates
     bot.addProcessor(std::make_unique<PeriodicPrinter>(ctx));
-
-    // Processor: Pending Profits
-    // TODO: Make the tracked order pair class keep track of this
-    //bot.addProcessor(std::make_unique<PendingProfitsCalc>(ctx));
 }
-
-#if 0
-MarketPeriodConfig getRampedPeriodConf(bool hot)
-{
-    return {
-        .hot = hot,
-        .pausePeriod = 2_Hours,
-        .pauseAcceptLoss = (hot ? 10_PercentagePoints : 100_Percent),
-        .rampPeriod = 2_Hours,
-        .rampGrade = 200_Percent,
-    };
-}
-
-MarketPeriodConfig getPausedPeriodConf()
-{
-    return {
-        .hot = false,
-        .pausePeriod = 0_Seconds,
-        .pauseAcceptLoss = 0_Percent,
-        .rampPeriod = 0_Seconds,
-        .rampGrade = 0_Percent,
-    };
-}
-
-MarketTimeTraderConfig getMarketConf()
-{
-    return {
-        .market = MarketInfo::Market::BitcoinFutures,
-
-        // Open ----->
-        .openMarket = getRampedPeriodConf(true),
-        // Open -> Closed
-        .closingMarket = getPausedPeriodConf(),
-        // Closed ----->
-        .closedMarket = getPausedPeriodConf(),
-        // Closed -> Open
-        .openingMarket = getRampedPeriodConf(false),
-        // Open -> Weekend
-        .weekendingMarket = getPausedPeriodConf(),
-        // Weekend ---->
-        .weekendMarket = getPausedPeriodConf(),
-        // Weekend -> Open
-        .weekStartingMarket = getRampedPeriodConf(true),
-    };
-}
-#endif
 
 }
 
