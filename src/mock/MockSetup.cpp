@@ -30,7 +30,7 @@ void MockSetup::init(
     // so our fast reads dont interrupt the active tradebot by holding a read lock
     std::string cmd = "cp \"" + conf.dataFile + "\" data/mock_historical.sqlite";
     [[maybe_unused]] int x = system(cmd.c_str());
-    ctx.historicalDb.init("data/mock_historical.sqlite", "./schema/historical.sql");
+    ctx.historicalDb.init("data/mock_historical.sqlite", "./schema/v2_historical.sql");
 
     // Mock coinbase API
     ctx.setCoinbase(std::make_unique<MockCoinbase>(

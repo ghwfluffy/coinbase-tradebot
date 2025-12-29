@@ -103,7 +103,7 @@ void WindowTrader::checkCandle(
     const BtcPrice &price)
 {
     // Time for next candle
-    if (candles.empty() || (candles.back().start.time + conf.candleSize) < SteadyClock::now().time)
+    if (candles.empty() || (candles.back().start.time + conf.candleSize) <= SteadyClock::now().time)
         candles.push_back(Candle());
 
     // Update min/max for this candle

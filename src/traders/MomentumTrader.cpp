@@ -34,6 +34,10 @@ void MomentumTrader::process(
 
     auto now = SteadyClock::now();
     prune(now);
+
+    // Capture the pre-tick high so breakout logic compares against prior history
+    // rather than the just-seen price.
+    usd_t prevHigh = getHigh();
     window.emplace_back(now, price.getPrice());
 
     // If an order is still open, wait.
@@ -96,11 +100,10 @@ void MomentumTrader::process(
         return;
 
     // Look for breakout
-    usd_t high = getHigh();
-    if (!high)
+    if (!prevHigh)
         return;
 
-    usd_t trigger = high + (high * conf.breakoutPct);
+    usd_t trigger = prevHigh + (prevHigh * conf.breakoutPct);
     if (price.getPrice() < trigger)
         return;
 

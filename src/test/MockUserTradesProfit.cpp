@@ -3,6 +3,8 @@
 #include <gtb/Profits.h>
 #include <gtb/IntLiterals.h>
 
+#include "GTestPrinters.h"
+
 using namespace gtb;
 
 // Positive profit scenario

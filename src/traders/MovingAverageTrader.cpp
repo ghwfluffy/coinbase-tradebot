@@ -103,7 +103,7 @@ void MovingAverageTrader::checkCandle(
     const BtcPrice &price)
 {
     auto now = SteadyClock::now();
-    if (candles.empty() || (candles.back().start.time + conf.candleSize) < now.time)
+    if (candles.empty() || (candles.back().start.time + conf.candleSize) <= now.time)
     {
         Candle c;
         c.start = now;

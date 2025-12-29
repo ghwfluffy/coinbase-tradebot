@@ -14,6 +14,8 @@
 #include <gtb/MockMode.h>
 #include <gtb/SteadyClock.h>
 
+#include "GTestPrinters.h"
+
 using namespace gtb;
 
 // Helper to run both traders against a single price tick.

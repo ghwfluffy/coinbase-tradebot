@@ -8,6 +8,7 @@
 
 #include <gtb/BtcPrice.h>
 #include <gtb/CoinbaseWallet.h>
+#include <gtb/CoinbaseFeeTier.h>
 
 #include <gtb/MockMode.h>
 #include <gtb/MarketInfo.h>
@@ -52,7 +53,7 @@ void PeriodicPrinter::process(
         IntegerUtils::toUsdString(total).c_str(),
         btcPct,
         IntegerUtils::toUsdCompact(ctx.coinbase().getVolume()).c_str(),
-        static_cast<double>(ctx.coinbase().getFeeTier().value()) / 100.0);
+        static_cast<double>(ctx.data.get<CoinbaseFeeTier>().getFeeTier().value()) / 100.0);
 
     if (ctx.data.get<MockMode>())
         nextPrint = now + std::chrono::days(1);

@@ -75,6 +75,7 @@ void MockUserTrades::process(
     CoinbaseOrderBook &orderBook = ctx.data.get<CoinbaseOrderBook>();
     CoinbaseWallet &wallet = ctx.data.get<CoinbaseWallet>();
     pp_t feeTier = ctx.coinbase().getFeeTier();
+    ctx.data.get<CoinbaseFeeTier>().setFeeTier(feeTier);
 
     // Will make updates
     std::list<CoinbaseOrder> updates;
@@ -180,7 +181,6 @@ void MockUserTrades::process(
 
         // Track rolling volume (count notional of the trade) and update fee tier model.
         ctx.coinbase().recordVolume(big_usd_t(order.beforeFees), ctx.data.get<Time>().getTime());
-        ctx.data.get<CoinbaseFeeTier>().setFeeTier(ctx.coinbase().getFeeTier());
         updates.push_back(order);
     }
 
