@@ -81,7 +81,12 @@ void MockMarket::process()
             auto lock = ctx.data.get<MockLock>().lock();
 
             utime_t time = utime_t(res[0].getUInt64());
-            usd_t price = usd_t(res[1].getUInt64() * 100'000'000'000ULL); // TODO: Mock database from the previous version is in cents
+            uint64_t val = res[1].getUInt64();
+            // Mock database from the previous version is in cents
+            if (val < 1'000'000'00ULL)
+                val *= 100'000'000'000ULL;
+            usd_t price = usd_t(val);
+
             log::setMockNowMicros(time.value());
             ctx.data.get<Time>().setTime(time);
             ctx.data.get<BtcPrice>().setPrice(price);

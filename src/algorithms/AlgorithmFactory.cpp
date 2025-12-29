@@ -11,6 +11,8 @@ bool AlgorithmFactory::provision(
     unsigned int version,
     bool mock)
 {
+    log::info("Initializing Ghw Trade Bot version 2%s.", mock ? " - Mock Test" : "");
+
     switch (version)
     {
         case 1:

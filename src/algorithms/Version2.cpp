@@ -1,13 +1,5 @@
 #include <gtb/Version2.h>
-#include <gtb/Time.h>
 #include <gtb/Log.h>
-
-#include <gtb/OrderPairDb.h>
-
-#include <gtb/PeriodicPrinter.h>
-
-#include <gtb/CoinbaseInit.h>
-#include <gtb/CoinbaseFeeTier.h>
 
 #include <gtb/SpreadTrader.h>
 #include <gtb/ConstantTrader.h>
@@ -17,11 +9,7 @@
 #include <gtb/MomentumTrader.h>
 #include <gtb/MovingAverageTrader.h>
 
-#include <gtb/MockMode.h>
-#include <gtb/MockMarket.h>
-#include <gtb/MockCoinbase.h>
-#include <gtb/MockUserTrades.h>
-#include <gtb/SteadyClock.h>
+#include <gtb/MockSetup.h>
 
 using namespace gtb;
 
@@ -36,42 +24,14 @@ void initProd(
     log::error("v2 production not hooked up");
 }
 
-void initMock(
-    TradeBot &bot)
+MockSetup::Config mockConf()
 {
-    BotContext &ctx = bot.getCtx();
-
-    ctx.data.initData(MockMode(true));
-    SteadyClock::setMockTime(ctx.data.get<Time>());
-    unlink("data/mock_trader.sqlite");
-    OrderPairDb::setDbFile("data/mock_trader.sqlite");
-    // XXX: Use a copy of the historical database
-    // so our fast reads dont interrupt the active tradebot by holding a read lock
-    [[maybe_unused]] int x = system("cp data/historical.sqlite data/mock_historical.sqlite");
-    ctx.historicalDb.init("data/mock_historical.sqlite", "./schema/historical.sql");
-
-    // Mock coinbase API
-    ctx.setCoinbase(std::make_unique<MockCoinbase>(ctx, 0_MillionDollars));
-
-    // Initial state
-    ctx.data.get<CoinbaseInit>().setFullInit();
-    ctx.data.get<CoinbaseWallet>().update(50'000_Dollars, 0_Bitcoins, 0_Dollars, 0_Bitcoins);
-    ctx.data.get<CoinbaseFeeTier>().setFeeTier(ctx.coinbase().getFeeTier());
-
-    // Source: Historical market data
-    std::vector<std::string> range = {
-        //"2025-05-01", "",//"2025-06-30",
-        //"2025-01-25", "2025-01-27",
-        "2025-01-25", "2025-05-01",
-        "", ""
+    return {
+        .startDate = "2025-01-25",
+        .endDate = "2025-05-01",
+        .initHighVolume = true,
+        .startWallet = 50'000_Dollars,
     };
-    bot.addSource(std::make_unique<MockMarket>(ctx, range[0], range[1]));
-
-    // Processor: Emulate trades according to current BTC price
-    bot.addProcessor(std::make_unique<MockUserTrades>(ctx));
-
-    // Processor: Print periodic status updates
-    bot.addProcessor(std::make_unique<PeriodicPrinter>(ctx));
 }
 
 }
@@ -80,11 +40,9 @@ void Version2::init(
     TradeBot &bot,
     bool mock)
 {
-    log::info("Initializing Ghw Trade Bot version 2%s.", mock ? " - Mock Test" : "");
-
     // Setup sources, processors, and initial state
     if (mock)
-        initMock(bot);
+        MockSetup::init(bot, mockConf());
     else
         initProd(bot);
 
