@@ -48,6 +48,25 @@ void PeriodicPrinter::process(
     if (total)
         btcPct = IntegerUtils::fraction(btcValue, total).value();
 
+    auto formatPnL = [](const big_usd_t &val) -> std::string {
+        int64_t picos = 0;
+        if (val.value().tryToInt64(picos))
+        {
+            bool neg = picos < 0;
+            uint64_t absPicos = neg ? static_cast<uint64_t>(-picos) : static_cast<uint64_t>(picos);
+            uint64_t dollars = absPicos / static_cast<uint64_t>(usd_t(1_Dollars).value());
+            uint64_t cents = (absPicos - (dollars * static_cast<uint64_t>(usd_t(1_Dollars).value()))) /
+                static_cast<uint64_t>(usd_t(1_Cents).value());
+            char buf[64] = {};
+            snprintf(buf, sizeof(buf), "%s$%llu.%02llu",
+                neg ? "-" : "",
+                static_cast<unsigned long long>(dollars),
+                static_cast<unsigned long long>(cents));
+            return std::string(buf);
+        }
+        return IntegerUtils::toUsdCompact(val);
+    };
+
     log::status("BTC: $%s | Wallet: $%s (%3u%% BTC) | Volume: %s (fee %.2f%%)",
         IntegerUtils::toUsdString(price).c_str(),
         IntegerUtils::toUsdString(total).c_str(),
@@ -61,7 +80,7 @@ void PeriodicPrinter::process(
     {
         log::status("  PnL[%s]: %s vol=%s pending=%s",
             trader.c_str(),
-            IntegerUtils::toUsdCompact(data.getProfit(price)).c_str(),
+            formatPnL(data.getProfit(price)).c_str(),
             IntegerUtils::toUsdCompact(data.getVolume()).c_str(),
             IntegerUtils::toBtcString(data.getPending()).c_str());
     }

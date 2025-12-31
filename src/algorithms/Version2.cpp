@@ -242,7 +242,7 @@ MockSetup::Config mockConf()
 {
     return {
         .startDate = "2025-01-25",
-        .endDate = "2025-05-01",
+        .endDate = "2025-01-30",
         .initHighVolume = true,
         .startWallet = 50'000_Dollars,
     };

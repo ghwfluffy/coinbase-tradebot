@@ -48,10 +48,10 @@ std::map<std::string, Profits::TraderData> Profits::getAllTraderData() const
 
 btc_t Profits::TraderData::getPending() const
 {
-    big_btc_t ret = buyBtc - sellBtc;
-    if (ret.value().isNegative())
+    big_btc_t pending = buyBtc - sellBtc;
+    if (pending.value().isNegative())
         return {};
-    return btc_t(ret.value().toUint64());
+    return btc_t(pending.value().toUint64());
 }
 
 big_usd_t Profits::TraderData::getVolume() const
@@ -62,11 +62,20 @@ big_usd_t Profits::TraderData::getVolume() const
 big_usd_t Profits::TraderData::getProfit(
     usd_t curPrice) const
 {
-    big_usd_t profit = sellUsd;
-    profit -= buyUsd;
-    profit -= buyFees;
-    profit += IntegerUtils::getValue(curPrice, getPending());
-    return profit;
+    big_btc_t pending = buyBtc - sellBtc;
+    BigInt pendingVal;
+    if (!!pending && curPrice)
+    {
+        pendingVal = BigInt(curPrice.value()) * pending.value();
+        pendingVal /= BigInt(btc_t(1_Bitcoins).value());
+    }
+
+    BigInt total = sellUsd.value();
+    total += pendingVal;
+    total -= buyUsd.value();
+    total -= buyFees.value();
+    total -= sellFees.value();
+    return big_usd_t(std::move(total));
 }
 
 void Profits::recordBuyFill(

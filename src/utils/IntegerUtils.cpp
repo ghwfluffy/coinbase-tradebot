@@ -268,34 +268,53 @@ std::string IntegerUtils::toUsdCompact(
 std::string IntegerUtils::toUsdCompact(
     big_usd_t amount)
 {
-    // Convert to whole dollars before compact formatting; if it doesn't fit, bail out.
-    BigInt div = amount.value() / BigInt(1'000'000'000'000ULL); // 1_Dollars underlying value
+    // First try the precise (picos) path; if it overflows, fall back to a dollar-only path.
+    int64_t picos = 0;
+    bool preciseOk = amount.value().tryToInt64(picos);
+    bool neg = false;
     uint64_t dollars = 0;
-    if (!div.tryToUint64(dollars))
-        return "$INF";
+    uint64_t cents = 0;
+    if (preciseOk)
+    {
+        neg = picos < 0;
+        uint64_t absPicos = neg ? static_cast<uint64_t>(-picos) : static_cast<uint64_t>(picos);
+        dollars = absPicos / static_cast<uint64_t>(usd_t(1_Dollars).value());
+        cents = (absPicos - (dollars * static_cast<uint64_t>(usd_t(1_Dollars).value()))) /
+            static_cast<uint64_t>(usd_t(1_Cents).value());
+    }
+    else
+    {
+        BigInt denom(static_cast<uint64_t>(usd_t(1_Dollars).value()));
+        BigInt dollarsBn = amount.value() / denom;
+        int64_t dollarsSigned = 0;
+        if (!dollarsBn.tryToInt64(dollarsSigned))
+            return "$INF";
+        neg = dollarsSigned < 0;
+        dollars = neg ? static_cast<uint64_t>(-dollarsSigned) : static_cast<uint64_t>(dollarsSigned);
+        cents = 0;
+    }
 
     if (dollars >= 1'000'000)
     {
         double millions = static_cast<double>(dollars) / 1'000'000.0;
         char buf[32] = {};
-        snprintf(buf, sizeof(buf), "$%.1fM", millions);
+        snprintf(buf, sizeof(buf), "%s$%.1fM", neg ? "-" : "", millions);
         return std::string(buf);
     }
     if (dollars >= 1'000)
     {
         double thousands = static_cast<double>(dollars) / 1'000.0;
         char buf[32] = {};
-        snprintf(buf, sizeof(buf), "$%.1fK", thousands);
+        snprintf(buf, sizeof(buf), "%s$%.1fK", neg ? "-" : "", thousands);
         return std::string(buf);
     }
 
     char usd[64] = {};
-    snprintf(usd, sizeof(usd), "$%llu.00",
-        static_cast<unsigned long long>(dollars));
-    std::string ret(usd);
-    if (amount.isNegative())
-        ret.insert(0, "-");
-    return ret;
+    snprintf(usd, sizeof(usd), "%s$%llu.%02llu",
+        neg ? "-" : "",
+        static_cast<unsigned long long>(dollars),
+        static_cast<unsigned long long>(cents));
+    return std::string(usd);
 }
 
 usd_t IntegerUtils::makerBuyPrice(

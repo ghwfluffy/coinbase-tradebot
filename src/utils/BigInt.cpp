@@ -93,7 +93,7 @@ bool BigInt::tryToUint64(uint64_t &out) const
     if (bits > 64)
         return false;
 
-    unsigned char buf[8] = {0};
+    unsigned char buf[8] = {};
     const int rc = BN_bn2binpad(bn, buf, sizeof(buf));
     if (rc != sizeof(buf))
         log::error("BN_bn2binpad failed");
