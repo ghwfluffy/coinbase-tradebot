@@ -71,6 +71,7 @@ void ConstantTrader::queueBuy(
     order.buy = true;
     order.setQuantity(IntegerUtils::makerBuyPrice(price.getPrice()), betSize);
     order.createdTime = ctx.data.get<Time>().getTime();
+    order.trader = "ConstantTrader";
     if (ctx.coinbase().submitOrder(order))
     {
         lastBuyPrice = price.getPrice();
@@ -79,8 +80,6 @@ void ConstantTrader::queueBuy(
         if (buyCount++ % 1000 == 0)
             log::info("Buy %s", IntegerUtils::toUsdString(lastBuyPrice).c_str());
 #endif
-        // XXX: On complete
-        ctx.data.get<Profits>().addOrderPair(order.value(), 0_Dollars, 0_Dollars, 0_Dollars);
     }
 }
 
@@ -103,6 +102,7 @@ void ConstantTrader::queueSell(
     order.price = sellPrice;
     order.quantity = quantity;
     order.createdTime = ctx.data.get<Time>().getTime();
+    order.trader = "ConstantTrader";
     if (ctx.coinbase().submitOrder(order))
     {
         lastBuyPrice = sellPrice - (windowSize * 2);
@@ -110,8 +110,6 @@ void ConstantTrader::queueSell(
         if (sellCount++ % 1000 == 0)
             log::info("Sell %s", IntegerUtils::toUsdString(sellPrice).c_str());
 #endif
-        // XXX: On complete
-        ctx.data.get<Profits>().addOrderPair(0_Dollars, order.value(), 0_Dollars, 0_Dollars);
     }
 }
 

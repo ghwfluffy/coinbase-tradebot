@@ -55,6 +55,17 @@ void PeriodicPrinter::process(
         IntegerUtils::toUsdCompact(ctx.coinbase().getVolume()).c_str(),
         static_cast<double>(ctx.data.get<CoinbaseFeeTier>().getFeeTier().value()) / 100.0);
 
+    // Per-trader P&L (realized only; excludes unsold BTC)
+    auto traderData = ctx.data.get<Profits>().getAllTraderData();
+    for (const auto &[trader, data] : traderData)
+    {
+        log::status("  PnL[%s]: %s vol=%s pending=%s",
+            trader.c_str(),
+            IntegerUtils::toUsdCompact(data.getProfit(price)).c_str(),
+            IntegerUtils::toUsdCompact(data.getVolume()).c_str(),
+            IntegerUtils::toBtcString(data.getPending()).c_str());
+    }
+
     if (ctx.data.get<MockMode>())
         nextPrint = now + std::chrono::days(1);
     else

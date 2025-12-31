@@ -162,6 +162,7 @@ bool MomentumTrader::buy(
     order.price = IntegerUtils::makerBuyPrice(price);
     order.quantity = IntegerUtils::getSatoshiForPrice(price, conf.betSize);
     order.createdTime = ctx.data.get<Time>().getTime();
+    order.trader = conf.name;
 
     usd_t availNow = ctx.data.get<CoinbaseWallet>().getAvailUsd();
     if (order.value() > availNow)
@@ -196,6 +197,7 @@ bool MomentumTrader::sell(
     order.price = IntegerUtils::makerSellPrice(price);
     order.quantity = amount;
     order.createdTime = ctx.data.get<Time>().getTime();
+    order.trader = conf.name;
 
     btc_t haveNow = ctx.data.get<CoinbaseWallet>().getAvailBtc();
     if (order.quantity > haveNow)

@@ -174,10 +174,23 @@ void MockUserTrades::process(
         order.state = CoinbaseOrder::State::Filled;
         order.cleanupTime = SteadyClock::now() + std::chrono::minutes(2);
         // Record realized P&L
+        const std::string trader = order.trader.empty() ? std::string("unknown") : order.trader;
         if (order.buy)
-            ctx.data.get<Profits>().addOrderPair(order.beforeFees, usd_t(), order.fees, usd_t());
+        {
+            ctx.data.get<Profits>().recordBuyFill(
+                trader,
+                order.quantity,
+                order.beforeFees,
+                order.fees);
+        }
         else
-            ctx.data.get<Profits>().addOrderPair(usd_t(), order.beforeFees, usd_t(), order.fees);
+        {
+            ctx.data.get<Profits>().recordSellFill(
+                trader,
+                order.quantity,
+                order.beforeFees,
+                order.fees);
+        }
 
         // Track rolling volume (count notional of the trade) and update fee tier model.
         ctx.coinbase().recordVolume(big_usd_t(order.beforeFees), ctx.data.get<Time>().getTime());

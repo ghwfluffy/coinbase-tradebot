@@ -1,6 +1,5 @@
 #pragma once
 
-#include <gtb/Profits.h>
 #include <gtb/SteadyClock.h>
 #include <gtb/IntegerUtils.h>
 
@@ -38,7 +37,10 @@ struct OrderPair
     State state = State::None;
     SteadyClock::TimePoint nextTry;
 
-    Profits::Data profit;
+    usd_t purchased;
+    usd_t sold;
+    usd_t buyFees;
+    usd_t sellFees;
 
     // TODO: Add to database
     std::vector<std::string> modifiers;

@@ -292,7 +292,10 @@ std::string IntegerUtils::toUsdCompact(
     char usd[64] = {};
     snprintf(usd, sizeof(usd), "$%llu.00",
         static_cast<unsigned long long>(dollars));
-    return std::string(usd);
+    std::string ret(usd);
+    if (amount.isNegative())
+        ret.insert(0, "-");
+    return ret;
 }
 
 usd_t IntegerUtils::makerBuyPrice(

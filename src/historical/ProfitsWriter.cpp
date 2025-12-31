@@ -17,7 +17,9 @@ ProfitsWriter::ProfitsWriter(
 void ProfitsWriter::process(
     const Profits &profits)
 {
-    Profits::Data data = profits.getData();
+    (void)profits;
+#if 0
+    Profits::TraderData data = profits.getTotals();
     utime_t curTime = ctx.data.get<Time>().getTime();
 
     std::lock_guard<std::mutex> lock(mtx);
@@ -38,4 +40,5 @@ void ProfitsWriter::process(
         if (!ctx.historicalDb.getConn().execute(query.str()))
             log::error("Failed to record historical profits.");
     }
+#endif
 }

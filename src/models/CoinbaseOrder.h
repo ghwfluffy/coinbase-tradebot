@@ -35,6 +35,8 @@ struct CoinbaseOrder
     State state = State::None;
     utime_t createdTime;
     SteadyClock::TimePoint cleanupTime;
+    // Optional identifier for the trader/source that placed the order.
+    std::string trader;
 
     operator bool() const
     {

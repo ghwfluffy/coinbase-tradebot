@@ -115,8 +115,8 @@ void OrderPairStateMachine::checkBuyState(
         // Record the price it filled at
         pair.buyPrice = buyOrder.price;
         pair.quantity = buyOrder.quantity;
-        pair.profit.purchased = buyOrder.beforeFees;
-        pair.profit.buyFees = buyOrder.fees;
+        pair.purchased = buyOrder.beforeFees;
+        pair.buyFees = buyOrder.fees;
     }
     else if (buyOrder.state == CoinbaseOrder::State::Canceled)
     {
@@ -166,10 +166,8 @@ void OrderPairStateMachine::checkSellState(
         pair.state = OrderPair::State::Complete;
         // Record the price it filled at
         pair.sellPrice = sellOrder.price;
-        pair.profit.sold = sellOrder.beforeFees;
-        pair.profit.sellFees = sellOrder.fees;
-        // Track total profits
-        ctx.data.get<Profits>().addOrderPair(pair.profit);
+        pair.sold = sellOrder.beforeFees;
+        pair.sellFees = sellOrder.fees;
     }
     else if (sellOrder.state == CoinbaseOrder::State::Canceled)
     {
@@ -223,6 +221,7 @@ void OrderPairStateMachine::handlePending(
     order.setQuantity(price.getPrice() - 2_Dollars, pair.bet);
 
     order.createdTime = ctx.data.get<Time>().getTime();
+    order.trader = conf.name;
 
     if (ctx.coinbase().submitOrder(order))
     {
@@ -307,6 +306,7 @@ void OrderPairStateMachine::handleHolding(
     order.price = price.getPrice() + (abandon ? 1_Dollars : 5_Dollars);
     order.quantity = pair.quantity;
     order.createdTime = ctx.data.get<Time>().getTime();
+    order.trader = conf.name;
 
     if (ctx.coinbase().submitOrder(order))
     {

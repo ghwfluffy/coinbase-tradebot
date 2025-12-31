@@ -17,9 +17,10 @@ TEST(MockUserTrades_Profits, PositiveProfitCalculation)
     usd_t buyFees   = 10_Cents;
     usd_t sellFees  = 15_Cents;
 
-    p.addOrderPair(purchased, sold, buyFees, sellFees);
+    p.recordBuyFill("Ghw", 1_Bitcoins, purchased, buyFees);
+    p.recordSellFill("Ghw", 1_Bitcoins, sold, sellFees);
 
-    EXPECT_EQ(p.getProfit().value().toInt64(), static_cast<int64_t>(usd_t(4_Dollars + 75_Cents).value()));
+    EXPECT_EQ(p.getProfit(100_Dollars), usd_t(4_Dollars + 75_Cents));
 }
 
 // Negative profit scenario
@@ -32,7 +33,10 @@ TEST(MockUserTrades_Profits, NegativeProfitCalculation)
     usd_t buyFees   = 1_Dollars;
     usd_t sellFees  = 1_Dollars;
 
-    p.addOrderPair(purchased, sold, buyFees, sellFees);
+    p.recordBuyFill("Ghw", 1_Bitcoins, purchased, buyFees);
+    p.recordSellFill("Ghw", 1_Bitcoins, sold, sellFees);
 
-    EXPECT_EQ(p.getProfit().value().toInt64(), static_cast<int64_t>(usd_t(7_Dollars).value()) * -1L);
+    big_usd_t negSeven = big_usd_t() - big_usd_t(7_Dollars);
+
+    EXPECT_EQ(p.getProfit(100_Dollars), negSeven);
 }

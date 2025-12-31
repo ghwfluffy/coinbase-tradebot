@@ -1,7 +1,6 @@
 #include <gtb/WindowTrader.h>
 #include <gtb/CoinbaseInit.h>
 #include <gtb/IntegerUtils.h>
-#include <gtb/Profits.h>
 #include <gtb/CoinbaseOrderBook.h>
 #include <gtb/Log.h>
 
@@ -157,6 +156,7 @@ bool WindowTrader::fireSale(
     order.price = IntegerUtils::makerSellPrice(price.getPrice());
     order.quantity = btc;
     order.createdTime = ctx.data.get<Time>().getTime();
+    order.trader = conf.name;
     if (ctx.coinbase().submitOrder(order))
     {
         log::trade("Window trader '%s' fire sale %s BTC.",
@@ -165,7 +165,6 @@ bool WindowTrader::fireSale(
         holding = btc_t();
 
         fireSaleUuid = order.uuid;
-        ctx.data.get<Profits>().addOrderPair(usd_t(), order.beforeFees, usd_t(), order.fees);
         return true;
     }
 
@@ -510,6 +509,7 @@ void WindowTrader::handleBuy(
     order.price = IntegerUtils::makerBuyPrice(curPrice);
     order.quantity = IntegerUtils::getSatoshiForPrice(curPrice, betSize);
     order.createdTime = ctx.data.get<Time>().getTime();
+    order.trader = conf.name;
 
     // Enough money?
     usd_t wallet = ctx.data.get<CoinbaseWallet>().getAvailUsd();
@@ -616,6 +616,7 @@ void WindowTrader::handleSell(
                 order.price = IntegerUtils::makerSellPrice(price.getPrice());
                 order.quantity = amount;
                 order.createdTime = ctx.data.get<Time>().getTime();
+                order.trader = conf.name;
                 btc_t haveNow = ctx.data.get<CoinbaseWallet>().getAvailBtc();
                 if (order.quantity > haveNow)
                     return;
@@ -670,6 +671,7 @@ void WindowTrader::handleSell(
             order.price = IntegerUtils::makerSellPrice(price.getPrice());
             order.quantity = amount;
             order.createdTime = ctx.data.get<Time>().getTime();
+            order.trader = conf.name;
             btc_t haveNow = ctx.data.get<CoinbaseWallet>().getAvailBtc();
             if (order.quantity > haveNow)
                 return;
@@ -773,6 +775,7 @@ void WindowTrader::handleSell(
     order.price = IntegerUtils::makerSellPrice(price.getPrice());
     order.quantity = amount;
     order.createdTime = ctx.data.get<Time>().getTime();
+    order.trader = conf.name;
     // Final availability check just before submit to avoid racing other traders.
     btc_t haveNow = ctx.data.get<CoinbaseWallet>().getAvailBtc();
     if (order.quantity > haveNow)

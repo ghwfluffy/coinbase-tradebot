@@ -29,6 +29,7 @@ struct StrongTypedBigInt
 
     BigInt &value() { return v; }
     const BigInt &value() const { return v; }
+    bool isNegative() const { return v.isNegative(); }
 
     explicit operator bool() const { return static_cast<bool>(v); }
 
@@ -46,6 +47,8 @@ struct StrongTypedBigInt
     friend bool operator>(const StrongTypedBigInt &a, const StrongTypedBigInt &b) { return b < a; }
     friend bool operator<=(const StrongTypedBigInt &a, const StrongTypedBigInt &b) { return !(b < a); }
     friend bool operator>=(const StrongTypedBigInt &a, const StrongTypedBigInt &b) { return !(a < b); }
+    template<class Rep>
+    friend bool operator==(const StrongTypedBigInt &a, const StrongTypedInt<Rep, Tag> &b) { return a.v == BigInt(b.value()); }
 
     // Arithmetic with matching BigInt types
     StrongTypedBigInt &operator+=(const StrongTypedBigInt &o)

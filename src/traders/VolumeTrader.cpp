@@ -67,6 +67,7 @@ bool VolumeTrader::startBuy(
     order.price = IntegerUtils::makerBuyPrice(price);
     order.quantity = IntegerUtils::getSatoshiForPrice(price, conf.betSize);
     order.createdTime = ctx.data.get<Time>().getTime();
+    order.trader = conf.name;
     // Re-read availability right before submit to avoid racing other traders.
     usd_t availNow = ctx.data.get<CoinbaseWallet>().getAvailUsd();
     if (order.value() > availNow)
@@ -103,6 +104,7 @@ bool VolumeTrader::startSell(
     order.price = IntegerUtils::makerSellPrice(price);
     order.quantity = pendingQty;
     order.createdTime = ctx.data.get<Time>().getTime();
+    order.trader = conf.name;
 
     // Re-read availability right before submit to avoid racing other traders.
     btc_t haveNow = ctx.data.get<CoinbaseWallet>().getAvailBtc();

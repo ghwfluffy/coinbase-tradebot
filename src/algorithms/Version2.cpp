@@ -63,6 +63,7 @@ TraderPlan buildTraderPlan()
         conf.usePercentileBands = false;
         plan.windows.push_back(conf);
     }
+#if 0
     {
         WindowTrader::Config conf;
         conf.name = "Window-Core";
@@ -185,7 +186,7 @@ TraderPlan buildTraderPlan()
         conf.betSize = 10_Dollars;
         plan.volumes.push_back(conf);
     }
-
+#endif
     return plan;
 }
 

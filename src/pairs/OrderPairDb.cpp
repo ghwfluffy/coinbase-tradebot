@@ -53,10 +53,10 @@ bool selectQuery(
         pair.sellPrice = usd_t(result[col++].getUInt64());
         pair.quantity = btc_t(result[col++].getUInt64());
         pair.created = utime_t(result[col++].getUInt64());
-        pair.profit.purchased = big_usd_t(usd_t(result[col++].getUInt64()));
-        pair.profit.buyFees = big_usd_t(usd_t(result[col++].getUInt64()));
-        pair.profit.sold = big_usd_t(usd_t(result[col++].getUInt64()));
-        pair.profit.sellFees = big_usd_t(usd_t(result[col++].getUInt64()));
+        pair.purchased = usd_t(usd_t(result[col++].getUInt64()));
+        pair.buyFees = usd_t(usd_t(result[col++].getUInt64()));
+        pair.sold = usd_t(usd_t(result[col++].getUInt64()));
+        pair.sellFees = usd_t(usd_t(result[col++].getUInt64()));
 
         pairs.push_back(std::move(pair));
     }
@@ -148,10 +148,10 @@ bool OrderPairDb::insert(
         << pair.sellPrice.value() << ","
         << pair.quantity.value() << ","
         << pair.created.value() << ","
-        << pair.profit.purchased.value() << ","
-        << pair.profit.buyFees.value() << ","
-        << pair.profit.sold.value() << ","
-        << pair.profit.sellFees.value() << ")";
+        << pair.purchased.value() << ","
+        << pair.buyFees.value() << ","
+        << pair.sold.value() << ","
+        << pair.sellFees.value() << ")";
     if (!db.getConn().execute(oss.str()))
     {
         log::error("Failed to insert order pair '%s' in DB.", pair.uuid.c_str());
@@ -176,10 +176,10 @@ bool OrderPairDb::update(
         << "sell_price=" << pair.sellPrice.value() << ","
         << "quantity=" << pair.quantity.value() << ","
         << "created=" << pair.created.value() << ","
-        << "final_purchased=" << pair.profit.purchased.value() << ","
-        << "final_buy_fees=" << pair.profit.buyFees.value() << ","
-        << "final_sold=" << pair.profit.sold.value() << ","
-        << "final_sell_fees=" << pair.profit.sellFees.value() << " "
+        << "final_purchased=" << pair.purchased.value() << ","
+        << "final_buy_fees=" << pair.buyFees.value() << ","
+        << "final_sold=" << pair.sold.value() << ","
+        << "final_sell_fees=" << pair.sellFees.value() << " "
         << "WHERE uuid='" << pair.uuid << "'";
     if (!db.getConn().execute(oss.str()))
     {

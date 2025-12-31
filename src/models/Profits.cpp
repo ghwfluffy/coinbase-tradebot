@@ -2,72 +2,109 @@
 #include <gtb/Log.h>
 #include <gtb/IntegerUtils.h>
 
+#include <algorithm>
+
 using namespace gtb;
 
 Profits::Profits(Profits &&rhs)
-    : data(rhs.data)
+    : traders(std::move(rhs.traders))
 {
 }
 
-big_usd_t Profits::getProfit() const
+big_usd_t Profits::getProfit(
+    usd_t curPrice) const
 {
+    big_usd_t ret;
     std::lock_guard<std::mutex> lock(const_cast<std::mutex &>(mtx));
-    return data.getProfit();
+    for (auto &[trader, data] : traders)
+        ret += data.getProfit(curPrice);
+    return ret;
 }
 
 big_usd_t Profits::getVolume() const
 {
+    big_usd_t ret;
     std::lock_guard<std::mutex> lock(const_cast<std::mutex &>(mtx));
-    return data.purchased + data.sold;
+    for (auto &[trader, data] : traders)
+        ret += data.getVolume();
+    return ret;
 }
 
-Profits::Data Profits::getData() const
+Profits::TraderData Profits::getTraderData(
+    const std::string &trader) const
 {
     std::lock_guard<std::mutex> lock(const_cast<std::mutex &>(mtx));
-    return data;
+    auto it = traders.find(trader);
+    if (it == traders.end())
+        return {};
+    return it->second;
 }
 
-void Profits::addOrderPair(
-    usd_t purchased,
-    usd_t sold,
-    usd_t buyFees,
-    usd_t sellFees)
+std::map<std::string, Profits::TraderData> Profits::getAllTraderData() const
 {
-    addOrderPair(big_usd_t(purchased), big_usd_t(sold), big_usd_t(buyFees), big_usd_t(sellFees));
+    std::lock_guard<std::mutex> lock(const_cast<std::mutex &>(mtx));
+    return traders;
 }
 
-void Profits::addOrderPair(
-    big_usd_t purchased,
-    big_usd_t sold,
-    big_usd_t buyFees,
-    big_usd_t sellFees)
+btc_t Profits::TraderData::getPending() const
 {
-    if (!purchased && !sold)
+    big_btc_t ret = buyBtc - sellBtc;
+    if (ret.value().isNegative())
+        return {};
+    return btc_t(ret.value().toUint64());
+}
+
+big_usd_t Profits::TraderData::getVolume() const
+{
+    return buyUsd + sellUsd + buyFees + sellFees;
+}
+
+big_usd_t Profits::TraderData::getProfit(
+    usd_t curPrice) const
+{
+    big_usd_t profit = sellUsd;
+    profit -= buyUsd;
+    profit -= buyFees;
+    profit += IntegerUtils::getValue(curPrice, getPending());
+    return profit;
+}
+
+void Profits::recordBuyFill(
+    const std::string &trader,
+    btc_t quantity,
+    usd_t beforeFees,
+    usd_t fees)
+{
+    if (!quantity || !beforeFees)
         return;
 
-    // Atomic
     {
         std::lock_guard<std::mutex> lock(mtx);
-        data.purchased += purchased;
-        data.sold += sold;
-        data.buyFees += buyFees;
-        data.sellFees += sellFees;
+        TraderData &d = traders[trader];
+        d.buyBtc += quantity;
+        d.buyUsd += beforeFees;
+        d.buyFees += fees;
     }
 
     updated();
 }
 
-void Profits::addOrderPair(
-    Data data)
+void Profits::recordSellFill(
+    const std::string &trader,
+    btc_t quantity,
+    usd_t beforeFees,
+    usd_t fees)
 {
-    addOrderPair(data.purchased, data.sold, data.buyFees, data.sellFees);
-}
+    if (!quantity || !beforeFees)
+        return;
 
-big_usd_t Profits::Data::getProfit() const
-{
-    big_usd_t profit = sold;
-    profit -= sellFees;
-    profit -= purchased;
-    profit -= buyFees;
-    return profit;
+    {
+        std::lock_guard<std::mutex> lock(mtx);
+        TraderData &d = traders[trader];
+        d.sellBtc += quantity;
+        d.sellUsd += beforeFees;
+        d.sellFees += fees;
+    }
+
+    updated();
 }

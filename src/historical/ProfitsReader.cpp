@@ -8,14 +8,18 @@ using namespace gtb;
 namespace
 {
 
+#if 0
 constexpr const char *READ_QUERY =
     "SELECT purchased, sold, buy_fees, sell_fees FROM profits_and_losses ORDER BY time DESC LIMIT 1";
+#endif
 
 }
 
 void ProfitsReader::initProfits(
     BotContext &ctx)
 {
+    (void)ctx;
+#if 0
     DatabaseResult result = ctx.historicalDb.getConn().query(READ_QUERY);
     if (result.next())
     {
@@ -28,4 +32,5 @@ void ProfitsReader::initProfits(
         log::info("Initialized profits to %s.",
             IntegerUtils::toUsdString(profit).c_str());
     }
+#endif
 }
