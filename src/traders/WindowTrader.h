@@ -121,6 +121,7 @@ class WindowTrader
             uint32_t softExitPercentile = 10;    // reduce exposure below this percentile
             pp_t softExitSellRatio = 25_Percent; // portion to shed on soft exit
             utime_t extremePauseDuration = 4_Hours;
+            bool enableDefensiveExit = true;
             // Crash handling: stay paused after a crash until recovery.
             utime_t crashCooldown = 6_Hours;
             uint32_t crashRecoveryPercentile = 50;
@@ -180,6 +181,10 @@ class WindowTrader
             const std::vector<usd_t> &closes);
         void handleSell(
             const BtcPrice &price);
+
+        void removeCostBasis(
+            btc_t amount,
+            usd_t avgPrice);
 
         usd_t getWindowMax() const;
         usd_t getWindowMin() const;

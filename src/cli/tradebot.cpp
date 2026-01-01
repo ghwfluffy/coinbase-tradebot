@@ -19,9 +19,10 @@ int main(int argc, const char *argv[])
 
     parser.addCategory("Testing");
     parser.addSwitch('m', "mock", "Run the algorithm against historical data");
-    parser.addSwitch("trade-logs", "Enable trade-level logging (default: disabled)");
-    parser.addSwitch("debug-logs", "Enable debug-level logging (off by default)");
+
     parser.addCategory("Logging");
+    parser.addSwitch("trade-logs", "Enable trade-level logging");
+    parser.addSwitch("debug-logs", "Enable debug-level logging");
     parser.addParam("log-file", "Write logs to this file (also prints to stdout)");
 
     // Parse

@@ -319,7 +319,10 @@ void WindowTrader::applyExtremeGuards(
         return;
 
     usd_t highGuard = percentile(closes, conf.highPausePercentile);
-    usd_t lowGuard = percentile(closes, conf.lowExitPercentile);
+    const bool defensiveEnabled = conf.enableDefensiveExit && conf.lowExitPercentile < 100;
+    usd_t lowGuard;
+    if (defensiveEnabled)
+        lowGuard = percentile(closes, conf.lowExitPercentile);
     // Simple mean as a sanity floor for crash detection.
     usd_t meanPrice;
     if (!closes.empty())
@@ -348,13 +351,13 @@ void WindowTrader::applyExtremeGuards(
     }
 
     bool deepDrop = false;
-    if (meanPrice && conf.crashExitDropPct)
+    if (defensiveEnabled && meanPrice && conf.crashExitDropPct)
     {
         usd_t dropThresh = meanPrice - (meanPrice * conf.crashExitDropPct);
         deepDrop = price.getPrice() <= dropThresh;
     }
 
-    if (lowGuard && price.getPrice() <= lowGuard && deepDrop)
+    if (defensiveEnabled && lowGuard && price.getPrice() <= lowGuard && deepDrop)
     {
         log::debug("Window trader '%s' defensive exit: price %s below P%u=%s.",
             conf.name.c_str(),
@@ -368,6 +371,26 @@ void WindowTrader::applyExtremeGuards(
             pauseTrading(conf.extremePauseDuration);
         }
     }
+}
+
+void WindowTrader::removeCostBasis(
+    btc_t amount,
+    usd_t avgPrice)
+{
+    if (!amount || !avgPrice)
+        return;
+
+    big_usd_t cost(big_usd_t(BigInt(IntegerUtils::getValue(avgPrice, amount).value())));
+    if (totalSpent.value() >= cost.value())
+        totalSpent -= cost;
+    else
+        totalSpent = big_usd_t();
+
+    big_btc_t qty(big_btc_t(BigInt(amount.value())));
+    if (totalPurchased.value() >= qty.value())
+        totalPurchased -= qty;
+    else
+        totalPurchased = big_btc_t();
 }
 
 void WindowTrader::handleBuy(
@@ -629,9 +652,8 @@ void WindowTrader::handleSell(
                         IntegerUtils::toUsdString(order.price).c_str(),
                         IntegerUtils::toUsdString(softGuard).c_str());
                     setAction(price);
+                    removeCostBasis(amount, avgPrice);
                     holding -= amount;
-                    totalSpent += usd_t(order.value().value() / 2);
-                    totalPurchased += btc_t(order.quantity.value() / 2);
                     if (!holding)
                         highWaterPrice = usd_t();
                 }
@@ -679,15 +701,14 @@ void WindowTrader::handleSell(
             {
                 sellUuid = order.uuid;
                 setAction(price);
-                holding -= amount;
                 log::debug("Window trader '%s' stop-loss sell %s BTC @ %s (stop=%s avg=%s).",
                     conf.name.c_str(),
                     IntegerUtils::toBtcString(order.quantity).c_str(),
                     IntegerUtils::toUsdString(order.price).c_str(),
                     IntegerUtils::toUsdString(stopThreshold).c_str(),
                     IntegerUtils::toUsdString(avgPrice).c_str());
-                totalSpent += usd_t(order.value().value() / 2);
-                totalPurchased += btc_t(order.quantity.value() / 2);
+                removeCostBasis(amount, avgPrice);
+                holding -= amount;
                 if (!holding)
                     highWaterPrice = usd_t();
             }
@@ -725,8 +746,21 @@ void WindowTrader::handleSell(
         amount = holding * conf.partialSellRatio;
     if (amount > holding || !amount)
         amount = holding;
-    // Debug log on change or rate limit
     auto now = SteadyClock::now();
+    if (now >= debugState.lastLogTime + DEBUG_RATE_LIMIT)
+    {
+        log::debug("Window trader '%s' readyToSell price=%s target=%s avg=%s holding=%s sellAmt=%s have=%s trailing=%s",
+            conf.name.c_str(),
+            IntegerUtils::toUsdString(price.getPrice()).c_str(),
+            IntegerUtils::toUsdString(target).c_str(),
+            IntegerUtils::toUsdString(avgPrice).c_str(),
+            IntegerUtils::toBtcString(holding).c_str(),
+            IntegerUtils::toBtcString(amount).c_str(),
+            IntegerUtils::toBtcString(ctx.data.get<CoinbaseWallet>().getAvailBtc()).c_str(),
+            trailingTrigger ? "true" : "false");
+        debugState.lastLogTime = now;
+    }
+    // Debug log on change or rate limit
     if ((price.getPrice() != debugState.lastSellPrice ||
          target != debugState.lastSellTarget ||
          amount != debugState.lastSellAmount) &&
@@ -785,15 +819,15 @@ void WindowTrader::handleSell(
     {
         sellUuid = order.uuid;
         setAction(price);
+        // Remove cost basis associated with the amount sold so the remaining
+        // average reflects what is still held.
+        removeCostBasis(amount, avgPrice);
         holding -= amount;
         log::trade("Window trader '%s' SELL %s BTC @ %s (value %s).",
             conf.name.c_str(),
             IntegerUtils::toBtcString(order.quantity).c_str(),
             IntegerUtils::toUsdString(order.price).c_str(),
             IntegerUtils::toUsdString(order.value()).c_str());
-
-        totalSpent += usd_t(order.value().value() / 2);
-        totalPurchased += btc_t(order.quantity.value() / 2);
         if (!holding)
             highWaterPrice = usd_t();
     }
