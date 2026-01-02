@@ -8,7 +8,6 @@ bak/
 build
 historical.sqlite
 version1.sqlite
-go.sh
 .ctags
 
 outfile.tmp
