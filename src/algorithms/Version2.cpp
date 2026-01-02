@@ -12,13 +12,14 @@
 
 #include <gtb/MockSetup.h>
 
-#include <gtb/SpreadTrader.h>
-#include <gtb/ConstantTrader.h>
 #include <gtb/ConstantSpreadTrader.h>
-#include <gtb/WindowTrader.h>
-#include <gtb/VolumeTrader.h>
+#include <gtb/ConstantTrader.h>
+#include <gtb/HodlTrader.h>
 #include <gtb/MomentumTrader.h>
 #include <gtb/MovingAverageTrader.h>
+#include <gtb/SpreadTrader.h>
+#include <gtb/VolumeTrader.h>
+#include <gtb/WindowTrader.h>
 
 using namespace gtb;
 
@@ -31,6 +32,7 @@ struct TraderPlan
     std::vector<MomentumTrader::Config> momentums;
     std::vector<MovingAverageTrader::Config> movingAverages;
     std::vector<VolumeTrader::Config> volumes;
+    std::vector<HodlTrader::Config> hodls;
 };
 
 TraderPlan buildTraderPlan()
@@ -199,13 +201,20 @@ TraderPlan buildTraderPlan()
     {
         VolumeTrader::Config conf;
         conf.name = "Volume-Churn";
-        conf.betSize = 25_Dollars;
-        conf.minProfitDelta = 1_Dollars;
-        conf.repriceBand = 2_Dollars;
-        conf.orderTtl = 10_Seconds;
+        conf.betSize = 1000_Dollars;
+        conf.minProfitDelta = 20_Dollars;
+        conf.repriceBand = 100_Dollars;
+        conf.orderTtl = 2_Minutes;
         plan.volumes.push_back(conf);
     }
 #endif
+    // HODL
+    {
+        HodlTrader::Config conf;
+        conf.betSize = 20_Dollars;
+        plan.hodls.push_back(conf);
+    }
+
     return plan;
 }
 
@@ -223,6 +232,8 @@ void addTraders(
         bot.addProcessor(std::make_unique<MovingAverageTrader>(ctx, conf));
     for (const auto &conf : plan.volumes)
         bot.addProcessor(std::make_unique<VolumeTrader>(ctx, conf));
+    for (const auto &conf : plan.hodls)
+        bot.addProcessor(std::make_unique<HodlTrader>(ctx, conf));
 }
 
 void initProd(
@@ -263,7 +274,7 @@ MockSetup::Config mockConf()
         //.startDate = "2025-02-25",
         //.endDate = "2025-04-25",
         .initHighVolume = true,
-        .startWallet = 22'000_Dollars,
+        .startWallet = 50'000_Dollars,
     };
 }
 

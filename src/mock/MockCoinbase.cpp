@@ -245,7 +245,7 @@ void MockCoinbase::pruneBuckets(
 
 pp_t MockCoinbase::feeTierForVolume(big_usd_t vol) const
 {
-    BigInt dollarsBn = vol.value() / BigInt(1'000'000'000'000ULL); // convert to whole dollars
+    BigInt dollarsBn = vol.value() / BigInt(usd_t(1_Dollars).value());
     uint64_t volDollars = dollarsBn.toUint64();
     return feeTierForVolume(volDollars);
 }

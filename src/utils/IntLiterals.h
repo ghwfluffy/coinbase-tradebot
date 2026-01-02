@@ -36,8 +36,8 @@ namespace gtb
     // million dollars → decipicodollars
     inline big_usd_t operator"" _MillionDollars(unsigned long long v) {
         BigInt bn(static_cast<uint64_t>(v));
+        bn *= BigInt(usd_t(1_Dollars).value());
         bn *= BigInt(1'000'000ULL);
-        bn *= BigInt(1'000'000'000'000ULL);
         return big_usd_t(std::move(bn));
     }
 
