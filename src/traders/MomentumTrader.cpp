@@ -38,7 +38,7 @@ void MomentumTrader::process(
     // Capture the pre-tick high so breakout logic compares against prior history
     // rather than the just-seen price.
     usd_t prevHigh = getHigh();
-    window.emplace_back(now, price.getPrice());
+    addTick(now, price.getPrice());
 
     // If an order is still open, wait.
     if (!openUuid.empty())
@@ -115,18 +115,19 @@ void MomentumTrader::prune(
     SteadyClock::TimePoint now)
 {
     while (!window.empty() && IntegerUtils::difference(window.front().first.time, now.time) > conf.windowSize)
+    {
+        auto removed = window.front();
         window.pop_front();
+        if (!maxWindow.empty() && maxWindow.front().first == removed.first)
+            maxWindow.pop_front();
+    }
 }
 
 usd_t MomentumTrader::getHigh() const
 {
-    usd_t high;
-    for (const auto &p : window)
-    {
-        if (!high || p.second > high)
-            high = p.second;
-    }
-    return high;
+    if (maxWindow.empty())
+        return usd_t();
+    return maxWindow.front().second;
 }
 
 usd_t MomentumTrader::getLow() const
@@ -138,6 +139,18 @@ usd_t MomentumTrader::getLow() const
             low = p.second;
     }
     return low;
+}
+
+void MomentumTrader::addTick(
+    SteadyClock::TimePoint now,
+    usd_t price)
+{
+    window.emplace_back(now, price);
+
+    // Maintain monotonic decreasing queue for highs
+    while (!maxWindow.empty() && price >= maxWindow.back().second)
+        maxWindow.pop_back();
+    maxWindow.emplace_back(now, price);
 }
 
 bool MomentumTrader::buy(

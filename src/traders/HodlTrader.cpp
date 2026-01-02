@@ -51,7 +51,7 @@ void HodlTrader::process(
     if (!hasPrevDayLow() ||
         purchasedToday ||
         !openOrder.empty() ||
-        price.getPrice() > previousLow)
+        price.getPrice() > previousLow - (previousLow * conf.buyBelowPct))
     {
         return;
     }

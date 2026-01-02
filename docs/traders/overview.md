@@ -5,18 +5,23 @@ This document summarizes every trader algorithm shipped in the codebase: how eac
 ## WindowTrader (mean-reversion, risk-aware)
 - **What it does**: Tracks a rolling price window and trades inside "safe" bands derived from window min/max or percentiles. Buys fixed notional tranches at discounts to recent averages; sells when price clears fee-adjusted profit targets, with trailing stops, soft exits, crash fire-sales, and caps on deployed capital.
 - **Why it helps**: Harvests frequent small reversions to build volume for low fees while shedding risk during breaks, crashes, or spikes. Capital caps let multiple instances coexist without stomping the wallet.
+- Version2: two active profiles — Quick (6h window, $50 bets, deeper discounts/spacing, 1.5% TP + $50 buffer, soft/defensive exits, capped at ~$1–1.5k) and Core (12h window, $150 bets, wider spacing, 1.7% TP, stronger trailing/stop, soft exits, capped at ~$1.8k).
 
 ## VolumeTrader (volume churner)
 - **What it does**: Places a small buy then immediately a sell to rack up filled trades.
-- **Why it helps**: Pushes 30‑day volume toward fee-tier thresholds so other traders pay lower maker/taker fees, increasing net profit margin.
+- **Why you might enable it**: Pushes 30‑day volume toward fee-tier thresholds so other traders pay lower maker/taker fees, increasing net profit margin. Consider a low-risk "Volume-Drip" if you need volume and can tolerate churn.
 
 ## MomentumTrader (breakout rider)
 - **What it does**: Watches rolling highs; buys on breakouts above a configured percent, exits on take-profit, trailing-drop, or stop-loss.
-- **Why it helps**: Captures upside momentum moves that mean-reversion systems might miss or fade too early, diversifying regime coverage.
+- **Why you might enable it**: Captures upside momentum moves that mean-reversion systems might miss or fade too early, diversifying regime coverage.
 
 ## MovingAverageTrader (trend follower)
 - **What it does**: Uses short/long moving-average crossovers with entry/exit buffers; exits on cross-under, take-profit, trailing drop, or stop-loss.
-- **Why it helps**: Stays long during sustained trends and steps aside when trend weakens, complementing range/mean-reversion behavior.
+- **Why you might enable it**: Stays long during sustained trends and steps aside when trend weakens, complementing range/mean-reversion behavior.
+
+## HodlTrader (DCA dip buyer)
+- **What it does**: Tracks daily lows; once per day, when price undercuts the prior day’s low by a small percent, submits a maker-biased buy for a small fixed notional and never sells (accumulates BTC over time).
+- **Why you might enable it**: Provides steady dollar-cost-averaging that keeps wallet BTC inventory growing and ensures some participation even when other traders are paused.
 
 ## ConstantTrader (static buyer)
 - **What it does**: Continuously buys fixed-size lots at the current maker-biased price.

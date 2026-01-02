@@ -18,7 +18,8 @@ class HodlTrader
         struct Config
         {
             std::string name = "HodlTrader";
-            usd_t betSize = 20_Dollars;
+            usd_t betSize = 5_Dollars;
+            pp_t buyBelowPct = 50_PercentagePoints; // require prior-day low minus 0.50%
         };
 
         HodlTrader(

@@ -86,6 +86,19 @@ void MovingAverageTrader::process(
 
         if (crossDown || takeProfit || stop || trailing)
         {
+            log::debug("MA %s exit? crossDown=%d tp=%d stop=%d trail=%d price=%s tp=%s sl=%s trail=%s avg(%.2f/%.2f) holding=%s",
+                conf.name.c_str(),
+                crossDown,
+                takeProfit,
+                stop,
+                trailing,
+                IntegerUtils::toUsdString(cur).c_str(),
+                IntegerUtils::toUsdString(tp).c_str(),
+                IntegerUtils::toUsdString(sl).c_str(),
+                IntegerUtils::toUsdString(trail).c_str(),
+                shortAvg,
+                longAvg,
+                IntegerUtils::toBtcString(holding).c_str());
             if (sell(cur))
                 lastAction = now;
             return;
@@ -96,7 +109,15 @@ void MovingAverageTrader::process(
     // Entry
     bool crossUp = shortAvg > longAvg * (1.0 + (static_cast<double>(conf.entryBuffer.value()) / PP_SCALE));
     if (crossUp && buy(cur))
+    {
+        log::debug("MA %s buy crossUp=1 price=%s avg(%.2f/%.2f) bet=%s",
+            conf.name.c_str(),
+            IntegerUtils::toUsdString(cur).c_str(),
+            shortAvg,
+            longAvg,
+            IntegerUtils::toUsdString(conf.betSize).c_str());
         lastAction = now;
+    }
 }
 
 void MovingAverageTrader::checkCandle(

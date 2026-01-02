@@ -49,6 +49,9 @@ class MomentumTrader
             SteadyClock::TimePoint now);
         usd_t getHigh() const;
         usd_t getLow() const;
+        void addTick(
+            SteadyClock::TimePoint now,
+            usd_t price);
         bool buy(
             usd_t price);
         bool sell(
@@ -58,6 +61,8 @@ class MomentumTrader
         Config conf;
 
         std::deque<std::pair<SteadyClock::TimePoint, usd_t>> window;
+        // Monotonic queue storing decreasing prices for O(1) high lookup
+        std::deque<std::pair<SteadyClock::TimePoint, usd_t>> maxWindow;
         btc_t holding;
         usd_t lastBuyPrice;
         usd_t highWater;
