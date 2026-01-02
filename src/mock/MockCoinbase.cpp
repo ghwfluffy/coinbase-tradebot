@@ -129,7 +129,8 @@ bool MockCoinbase::cancelOrder(
     // Check it's cancelable
     if (order.state != CoinbaseOrder::State::Open)
     {
-        log::error("Can't cancel order '%s' is not active.", uuid.c_str());
+        if (order.state != CoinbaseOrder::State::Filled)
+            log::error("Can't cancel order '%s' is not active (%s).", uuid.c_str(), to_string(order.state).c_str());
         return false;
     }
 

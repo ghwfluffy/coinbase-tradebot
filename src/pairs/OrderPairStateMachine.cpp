@@ -41,11 +41,8 @@ bool OrderPairStateMachine::churn(
     const BtcPrice &price = ctx.data.get<BtcPrice>();
 
     // Don't trust the cache and query an update from Coinbase
-    if (force)
-    {
-        checkBuyState(pair, true);
-        checkSellState(pair, true);
-    }
+    checkBuyState(pair, force);
+    checkSellState(pair, force);
 
     // Handle each state
     switch (pair.state)
@@ -218,7 +215,8 @@ void OrderPairStateMachine::handlePending(
     // Try to place new order
     CoinbaseOrder order;
     order.buy = true;
-    order.setQuantity(price.getPrice() - 2_Dollars, pair.bet);
+    usd_t buyPrice = IntegerUtils::makerBuyPrice(price.getPrice(), 2_Dollars);
+    order.setQuantity(buyPrice, pair.bet);
 
     order.createdTime = ctx.data.get<Time>().getTime();
     order.trader = conf.name;
@@ -303,7 +301,7 @@ void OrderPairStateMachine::handleHolding(
     // Try to place new order
     CoinbaseOrder order;
     order.buy = false;
-    order.price = price.getPrice() + (abandon ? 1_Dollars : 5_Dollars);
+    order.price = IntegerUtils::makerSellPrice(price.getPrice(), abandon ? 1_Dollars : 5_Dollars);
     order.quantity = pair.quantity;
     order.createdTime = ctx.data.get<Time>().getTime();
     order.trader = conf.name;

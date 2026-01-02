@@ -4,6 +4,9 @@
 #include <gtb/BtcPrice.h>
 #include <gtb/CoinbaseOrder.h>
 #include <gtb/IntLiterals.h>
+#include <gtb/OrderPair.h>
+#include <gtb/OrderPairStateMachine.h>
+#include <gtb/BaseTraderConfig.h>
 
 namespace gtb
 {
@@ -18,6 +21,9 @@ class VolumeTrader
         {
             std::string name;
             usd_t betSize = 10_Dollars;
+            usd_t minProfitDelta = 2_Dollars;
+            usd_t repriceBand = 2_Dollars;
+            utime_t orderTtl = 1_Minutes;
         };
 
         VolumeTrader(
@@ -33,31 +39,23 @@ class VolumeTrader
             const BtcPrice &price);
 
     private:
-        enum class Phase
-        {
-            Idle,
-            BuyPending,
-            SellPending
-        };
-
-        bool startBuy(
-            usd_t price);
-        bool startSell(
-            usd_t price);
-        void handleFilled(
-            const CoinbaseOrder &updated,
-            usd_t price);
-        void handleOpen(
-            const CoinbaseOrder &updated,
-            usd_t price);
         void resetState();
+        void ensurePair(
+            usd_t price);
+        void manageSellReprice(
+            const BtcPrice &price);
+        void manageBuyCancel(
+            const BtcPrice &price);
+        void manageHoldingDecay(
+            const BtcPrice &price);
+        bool canCancel(
+            const std::string &uuid) const;
 
         BotContext &ctx;
         Config conf;
-
-        Phase phase;
-        btc_t pendingQty;
-        CoinbaseOrder order;
+        OrderPair pair;
+        OrderPairStateMachine stateMachine;
+        SteadyClock::TimePoint orderCreated;
 };
 
 }

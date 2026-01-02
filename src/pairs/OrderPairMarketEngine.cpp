@@ -424,6 +424,9 @@ void OrderPairMarketEngine::checkSale(
     // This only applies to BTC we're holding and may want to discount
     if (pair.state != OrderPair::State::Holding)
         return;
+    // Not applying market parameters
+    if (config.marketParams.empty())
+        return;
 
     // Cache the original sell price,
     // Or restore from it

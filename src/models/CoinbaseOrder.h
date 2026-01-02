@@ -65,4 +65,6 @@ struct CoinbaseOrder
     }
 };
 
+std::string to_string(CoinbaseOrder::State state);
+
 }

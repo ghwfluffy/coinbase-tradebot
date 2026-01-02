@@ -38,57 +38,72 @@ TraderPlan buildTraderPlan()
     TraderPlan plan;
 
     // Mean-reversion buckets (use the profitable, simple mock configs)
+#if 1
     {
         WindowTrader::Config conf;
         conf.name = "Window-Quick";
         conf.windowSize = 6_Hours;
         conf.candleSize = 5_Minutes;
-        conf.pauseDuration = 2_Hours;
+        conf.pauseDuration = 30_Minutes;
         conf.highWindowBuffer = 0_Percent;
         conf.lowWindowBuffer = 0_Percent;
-        conf.fireWindowBuffer = 5_PercentagePoints;
-        conf.betSize = 500_Dollars;
+        conf.fireWindowBuffer = 4_PercentagePoints;
+        conf.betSize = 350_Dollars;
         conf.buyDelta = 0_Dollars;
-        conf.buyBelowPct = 0_Percent;
-        conf.buySpacingPct = 0_Percent;
-        conf.takeProfitDelta = 5_Dollars;
-        conf.takeProfitPct = 0_Percent;
-        conf.trailingDrop = 0_Percent;
-        conf.partialSellRatio = 100_Percent;
-        conf.stopLossPct = 0_PercentagePoints;
+        conf.buyBelowPct = 15_PercentagePoints;
+        conf.buySpacingPct = 10_PercentagePoints;
+        conf.takeProfitDelta = 50_Dollars;
+        conf.takeProfitPct = 60_PercentagePoints;
+        conf.trailingDrop = 5_PercentagePoints;
+        conf.partialSellRatio = 50_Percent;
+        conf.stopLossPct = 8_PercentagePoints;
         conf.trendGuardDelta = 0_Dollars;
         conf.sellFrequency = 1_Seconds;
-        conf.capitalCap = 5'000_Dollars;
+        conf.capitalCap = 10'000_Dollars;
         conf.enableAdaptiveBands = false;
-        conf.usePercentileBands = false;
+        conf.usePercentileBands = true;
+        conf.lowerPercentile = 20;
+        conf.upperPercentile = 60;
         plan.windows.push_back(conf);
     }
-#if 0
+#endif
+#if 1
     {
         WindowTrader::Config conf;
         conf.name = "Window-Core";
-        conf.windowSize = 24_Hours;
-        conf.candleSize = 10_Minutes;
-        conf.pauseDuration = 6_Hours;
-        conf.highWindowBuffer = 0_Percent;
-        conf.lowWindowBuffer = 0_Percent;
-        conf.fireWindowBuffer = 5_PercentagePoints;
-        conf.betSize = 400_Dollars;
+        conf.windowSize = 12_Hours;
+        conf.candleSize = 5_Minutes;
+        conf.pauseDuration = 20_Minutes;
+        conf.highWindowBuffer = 1_Percent;
+        conf.lowWindowBuffer = 1_Percent;
+        conf.fireWindowBuffer = 2_Percent;
+        conf.betSize = 800_Dollars;
         conf.buyDelta = 0_Dollars;
-        conf.buyBelowPct = 10_PercentagePoints;
-        conf.buySpacingPct = 10_PercentagePoints;
-        conf.takeProfitDelta = 20_Dollars;
-        conf.takeProfitPct = 30_PercentagePoints;
-        conf.trailingDrop = 10_PercentagePoints;
-        conf.partialSellRatio = 100_Percent;
-        conf.stopLossPct = 50_PercentagePoints;
-        conf.trendGuardDelta = 100_Dollars;
-        conf.sellFrequency = 2_Seconds;
+        conf.buyBelowPct = 15_PercentagePoints;   // 0.15%
+        conf.buySpacingPct = 15_PercentagePoints; // 0.15%
+        conf.takeProfitDelta = 0_Dollars;
+        conf.takeProfitPct = 75_PercentagePoints;   // 0.75%
+        conf.trailingDrop = 25_PercentagePoints;    // 0.25%
+        conf.partialSellRatio = 80_Percent;
+        conf.stopLossPct = 0_Percent;               // disable tight stop-loss
+        conf.trendGuardDelta = 60_Dollars;
+        conf.sellFrequency = 1_Seconds;
         conf.capitalCap = 10'000_Dollars;
-        conf.enableAdaptiveBands = false;
-        conf.usePercentileBands = false;
+        conf.enableAdaptiveBands = true;
+        conf.highPausePercentile = 98;
+        conf.lowExitPercentile = 0; // disable defensive exits
+        conf.buyBandLowerPercentile = 8;
+        conf.buyBandUpperPercentile = 70;
+        conf.enableDefensiveExit = false;
+        conf.usePercentileBands = true;
+        conf.lowerPercentile = 5;
+        conf.upperPercentile = 95;
+        conf.softExitPercentile = 0;
+        conf.softExitSellRatio = 0_Percent;
         plan.windows.push_back(conf);
     }
+#endif
+#if 0
     {
         WindowTrader::Config conf;
         conf.name = "Window-Drift";
@@ -178,12 +193,16 @@ TraderPlan buildTraderPlan()
         conf.capitalCap = 3'000_Dollars;
         plan.movingAverages.push_back(conf);
     }
-
+#endif
+#if 1
     // Volume churners to reach fee tiers
     {
         VolumeTrader::Config conf;
-        conf.name = "Volume";
-        conf.betSize = 10_Dollars;
+        conf.name = "Volume-Churn";
+        conf.betSize = 25_Dollars;
+        conf.minProfitDelta = 1_Dollars;
+        conf.repriceBand = 2_Dollars;
+        conf.orderTtl = 10_Seconds;
         plan.volumes.push_back(conf);
     }
 #endif
@@ -241,10 +260,10 @@ void initProd(
 MockSetup::Config mockConf()
 {
     return {
-        .startDate = "2025-01-25",
-        .endDate = "2025-01-30",
+        //.startDate = "2025-02-25",
+        //.endDate = "2025-04-25",
         .initHighVolume = true,
-        .startWallet = 50'000_Dollars,
+        .startWallet = 22'000_Dollars,
     };
 }
 
