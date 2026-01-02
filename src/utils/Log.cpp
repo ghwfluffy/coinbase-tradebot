@@ -43,15 +43,20 @@ std::string getTime()
 
 void writeLog(
     const char *level,
-    const std::string &msg)
+    const std::string &msg,
+    bool console = true)
 {
     std::ostringstream out;
     out << '[' << getTime() << "] " << level << ' ' << msg;
     std::string line = out.str();
 
-    fputs(line.c_str(), stdout);
-    fputc('\n', stdout);
-    fflush(stdout);
+    if (console)
+    {
+        fputs(line.c_str(), stdout);
+        fputc('\n', stdout);
+        fflush(stdout);
+    }
+
     if (logFile)
     {
         fputs(line.c_str(), logFile);
@@ -110,7 +115,7 @@ void log::debug(const char *psz, ...)
 
     std::string msg;
     VARIADIC_STRING(psz, msg);
-    writeLog("[ DEBUG ]", msg);
+    writeLog("[ DEBUG ]", msg, !logFile);
 }
 
 void log::setDebugLoggingEnabled(bool enabled)

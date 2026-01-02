@@ -2,8 +2,13 @@
 #include <gtb/MarketInfo.h>
 #include <gtb/Uuid.h>
 #include <gtb/Log.h>
+#include <gtb/BigInt.h>
 
 #include <cassert>
+#include <algorithm>
+#include <limits>
+#include <mutex>
+#include <unordered_map>
 
 using namespace gtb;
 
@@ -18,6 +23,40 @@ struct MarketPeriodModifier
     MarketPeriodConfig period;
     utime_t timeIntoBuffer;
 };
+
+pp_t safeFractionPp(
+    uint64_t numerator,
+    uint64_t denominator)
+{
+    if (!denominator)
+        return pp_t();
+
+    BigInt num(numerator);
+    num *= BigInt(PP_SCALE);
+    BigInt den(denominator);
+    BigInt res = num / den;
+    uint64_t capped = std::min<uint64_t>(
+        res.toUint64(),
+        static_cast<uint64_t>(std::numeric_limits<uint32_t>::max()));
+    return pp_t(static_cast<uint32_t>(capped));
+}
+
+pp_t safeFractionUsd(
+    usd_t numerator,
+    usd_t denominator)
+{
+    if (!denominator)
+        return pp_t();
+
+    BigInt num(numerator.value());
+    num *= BigInt(PP_SCALE);
+    BigInt den(denominator.value());
+    BigInt res = num / den;
+    uint64_t capped = std::min<uint64_t>(
+        res.toUint64(),
+        static_cast<uint64_t>(std::numeric_limits<uint32_t>::max()));
+    return pp_t(static_cast<uint32_t>(capped));
+}
 
 // Determine what modifiers should be applied to the order pair
 std::vector<MarketPeriodModifier> getPeriodModifiers(
@@ -83,7 +122,6 @@ std::vector<MarketPeriodModifier> getPeriodModifiers(
         else if (marketTime.isClosed())
         {
             utime_t tillOpen = marketTime.tillOpen();
-            //assert(tillOpen > 0);
             // Market is approaching open time
             if (tillOpen <= params.openingMarket.bufferPeriod())
             {
@@ -111,6 +149,34 @@ std::vector<MarketPeriodModifier> getPeriodModifiers(
     }
 
     return modifiers;
+}
+
+// Cache modifiers per config pointer in coarse buckets to avoid recomputing every price tick in mocks.
+std::vector<MarketPeriodModifier> getPeriodModifiersCached(
+    const BaseTraderConfig &config,
+    utime_t time)
+{
+    constexpr utime_t CACHE_GRANULARITY = 60_Seconds; // recompute at most once per minute of mock time
+
+    struct CacheEntry
+    {
+        utime_t bucket = {};
+        std::vector<MarketPeriodModifier> modifiers;
+    };
+
+    static std::mutex cacheMtx;
+    static std::unordered_map<const BaseTraderConfig *, CacheEntry> cache;
+
+    utime_t bucket = utime_t((time.value() / CACHE_GRANULARITY.value()) * CACHE_GRANULARITY.value());
+
+    std::lock_guard<std::mutex> lock(cacheMtx);
+    CacheEntry &entry = cache[&config];
+    if (entry.bucket != bucket)
+    {
+        entry.bucket = bucket;
+        entry.modifiers = getPeriodModifiers(config, time);
+    }
+    return entry.modifiers;
 }
 
 // New pair according to the base trader config
@@ -194,7 +260,9 @@ void applyNewOrderModifier(
         intoRampPeriod = modifier.timeIntoBuffer;
 
     // Calculate where we are on the ramp
-    pp_t rampPercent = IntegerUtils::fraction(intoRampPeriod * modifier.period.rampGrade, modifier.period.rampPeriod);
+    pp_t rampPercent = safeFractionPp(
+        (intoRampPeriod * modifier.period.rampGrade).value(),
+        modifier.period.rampPeriod.value());
     // Hot=Ramping down the handicap (ramp percent is added to initial spread)
     if (modifier.period.hot)
         rampPercent = modifier.period.rampGrade - rampPercent;
@@ -215,7 +283,7 @@ void applyNewOrderModifier(
     }
 
     usd_t diff = pair.sellPrice - pair.buyPrice;
-    pp_t spread = IntegerUtils::fraction(diff, mid);
+    pp_t spread = safeFractionUsd(diff, mid);
     if (!spread)
         spread = pp_t(1);
 
@@ -231,7 +299,6 @@ void applyNewOrderModifier(
     // Be super sure our math didn't roll something over
     if (buyPrice > pair.buyPrice || sellPrice < pair.sellPrice)
     {
-#if 0
         log::error("Overflow while calculating '%s %s' ramp modifier.\n"
                     "[buy %s - %s], [sell %s - %s] - mid %s\n"
                     "%lu spread + %lu additional\n"
@@ -247,7 +314,6 @@ void applyNewOrderModifier(
             static_cast<unsigned long>(additionalSpread.value()),
             IntegerUtils::toUsdString(diff).c_str(),
             IntegerUtils::toUsdString(diffHalf).c_str());
-#endif
         pair.buyPrice = {};
         return;
     }
@@ -264,7 +330,7 @@ void applyNewOrderModifiers(
     OrderPair &pair)
 {
     // Get modifiers based on market value
-    std::vector<MarketPeriodModifier> modifiers = getPeriodModifiers(config, currentTime);
+    std::vector<MarketPeriodModifier> modifiers = getPeriodModifiersCached(config, currentTime);
 
     // Apply
     for (const MarketPeriodModifier &modifier : modifiers)
@@ -319,6 +385,8 @@ void applySellModifier(
         // Are we out of the pause period yet?
         if (modifier.period.pausePeriod < modifier.timeIntoBuffer)
             intoRampPeriod = modifier.timeIntoBuffer - modifier.period.pausePeriod;
+        else
+            intoRampPeriod = utime_t();
     }
     else
     {
@@ -332,7 +400,9 @@ void applySellModifier(
     // Calculate where we are on the ramp
     pp_t rampPercent;
     if (modifier.period.rampPeriod)
-        rampPercent = IntegerUtils::fraction(intoRampPeriod * modifier.period.pauseAcceptLoss, modifier.period.rampPeriod);
+        rampPercent = safeFractionPp(
+            (intoRampPeriod * modifier.period.pauseAcceptLoss).value(),
+            modifier.period.rampPeriod.value());
     else
         rampPercent = modifier.period.pauseAcceptLoss;
     // Ramping down losses (ramping up to be active)
@@ -380,18 +450,16 @@ OrderPair OrderPairMarketEngine::newSpread(
     // Apply modifiers
     applyNewOrderModifiers(config, currentTime, pair);
 
-#if 0
-    if (!pair.getModifiers().empty())
+    if (log::isDebugLoggingEnabled() && !pair.getModifiers().empty())
     {
-        log::info("%s : %s : %s(%u) = [%s - %s]",
+        log::debug("%s : %s : %s(%u) = [%s - %s]",
             MarketInfo::getTimeString(currentTime).c_str(),
             pair.getModifiers().c_str(),
             IntegerUtils::toUsdString(currentBtcPrice).c_str(),
-            spread,
+            static_cast<unsigned int>(spread.value()),
             IntegerUtils::toUsdString(pair.buyPrice).c_str(),
             IntegerUtils::toUsdString(pair.sellPrice).c_str());
     }
-#endif
 
     return pair;
 }
@@ -447,7 +515,7 @@ void OrderPairMarketEngine::checkSale(
     }
 
     // Get modifiers based on market value
-    std::vector<MarketPeriodModifier> modifiers = getPeriodModifiers(config, currentTime);
+    std::vector<MarketPeriodModifier> modifiers = getPeriodModifiersCached(config, currentTime);
 
     // Apply
     for (const MarketPeriodModifier &modifier : modifiers)

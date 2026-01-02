@@ -26,7 +26,6 @@ void addTraders(
     };
 
     // Add traders
-    add.operator()<WindowTrader>(TraderConfFactory::Window::quick);
     add.operator()<SpreadTrader>(TraderConfFactory::Spread::small);
     add.operator()<TimeTrader>(TraderConfFactory::Time::small);
 }
