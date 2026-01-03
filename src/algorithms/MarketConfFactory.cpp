@@ -119,6 +119,70 @@ MarketTimeTraderConfig MarketConfFactory::rampedStockHours()
     };
 }
 
+// Trade during stock hours but heavily buffer the open/close edges to avoid drawdowns from early/late whipsaws.
+MarketTimeTraderConfig MarketConfFactory::shieldedStockOpen()
+{
+    return {
+        .market = MarketInfo::Market::StockMarket,
+
+        // Open ----->
+        .openMarket = {
+            .hot = true,
+            // Sit out the first 45 minutes after open
+            .pausePeriod = 45_Minutes,
+            // Allow modest losses on existing spreads during the pause to exit risk
+            .pauseAcceptLoss = 40_PercentagePoints,
+            // Then warm up for 90 minutes with elevated spread requirements
+            .rampPeriod = 90_Minutes,
+            .rampGrade = 150_Percent,
+        },
+        // Open -> Closed
+        .closingMarket = {
+            .hot = true,
+            // Stop adding new risk 30 minutes before close
+            .pausePeriod = 30_Minutes,
+            // Will sell down to near cost as we approach close
+            .pauseAcceptLoss = 80_Percent,
+            // Ramp down for an hour into the pause
+            .rampPeriod = 60_Minutes,
+            .rampGrade = 100_Percent,
+        },
+        // Closed ----->
+        .closedMarket = {
+            .hot = false,
+        },
+        // Closed -> Open
+        .openingMarket = {
+            // Stay cold heading into the open to avoid overnight gaps
+            .hot = false,
+        },
+        // Open -> Weekend
+        .weekendingMarket = {
+            .hot = true,
+            // Stop taking new trades 45 minutes before weekend close
+            .pausePeriod = 45_Minutes,
+            // Will take a deeper discount to shed BTC before the break
+            .pauseAcceptLoss = 120_Percent,
+            // Ramp into the pause for 90 minutes
+            .rampPeriod = 90_Minutes,
+            .rampGrade = 120_Percent,
+        },
+        // Weekend ----->
+        .weekendMarket = {
+            .hot = false,
+        },
+        // Weekend -> Open
+        .weekStartingMarket = {
+            // Warm back up from the weekend with a controlled ramp
+            .hot = true,
+            .pausePeriod = 30_Minutes,
+            .pauseAcceptLoss = 50_Percent,
+            .rampPeriod = 90_Minutes,
+            .rampGrade = 100_Percent,
+        },
+    };
+}
+
 // Trade all week but soften the edges around regular stock opens/closes to reduce open-vol whipsaws.
 MarketTimeTraderConfig MarketConfFactory::gentleOpenHours()
 {

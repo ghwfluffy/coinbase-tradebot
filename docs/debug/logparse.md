@@ -94,6 +94,54 @@ Guidance for Codex to extract signal from large log files using standard CLI too
   `rg "STATUS|ERROR|WARN|PnL|TRADE" data/log.txt > /tmp/run.slice`
   then operate on `/tmp/run.slice`.
 - Use `python -u` one-liners to avoid shell quoting pain; prefer streaming over loading entire files into memory.
+- When files get multi-GB, pre-slice status lines before parsing to avoid Python timeouts:
+  ```
+  rg "STATUS" data/log-5.txt > /tmp/log5.status
+  python - <<'PY'
+  import re
+  pat = re.compile(r'^\\[(\\d{4}-\\d{2}-\\d{2}) ([^\\]]+)\\].*Wallet: \\$([\\d.,]+)')
+  vals = []
+  for line in open('/tmp/log5.status'):
+      m = pat.search(line)
+      if m:
+          vals.append((m.group(1), m.group(2), float(m.group(3).replace(',',''))))
+  # compute deltas, drawdowns, etc. from vals
+  PY
+  ```
+- Count per-trader completions quickly even if PnL values overflow in logs:
+  `rg "realized PnL" data/log-5.txt | awk -F\"'\" '{print $2}' | sort | uniq -c`
+  (the numeric PnL fields can wrap; rely on counts/volumes instead).
+- Quick drawdown/volatility view from a sliced status file:
+  ```
+  python - <<'PY'
+  import re, math, collections
+  vals=[]; pat=re.compile(r'^\[(\d{4}-\d{2}-\d{2}) ([^\]]+)\].*Wallet: \$([\d.,]+)')
+  for line in open('/tmp/log6.status'):
+      m=pat.search(line)
+      if m: vals.append((m.group(1), m.group(2), float(m.group(3).replace(',',''))))
+  peak=vals[0][2]; dd=0; prev=None; deltas=[]
+  for _,_,w in vals:
+      peak=max(peak,w); dd=min(dd,w-peak)
+      if prev is not None: deltas.append(w-prev)
+      prev=w
+  stdev=lambda xs: math.sqrt(sum((x-sum(xs)/len(xs))**2 for x in xs)/len(xs)) if xs else 0
+  print("max_drawdown", dd, "delta_stdev", stdev(deltas))
+  buckets=collections.Counter()
+  prev=None
+  for d,t,w in vals:
+      if prev is not None:
+          delta=w-prev
+          if abs(delta)>700:
+              hour=t.split(':')[0]; dow=t.split()[-1].strip('()')
+              buckets[(hour,dow)] += 1
+      prev=w
+  print("large_move_buckets", buckets)
+  PY
+  ```
+- Last-status per-trader snapshot (PnL/volume) when STATUS repeats for each trader:
+  `rg "STATUS" data/log-7.txt | tail -n50 | rg "PnL" | awk '{print $4, $(NF-3), $(NF-1)}'`
+  (adjust tail size to catch the final block; useful to compare across runs quickly).
+- Swap `/tmp/log6.status` for `/tmp/log8.status` to reuse the same scripts on the latest run.
 
 ## Validating Against `data/log.txt`
 - Try: `rg "STATUS" data/log.txt | tail -n1` to get final profit/volume.

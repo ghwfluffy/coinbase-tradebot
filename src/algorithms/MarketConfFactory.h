@@ -13,6 +13,7 @@ namespace MarketConfFactory
 {
     MarketTimeTraderConfig onlyNormalHours();
     MarketTimeTraderConfig rampedStockHours();
+    MarketTimeTraderConfig shieldedStockOpen();
     MarketTimeTraderConfig preferBitcoinHours();
     MarketTimeTraderConfig gentleOpenHours();
     MarketTimeTraderConfig volumeStockHours();

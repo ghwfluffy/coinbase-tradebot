@@ -27,7 +27,9 @@ void addTraders(
 
     // Add traders
     add.operator()<VolumeTrader>(TraderConfFactory::Volume::stockChurn);
+    add.operator()<VolumeTrader>(TraderConfFactory::Volume::pulse);
     add.operator()<VolumeTrader>(TraderConfFactory::Volume::drip);
+    add.operator()<VolumeTrader>(TraderConfFactory::Volume::allHoursFeeder);
     add.operator()<SpreadTrader>(TraderConfFactory::Spread::breakEven);
     add.operator()<SpreadTrader>(TraderConfFactory::Spread::small);
     add.operator()<SpreadTrader>(TraderConfFactory::Spread::medium);

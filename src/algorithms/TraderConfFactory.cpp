@@ -188,6 +188,34 @@ VolumeTrader::Config TraderConfFactory::Volume::drip()
     return conf;
 }
 
+// Faster cadence volume booster for safer hours to raise 30-day volume without full churn loss.
+VolumeTrader::Config TraderConfFactory::Volume::pulse()
+{
+    VolumeTrader::Config conf;
+    conf.name = "Volume-Pulse";
+    conf.betSize = 250_Dollars;
+    conf.minProfitDelta = 6_Dollars;
+    conf.repriceBand = 35_Dollars;
+    conf.orderTtl = 45_Seconds;
+    conf.marketParams.push_back(MarketConfFactory::volumeStockHours());
+    conf.marketParams.push_back(MarketConfFactory::preferBitcoinHours());
+    return conf;
+}
+
+// All-hours feeder with moderate sizing to lift 30d volume while accepting small bleed.
+VolumeTrader::Config TraderConfFactory::Volume::allHoursFeeder()
+{
+    VolumeTrader::Config conf;
+    conf.name = "Volume-Feeder";
+    conf.betSize = 180_Dollars;
+    conf.minProfitDelta = 3_Dollars;
+    conf.repriceBand = 20_Dollars;
+    conf.orderTtl = 45_Seconds;
+    conf.marketParams.push_back(MarketConfFactory::allHours());
+    conf.marketParams.push_back(MarketConfFactory::gentleOpenHours());
+    return conf;
+}
+
 // Dollar-cost-average buyer: once-daily small purchase at/below prior-day low, never sells.
 HodlTrader::Config TraderConfFactory::Hodl::hodl()
 {
@@ -205,6 +233,7 @@ SpreadTrader::Config TraderConfFactory::Spread::breakEven()
     conf.numPairs = 4;
     conf.buffer = 25_Percent;
     conf.marketParams.push_back(MarketConfFactory::preferBitcoinHours());
+    conf.marketParams.push_back(MarketConfFactory::shieldedStockOpen());
     return conf;
 }
 
@@ -213,10 +242,11 @@ SpreadTrader::Config TraderConfFactory::Spread::small()
     SpreadTrader::Config conf;
     conf.name = "Spread-Small";
     conf.spread = 35_PercentagePoints;
-    conf.bet = 500_Dollars;
-    conf.numPairs = 10;
+    conf.bet = 300_Dollars;
+    conf.numPairs = 6;
     conf.buffer = 10_Percent;
     conf.marketParams.push_back(MarketConfFactory::preferBitcoinHours());
+    conf.marketParams.push_back(MarketConfFactory::shieldedStockOpen());
     return conf;
 }
 
@@ -262,13 +292,14 @@ TimeTrader::Config TraderConfFactory::Time::small()
 {
     TimeTrader::Config conf;
     conf.name = "Time-Small";
-    conf.bet = 500_Dollars;
+    conf.bet = 300_Dollars;
     conf.sampleSize = 30_Minutes;
-    conf.minSpread = 3_PercentagePoints;
+    conf.minSpread = 4_PercentagePoints;
     conf.paddingSpread = 1_PercentagePoints;
-    conf.numPairs = 10;
+    conf.numPairs = 6;
     conf.marketParams.push_back(MarketConfFactory::preferBitcoinHours());
     conf.marketParams.push_back(MarketConfFactory::gentleOpenHours());
+    conf.marketParams.push_back(MarketConfFactory::shieldedStockOpen());
     return conf;
 }
 
@@ -283,6 +314,7 @@ TimeTrader::Config TraderConfFactory::Time::medium()
     conf.numPairs = 2;
     conf.marketParams.push_back(MarketConfFactory::onlyNormalHours());
     conf.marketParams.push_back(MarketConfFactory::gentleOpenHours());
+    conf.marketParams.push_back(MarketConfFactory::shieldedStockOpen());
     return conf;
 }
 

@@ -38,6 +38,8 @@ namespace TraderConfFactory
         VolumeTrader::Config churn();
         VolumeTrader::Config stockChurn();
         VolumeTrader::Config drip();
+        VolumeTrader::Config pulse();
+        VolumeTrader::Config allHoursFeeder();
     }
 
     namespace Hodl
