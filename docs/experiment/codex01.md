@@ -1,0 +1,6 @@
+Iteration 1 — 2026-01-03T14:24:22Z
+- Metrics (data/log.txt): no run-level PnL/volume summary in log; only observed one Volume-Churn pair completing around 2025-02-01 09:31 (Sat). Spread/Time traders created 0 pairs; total profit, drawdown, win rate, and volume not reported.
+- Observations: replay started on a Saturday, so preferBitcoinHours/stock-hour gating showed “Weekend disabled” and kept spread/time traders idle all run. No warnings/errors besides normal shutdown; missing PnL logging makes evaluation hard.
+- Hypothesis: weekend/off-hour gating starved trading; enable an always-on spread variant to collect trades during closed markets and add per-pair PnL logging to measure outcomes.
+- Changes applied: added MarketConfFactory::allHours and Spread-AllHoursProbe config, wired into Version2; added per-pair realized PnL logging when an order pair completes.
+- Expected effect / falsifier: expect weekend/off-hour pairs to open and PnL logs to appear so we can assess profitability; falsified if no new pairs trade off-hours or if PnL logs remain empty. Next ideas: if still idle, relax gating further or add Volume-Drip; if new trades show loss clusters, tighten spreads or add a market profile for repeated weak periods.

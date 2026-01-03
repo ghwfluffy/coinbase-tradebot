@@ -373,4 +373,17 @@ void OrderPairStateMachine::logChange(
         IntegerUtils::toUsdString(pair.buyPrice).c_str(),
         // Sell BTC price
         IntegerUtils::toUsdString(pair.sellPrice).c_str());
+
+    if (pair.state == OrderPair::State::Complete)
+    {
+        usd_t gross = pair.sold - pair.purchased;
+        usd_t fees = pair.buyFees + pair.sellFees;
+        usd_t net = gross - fees;
+        log::trade("Spread '%s' pair '%s' realized PnL %s (gross %s, fees %s).",
+            conf.name.c_str(),
+            pair.uuid.c_str(),
+            IntegerUtils::toUsdString(net).c_str(),
+            IntegerUtils::toUsdString(gross).c_str(),
+            IntegerUtils::toUsdString(fees).c_str());
+    }
 }

@@ -50,6 +50,7 @@ namespace TraderConfFactory
         SpreadTrader::Config small();
         SpreadTrader::Config medium();
         SpreadTrader::Config large();
+        SpreadTrader::Config allHoursProbe();
     }
 
     namespace Time

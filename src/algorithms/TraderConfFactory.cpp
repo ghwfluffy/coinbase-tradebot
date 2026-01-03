@@ -230,6 +230,19 @@ SpreadTrader::Config TraderConfFactory::Spread::large()
     return conf;
 }
 
+// Always-on probe to capture off-hours/weekend liquidity with moderate size/spread.
+SpreadTrader::Config TraderConfFactory::Spread::allHoursProbe()
+{
+    SpreadTrader::Config conf;
+    conf.name = "Spread-AllHoursProbe";
+    conf.spread = 45_PercentagePoints;
+    conf.bet = 200_Dollars;
+    conf.numPairs = 6;
+    conf.buffer = 12_Percent;
+    conf.marketParams.push_back(MarketConfFactory::allHours());
+    return conf;
+}
+
 TimeTrader::Config TraderConfFactory::Time::small()
 {
     TimeTrader::Config conf;

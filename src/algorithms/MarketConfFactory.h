@@ -14,6 +14,7 @@ namespace MarketConfFactory
     MarketTimeTraderConfig onlyNormalHours();
     MarketTimeTraderConfig rampedStockHours();
     MarketTimeTraderConfig preferBitcoinHours();
+    MarketTimeTraderConfig allHours();
 }
 
 }
