@@ -91,6 +91,6 @@ void TimeTrader::handleNewPair(
         return;
     }
 
-    log::info("Created new pair for time trader '%s'.", conf.name.c_str());
+    log::trade("Created new pair for time trader '%s'.", conf.name.c_str());
     stateMachine.logChange(OrderPair::State::None, pair);
 }

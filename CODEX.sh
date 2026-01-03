@@ -40,7 +40,7 @@ CODEX=(
     "${SESSION_ID}"
 )
 
-# Make agent load some context
+# Warm load agent context
 notice "Revising repository description"
 runwithterm "${CODEX[@]}" "review the information in docs and describe what this code base does"
 
@@ -54,6 +54,8 @@ notice "Loading version2 trader summary"
 runwithterm "${CODEX[@]}" "summarize what current traders are enabled for Version2 algorithm and what effect they will have"
 
 set +e
+
+LOG_FILE="docs/experiment/codex01.md"
 
 # Instructions
 BASE_PROMPT="$(cat <<CODEX
@@ -70,35 +72,40 @@ Hard constraints:
 - You MUST commit all changes and include a commit message with the iteration number
 
 Loop protocol (do this every iteration):
-1) Read data/log.txt from the previous run. Extract:
+1) Review ${LOG_FILE} and remember previous goals and attempts.
+    - check for new notes added by the user (Ghw) of suggestions to incorporate
+2) Review docs/debug/logparse.md for hints on how to parse logs.
+    - you may choose to parse log file in additional ways
+3) Read data/log.txt from the previous run. Extract:
     - total profit (and per-trader profit)
     - times of day/week when profits took a big loss
     - times of day/week when profits took a large win
     - drawdown / volatility proxy (if present)
     - number of trades, win rate, avg PnL, largest loss, fee/slippage effects
     - any warnings/errors or suspicious behavior (e.g., runaway trading, missing config)
-2) Calculate how that time of day/week relates to tracked market times (MarketInfo::Market)
+4) Calculate how that time of day/week relates to tracked market times (MarketInfo::Market)
     - Determine if a new tracked market time should be added (rare, repeated occurrences required)
-3) Create a new hypothesis on changes that can be made so the next iteration will be better. including changes to one or all of:
+5) Create a new hypothesis on changes that can be made so the next iteration will be better. including changes to one or all of:
     - Add new Market type
     - Add new MarketTimeTraderConfig to MarketConfFactory
     - Modify existing MarketTimeTraderConfig in MarketConfFactory
     - Add new trader configuration in TraderConfFactory
     - Modify existing trader configuration in TraderConfFactory
     - Add/Modify/Remove traders instantiated in Version2 algorithm
-4) Implement the smallest change that tests the hypothesis:
+6) Implement the smallest change that tests the hypothesis:
     - tweak existing params OR add a new config variant in MarketConfFactory/TraderConfFactory
     - adjust trader logic only if necessary, minimally, and explain why
-5) Add debug logs ONLY where they increase decision quality next iteration:
+7) Add debug logs ONLY where they increase decision quality next iteration:
     - log config id/name used, per-trader PnL, trade counts, reasons for entries/exits, spread/volume/time signals
-6) Update docs/experiment/codex01.md with:
+    - update docs/debug/logparse.md with instructions on how logs are intended to be parsed and used
+8) Update ${LOG_FILE} with:
     - iteration number + timestamp
     - extracted metrics (from log)
     - extracted observations (from log)
     - hypothesis
     - expected effect and what would falsify it
     - next step ideas
-7) Commit changes and experiment/codex01.md with descriptive commit message
+9) Git commit changes and ${LOG_FILE} with a descriptive commit message
 
 Optimization target:
 - Maximize risk-adjusted upward trend, not just final profit.
@@ -123,7 +130,7 @@ rm -rf data/runs
 mkdir -p data/runs
 
 # Iterate
-iter=0
+iter=1
 while true; do
     let "iter=iter+1" || true
     ts="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
@@ -133,13 +140,14 @@ while true; do
     # Run bot
     runwithterm ./go.sh || true
 
-    # Snapshot new log for trend analysis
-    if [[ -f data/log.txt ]]; then
-        cp -f data/log.txt "data/runs/iter${iter}.txt" || true
-    fi
-
     # Run the AI “agent” with the plan
+    notice "Running codex"
     runwithterm "${CODEX[@]}" "$(plan "${iter}" "${ts}")" || true
+
+    # Snapshot new log for trend analysis
+    notice "Saving log file for ITER ${iter}"
+    runwithterm zstd -T0 -10 -o data/runs/${iter}.txt.zstd data/log.txt
+    rm -f data/log.txt
 
     runwithterm sleep 1
 done
