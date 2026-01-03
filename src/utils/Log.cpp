@@ -95,7 +95,7 @@ void log::trade(const char *psz, ...)
 
     std::string msg;
     VARIADIC_STRING(psz, msg);
-    writeLog("[ TRADE  ]", msg);
+    writeLog("[ TRADE  ]", msg, !logFile);
 }
 
 void log::setTradeLoggingEnabled(bool enabled)
