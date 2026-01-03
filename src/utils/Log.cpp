@@ -61,7 +61,6 @@ void writeLog(
     {
         fputs(line.c_str(), logFile);
         fputc('\n', logFile);
-        fflush(logFile);
     }
 }
 

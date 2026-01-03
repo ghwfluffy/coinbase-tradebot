@@ -450,6 +450,8 @@ OrderPair OrderPairMarketEngine::newSpread(
     // Apply modifiers
     applyNewOrderModifiers(config, currentTime, pair);
 
+    //Debug spam from here was overwhelming; keep disabled unless re-enabled for deep dives.
+#if 0
     if (log::isDebugLoggingEnabled() && !pair.getModifiers().empty())
     {
         log::debug("%s : %s : %s(%u) = [%s - %s]",
@@ -460,6 +462,7 @@ OrderPair OrderPairMarketEngine::newSpread(
             IntegerUtils::toUsdString(pair.buyPrice).c_str(),
             IntegerUtils::toUsdString(pair.sellPrice).c_str());
     }
+#endif
 
     return pair;
 }

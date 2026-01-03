@@ -1,6 +1,6 @@
 # Log Parsing Playbook
 
-Guidance for Codex to extract signal from large `data/log.txt`–style runs using standard CLI tools (`rg`, `awk`, `python`, `bash`).
+Guidance for Codex to extract signal from large log files using standard CLI tools (`rg`, `awk`, `python`, `bash`).
 
 ## General Approach
 - Prefer `rg` for filtering; it’s fast on huge files.
