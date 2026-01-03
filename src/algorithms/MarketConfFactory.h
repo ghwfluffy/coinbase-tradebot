@@ -12,7 +12,8 @@ namespace gtb
 namespace MarketConfFactory
 {
     MarketTimeTraderConfig onlyNormalHours();
-    MarketTimeTraderConfig preferNormalHours();
+    MarketTimeTraderConfig rampedStockHours();
+    MarketTimeTraderConfig preferBitcoinHours();
 }
 
 }

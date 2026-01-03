@@ -107,7 +107,7 @@ void Version1::init(
         conf.numPairs = 4;
         conf.buffer = 25_Percent;
         //conf.maxValue = 115'000_Dollars;
-        conf.marketParams.push_back(MarketConfFactory::preferNormalHours());
+        conf.marketParams.push_back(MarketConfFactory::onlyNormalHours());
 
         bot.addProcessor(std::make_unique<SpreadTrader>(ctx, conf));
     }
@@ -121,7 +121,7 @@ void Version1::init(
         conf.numPairs = 10;
         conf.buffer = 10_Percent;
         //conf.maxValue = 115'000_Dollars;
-        conf.marketParams.push_back(MarketConfFactory::preferNormalHours());
+        conf.marketParams.push_back(MarketConfFactory::onlyNormalHours());
 
         bot.addProcessor(std::make_unique<SpreadTrader>(ctx, conf));
     }
@@ -135,7 +135,7 @@ void Version1::init(
         conf.numPairs = 5;
         conf.buffer = 10_Percent;
         //conf.maxValue = 115'000_Dollars;
-        conf.marketParams.push_back(MarketConfFactory::preferNormalHours());
+        conf.marketParams.push_back(MarketConfFactory::onlyNormalHours());
 
         bot.addProcessor(std::make_unique<SpreadTrader>(ctx, conf));
     }
@@ -175,7 +175,7 @@ void Version1::init(
         conf.numPairs = 10;
         //conf.maxValue = 115'000_Dollars;
         conf.enabled = true;
-        conf.marketParams.push_back(MarketConfFactory::preferNormalHours());
+        conf.marketParams.push_back(MarketConfFactory::onlyNormalHours());
 
         bot.addProcessor(std::make_unique<TimeTrader>(ctx, conf));
     }
@@ -191,7 +191,7 @@ void Version1::init(
         conf.numPairs = 10;
         //conf.maxValue = 115'000_Dollars;
         conf.enabled = true;
-        conf.marketParams.push_back(MarketConfFactory::preferNormalHours());
+        conf.marketParams.push_back(MarketConfFactory::onlyNormalHours());
 
         bot.addProcessor(std::make_unique<TimeTrader>(ctx, conf));
     }
@@ -207,7 +207,7 @@ void Version1::init(
         conf.numPairs = 100;
         //conf.maxValue = 115'000_Dollars;
         conf.enabled = true;
-        //conf.marketParams.push_back(MarketConfFactory::preferNormalHours());
+        //conf.marketParams.push_back(MarketConfFactory::onlyNormalHours());
 
         bot.addProcessor(std::make_unique<TimeTrader>(ctx, conf));
     }
@@ -221,7 +221,7 @@ void Version1::init(
         conf.numPairs = 10;
         conf.buffer = 20_Percent;
         //conf.maxValue = 115'000_Dollars;
-        //conf.marketParams.push_back(MarketConfFactory::preferNormalHours());
+        //conf.marketParams.push_back(MarketConfFactory::onlyNormalHours());
 
         bot.addProcessor(std::make_unique<SpreadTrader>(ctx, conf));
     }

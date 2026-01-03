@@ -1,7 +1,6 @@
 #include <gtb/TimeTrader.h>
 #include <gtb/IntegerUtils.h>
 #include <gtb/Time.h>
-#include <gtb/Uuid.h>
 #include <gtb/Log.h>
 
 using namespace gtb;
@@ -16,8 +15,8 @@ TimeTrader::TimeTrader(
 
 void TimeTrader::reset()
 {
+    startTime = SteadyClock::now();
     usd_t price = ctx.data.get<BtcPrice>().getPrice();
-    startTime = ctx.data.get<Time>().getTime();
     lowest = price;
     highest = price;
 }
@@ -26,7 +25,7 @@ void TimeTrader::handleNewPair(
     const BtcPrice &price)
 {
     // Initial values
-    if (!startTime || !lowest || !highest)
+    if (!startTime.time || !lowest || !highest)
     {
         reset();
         return;
@@ -45,8 +44,8 @@ void TimeTrader::handleNewPair(
         lowest = highest;
 
     // Window has not passed yet
-    utime_t time = ctx.data.get<Time>().getTime();
-    if (time < startTime + conf.sampleSize)
+    SteadyClock::TimePoint endWindow = startTime + std::chrono::seconds(conf.sampleSize / 1_Seconds);
+    if (SteadyClock::now() < endWindow)
         return;
 
     // Check if the spread was large enough
@@ -62,7 +61,7 @@ void TimeTrader::handleNewPair(
     OrderPair pair;
     pair.algo = conf.name;
     pair.state = OrderPair::State::Pending;
-    pair.created = time;
+    pair.created = ctx.data.get<Time>().getTime();
     usd_t padding = mid * conf.paddingSpread;
     pair.buyPrice = lowest + padding;
     pair.sellPrice = highest - padding;

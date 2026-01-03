@@ -1,6 +1,7 @@
 #include <gtb/SpreadTrader.h>
 
 #include <gtb/OrderPairMarketEngine.h>
+#include <gtb/IntegerUtils.h>
 #include <gtb/Time.h>
 #include <gtb/Log.h>
 
@@ -81,6 +82,13 @@ void SpreadTrader::handleNewPair(
         return;
     }
 
-    log::trade("Created new pair for spread '%s'.", conf.name.c_str());
+    log::trade("Spread '%s' pair buy=%s sell=%s mid=%s spread_pp=%u buffer_pp=%u open=%zu",
+        conf.name.c_str(),
+        IntegerUtils::toUsdString(pair.buyPrice).c_str(),
+        IntegerUtils::toUsdString(pair.sellPrice).c_str(),
+        IntegerUtils::toUsdString(IntegerUtils::avg(pair.buyPrice, pair.sellPrice)).c_str(),
+        conf.spread.value(),
+        conf.buffer.value(),
+        orderPairs.size());
     stateMachine.logChange(OrderPair::State::None, pair);
 }

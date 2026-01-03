@@ -49,11 +49,14 @@ namespace TraderConfFactory
         SpreadTrader::Config breakEven();
         SpreadTrader::Config small();
         SpreadTrader::Config medium();
+        SpreadTrader::Config large();
     }
 
     namespace Time
     {
         TimeTrader::Config small();
+        TimeTrader::Config medium();
+        TimeTrader::Config large();
     }
 }
 

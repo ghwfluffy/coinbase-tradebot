@@ -41,7 +41,7 @@ class TimeTrader : public OrderPairTrader
 
         Config conf;
 
-        utime_t startTime;
+        SteadyClock::TimePoint startTime;
         usd_t lowest;
         usd_t highest;
 };

@@ -154,10 +154,10 @@ VolumeTrader::Config TraderConfFactory::Volume::churn()
 {
     VolumeTrader::Config conf;
     conf.name = "Volume-Churn";
-    conf.betSize = 1000_Dollars;
+    conf.betSize = 10_Dollars;
     conf.minProfitDelta = 20_Dollars;
     conf.repriceBand = 100_Dollars;
-    conf.orderTtl = 2_Minutes;
+    conf.orderTtl = 1_Minutes;
     return conf;
 }
 
@@ -189,7 +189,7 @@ SpreadTrader::Config TraderConfFactory::Spread::breakEven()
     conf.bet = 500_Dollars;
     conf.numPairs = 4;
     conf.buffer = 25_Percent;
-    conf.marketParams.push_back(MarketConfFactory::preferNormalHours());
+    conf.marketParams.push_back(MarketConfFactory::preferBitcoinHours());
     return conf;
 }
 
@@ -201,7 +201,7 @@ SpreadTrader::Config TraderConfFactory::Spread::small()
     conf.bet = 500_Dollars;
     conf.numPairs = 10;
     conf.buffer = 10_Percent;
-    conf.marketParams.push_back(MarketConfFactory::preferNormalHours());
+    conf.marketParams.push_back(MarketConfFactory::preferBitcoinHours());
     return conf;
 }
 
@@ -213,7 +213,20 @@ SpreadTrader::Config TraderConfFactory::Spread::medium()
     conf.bet = 50_Dollars;
     conf.numPairs = 5;
     conf.buffer = 10_Percent;
-    conf.marketParams.push_back(MarketConfFactory::preferNormalHours());
+    conf.marketParams.push_back(MarketConfFactory::preferBitcoinHours());
+    return conf;
+}
+
+SpreadTrader::Config TraderConfFactory::Spread::large()
+{
+    SpreadTrader::Config conf;
+    conf.name = "Spread-Large";
+    conf.spread = 75_PercentagePoints;
+    conf.bet = 100_Dollars;
+    conf.numPairs = 2;
+    conf.buffer = 4_Percent;
+    conf.marketParams.push_back(MarketConfFactory::preferBitcoinHours());
+    conf.marketParams.push_back(MarketConfFactory::rampedStockHours());
     return conf;
 }
 
@@ -223,10 +236,36 @@ TimeTrader::Config TraderConfFactory::Time::small()
     conf.name = "Time-Small";
     conf.bet = 500_Dollars;
     conf.sampleSize = 30_Minutes;
-    conf.minSpread = 50_PercentagePoints;
+    conf.minSpread = 3_PercentagePoints;
     conf.paddingSpread = 1_PercentagePoints;
     conf.numPairs = 10;
-    conf.enabled = true;
-    conf.marketParams.push_back(MarketConfFactory::preferNormalHours());
+    conf.marketParams.push_back(MarketConfFactory::preferBitcoinHours());
+    return conf;
+}
+
+TimeTrader::Config TraderConfFactory::Time::medium()
+{
+    TimeTrader::Config conf;
+    conf.name = "Time-Medium";
+    conf.bet = 2000_Dollars;
+    conf.sampleSize = 2_Hours;
+    conf.minSpread = 5_PercentagePoints;
+    conf.paddingSpread = 2_PercentagePoints;
+    conf.numPairs = 2;
+    conf.marketParams.push_back(MarketConfFactory::onlyNormalHours());
+    return conf;
+}
+
+TimeTrader::Config TraderConfFactory::Time::large()
+{
+    TimeTrader::Config conf;
+    conf.name = "Time-Large";
+    conf.bet = 2000_Dollars;
+    conf.sampleSize = 6_Hours;
+    conf.minSpread = 10_PercentagePoints;
+    conf.paddingSpread = 2_PercentagePoints;
+    conf.numPairs = 2;
+    conf.marketParams.push_back(MarketConfFactory::preferBitcoinHours());
+    conf.marketParams.push_back(MarketConfFactory::rampedStockHours());
     return conf;
 }
