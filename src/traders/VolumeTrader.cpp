@@ -4,6 +4,7 @@
 #include <gtb/CoinbaseInit.h>
 #include <gtb/Time.h>
 #include <gtb/Log.h>
+#include <gtb/IntegerUtils.h>
 #include <gtb/Uuid.h>
 
 using namespace gtb;
@@ -20,6 +21,7 @@ BaseTraderConfig toBaseConf(
     baseConf.maxValue = 200'000_Dollars;
     baseConf.pendingPairExpiration = conf.orderTtl;
     baseConf.patienceOverride = 0_Seconds;
+    baseConf.marketParams = conf.marketParams;
     return baseConf;
 }
 
@@ -32,6 +34,13 @@ VolumeTrader::VolumeTrader(
         , conf(config)
         , stateMachine(ctx, toBaseConf(config))
 {
+    log::info("[ CONFIG ] VolumeTrader %s bet=%s minDelta=%s reprice=%s ttl=%llus markets=%zu",
+        conf.name.c_str(),
+        IntegerUtils::toUsdString(conf.betSize).c_str(),
+        IntegerUtils::toUsdString(conf.minProfitDelta).c_str(),
+        IntegerUtils::toUsdString(conf.repriceBand).c_str(),
+        static_cast<unsigned long long>(conf.orderTtl / 1_Seconds),
+        conf.marketParams.size());
     resetState();
     ctx.data.subscribe<BtcPrice>(*this);
 }

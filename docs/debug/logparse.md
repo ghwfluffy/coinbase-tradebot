@@ -13,6 +13,7 @@ Guidance for Codex to extract signal from large `data/log.txt`–style runs usin
 - Status timeline: `rg "STATUS" data/log.txt`
 - Trade-level noise: `rg "\\[ TRADE \\]" data/log.txt` (if enabled)
 - Per-trader PnL lines: `rg "PnL" data/log.txt`
+- Trader configs at startup (helps tie behavior to params/gating): `rg "\\[ CONFIG \\] VolumeTrader" data/log.txt`
 
 ## Profit and Volume
 - Total profit over time (from STATUS):

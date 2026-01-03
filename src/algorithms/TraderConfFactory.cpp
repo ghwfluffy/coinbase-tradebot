@@ -158,6 +158,20 @@ VolumeTrader::Config TraderConfFactory::Volume::churn()
     conf.minProfitDelta = 20_Dollars;
     conf.repriceBand = 100_Dollars;
     conf.orderTtl = 1_Minutes;
+    conf.marketParams.push_back(MarketConfFactory::volumeStockHours());
+    return conf;
+}
+
+// Stock-hour gated churner with slightly larger bets and slower cadence to reduce fee bleed.
+VolumeTrader::Config TraderConfFactory::Volume::stockChurn()
+{
+    VolumeTrader::Config conf;
+    conf.name = "Volume-StockChurn";
+    conf.betSize = 30_Dollars;
+    conf.minProfitDelta = 8_Dollars;
+    conf.repriceBand = 60_Dollars;
+    conf.orderTtl = 90_Seconds;
+    conf.marketParams.push_back(MarketConfFactory::volumeStockHours());
     return conf;
 }
 
@@ -170,6 +184,7 @@ VolumeTrader::Config TraderConfFactory::Volume::drip()
     conf.minProfitDelta = 8_Dollars;
     conf.repriceBand = 50_Dollars;
     conf.orderTtl = 120_Seconds;
+    conf.marketParams.push_back(MarketConfFactory::preferBitcoinHours());
     return conf;
 }
 
@@ -239,7 +254,7 @@ SpreadTrader::Config TraderConfFactory::Spread::allHoursProbe()
     conf.bet = 200_Dollars;
     conf.numPairs = 6;
     conf.buffer = 12_Percent;
-    conf.marketParams.push_back(MarketConfFactory::allHours());
+    conf.marketParams.push_back(MarketConfFactory::gentleOpenHours());
     return conf;
 }
 
@@ -253,6 +268,7 @@ TimeTrader::Config TraderConfFactory::Time::small()
     conf.paddingSpread = 1_PercentagePoints;
     conf.numPairs = 10;
     conf.marketParams.push_back(MarketConfFactory::preferBitcoinHours());
+    conf.marketParams.push_back(MarketConfFactory::gentleOpenHours());
     return conf;
 }
 
@@ -266,6 +282,7 @@ TimeTrader::Config TraderConfFactory::Time::medium()
     conf.paddingSpread = 2_PercentagePoints;
     conf.numPairs = 2;
     conf.marketParams.push_back(MarketConfFactory::onlyNormalHours());
+    conf.marketParams.push_back(MarketConfFactory::gentleOpenHours());
     return conf;
 }
 

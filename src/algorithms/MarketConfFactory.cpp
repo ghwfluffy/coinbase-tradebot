@@ -119,6 +119,117 @@ MarketTimeTraderConfig MarketConfFactory::rampedStockHours()
     };
 }
 
+// Trade all week but soften the edges around regular stock opens/closes to reduce open-vol whipsaws.
+MarketTimeTraderConfig MarketConfFactory::gentleOpenHours()
+{
+    return {
+        .market = MarketInfo::Market::StockMarket,
+
+        // Open ----->
+        .openMarket = {
+            .hot = true,
+            .pausePeriod = 30_Minutes,
+            .pauseAcceptLoss = 25_PercentagePoints,
+            .rampPeriod = 1_Hours,
+            .rampGrade = 50_Percent,
+        },
+        // Open -> Closed
+        .closingMarket = {
+            .hot = true,
+            .pausePeriod = 30_Minutes,
+            .pauseAcceptLoss = 50_Percent,
+            .rampPeriod = 1_Hours,
+            .rampGrade = 50_Percent,
+        },
+        // Closed ----->
+        .closedMarket = {
+            .hot = true, // allow off-hours probing
+        },
+        // Closed -> Open
+        .openingMarket = {
+            .hot = true,
+            .pausePeriod = 15_Minutes,
+            .pauseAcceptLoss = 25_PercentagePoints,
+            .rampPeriod = 30_Minutes,
+            .rampGrade = 25_Percent,
+        },
+        // Open -> Weekend
+        .weekendingMarket = {
+            .hot = true,
+            .pausePeriod = 45_Minutes,
+            .pauseAcceptLoss = 75_Percent,
+            .rampPeriod = 90_Minutes,
+            .rampGrade = 75_Percent,
+        },
+        // Weekend ---->
+        .weekendMarket = {
+            .hot = true,
+        },
+        // Weekend -> Open
+        .weekStartingMarket = {
+            .hot = true,
+            .pausePeriod = 30_Minutes,
+            .pauseAcceptLoss = 50_Percent,
+            .rampPeriod = 90_Minutes,
+            .rampGrade = 50_Percent,
+        },
+    };
+}
+
+// Trade during stock market hours with light ramp in/out and avoid weekends.
+// Built for volume-focused traders so they don't churn during thin sessions.
+MarketTimeTraderConfig MarketConfFactory::volumeStockHours()
+{
+    return {
+        .market = MarketInfo::Market::StockMarket,
+
+        // Open ----->
+        .openMarket = {
+            .hot = true,
+            .pausePeriod = 15_Minutes,
+            .pauseAcceptLoss = 20_PercentagePoints,
+            .rampPeriod = 45_Minutes,
+            .rampGrade = 50_Percent,
+        },
+        // Open -> Closed
+        .closingMarket = {
+            .hot = true,
+            .pausePeriod = 30_Minutes,
+            .pauseAcceptLoss = 75_Percent,
+            .rampPeriod = 1_Hours,
+            .rampGrade = 75_Percent,
+        },
+        // Closed ----->
+        .closedMarket = {
+            .hot = false,
+        },
+        // Closed -> Open
+        .openingMarket = {
+            .hot = false,
+        },
+        // Open -> Weekend
+        .weekendingMarket = {
+            .hot = true,
+            .pausePeriod = 45_Minutes,
+            .pauseAcceptLoss = 100_Percent,
+            .rampPeriod = 90_Minutes,
+            .rampGrade = 80_Percent,
+        },
+        // Weekend ---->
+        .weekendMarket = {
+            .hot = false,
+        },
+        // Weekend -> Open
+        .weekStartingMarket = {
+            .hot = true,
+            .pausePeriod = 30_Minutes,
+            .pauseAcceptLoss = 50_Percent,
+            .rampPeriod = 90_Minutes,
+            .rampGrade = 50_Percent,
+        },
+    };
+}
+
 // Trade at all hours (no gating/ramping); useful for coverage during off-hours/weekends.
 MarketTimeTraderConfig MarketConfFactory::allHours()
 {

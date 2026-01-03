@@ -36,6 +36,7 @@ namespace TraderConfFactory
     namespace Volume
     {
         VolumeTrader::Config churn();
+        VolumeTrader::Config stockChurn();
         VolumeTrader::Config drip();
     }
 

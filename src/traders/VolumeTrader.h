@@ -24,6 +24,7 @@ class VolumeTrader
             usd_t minProfitDelta = 2_Dollars;
             usd_t repriceBand = 2_Dollars;
             utime_t orderTtl = 1_Minutes;
+            std::vector<MarketTimeTraderConfig> marketParams;
         };
 
         VolumeTrader(
