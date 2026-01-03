@@ -1,6 +1,8 @@
 #include <gtb/DatabaseConnection.h>
 #include <gtb/Log.h>
 
+#include <unistd.h>
+
 using namespace gtb;
 
 DatabaseConnection::DatabaseConnection()
@@ -81,6 +83,17 @@ DatabaseResult DatabaseConnection::query(
 
     sqlite3_stmt *stmt = nullptr;
     int res = sqlite3_prepare_v2(conn, str.c_str(), -1, &stmt, nullptr);
+
+    // Retry on locked database
+    int retries = 0;
+    while (res == SQLITE_LOCKED && retries++ < 10)
+    {
+        sqlite3_finalize(stmt);
+        stmt = nullptr;
+        usleep(1);
+        res = sqlite3_prepare_v2(conn, str.c_str(), -1, &stmt, nullptr);
+    }
+
     if (res != SQLITE_OK)
     {
         log::error("Failed to execute query: %s", sqlite3_errmsg(conn));
@@ -104,6 +117,15 @@ bool DatabaseConnection::execute(
     }
 
     int res = sqlite3_exec(conn, str.c_str(), nullptr, nullptr, nullptr);
+
+    // Retry on locked database
+    int retries = 0;
+    while (res == SQLITE_LOCKED && retries++ < 10)
+    {
+        usleep(1);
+        res = sqlite3_exec(conn, str.c_str(), nullptr, nullptr, nullptr);
+    }
+
     if (res != SQLITE_OK)
     {
         log::error("Failed to execute query: %s", sqlite3_errmsg(conn));
