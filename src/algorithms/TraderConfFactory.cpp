@@ -180,7 +180,7 @@ VolumeTrader::Config TraderConfFactory::Volume::drip()
 {
     VolumeTrader::Config conf;
     conf.name = "Volume-Drip";
-    conf.betSize = 200_Dollars;
+    conf.betSize = 150_Dollars;
     conf.minProfitDelta = 8_Dollars;
     conf.repriceBand = 50_Dollars;
     conf.orderTtl = 120_Seconds;
@@ -193,12 +193,13 @@ VolumeTrader::Config TraderConfFactory::Volume::pulse()
 {
     VolumeTrader::Config conf;
     conf.name = "Volume-Pulse";
-    conf.betSize = 250_Dollars;
+    conf.betSize = 170_Dollars;
     conf.minProfitDelta = 6_Dollars;
     conf.repriceBand = 35_Dollars;
     conf.orderTtl = 45_Seconds;
     conf.marketParams.push_back(MarketConfFactory::volumeStockHours());
     conf.marketParams.push_back(MarketConfFactory::preferBitcoinHours());
+    conf.marketParams.push_back(MarketConfFactory::midweekDerisk());
     return conf;
 }
 
@@ -207,11 +208,13 @@ VolumeTrader::Config TraderConfFactory::Volume::allHoursFeeder()
 {
     VolumeTrader::Config conf;
     conf.name = "Volume-Feeder";
-    conf.betSize = 180_Dollars;
-    conf.minProfitDelta = 3_Dollars;
-    conf.repriceBand = 20_Dollars;
-    conf.orderTtl = 45_Seconds;
+    conf.betSize = 170_Dollars;
+    conf.minProfitDelta = 1_Dollars;
+    conf.repriceBand = 18_Dollars;
+    conf.orderTtl = 40_Seconds;
     conf.marketParams.push_back(MarketConfFactory::gentleOpenHours());
+    conf.marketParams.push_back(MarketConfFactory::shieldedStockOpen());
+    conf.marketParams.push_back(MarketConfFactory::midweekDerisk());
     return conf;
 }
 
@@ -220,11 +223,26 @@ VolumeTrader::Config TraderConfFactory::Volume::btcFeeder()
 {
     VolumeTrader::Config conf;
     conf.name = "Volume-BtcFeeder";
-    conf.betSize = 220_Dollars;
-    conf.minProfitDelta = 2_Dollars;
-    conf.repriceBand = 18_Dollars;
+    conf.betSize = 160_Dollars;
+    conf.minProfitDelta = 1_Dollars;
+    conf.repriceBand = 22_Dollars;
     conf.orderTtl = 30_Seconds;
     conf.marketParams.push_back(MarketConfFactory::preferBitcoinHours());
+    conf.marketParams.push_back(MarketConfFactory::midweekDerisk());
+    return conf;
+}
+
+// Higher-capacity bitcoin-hours feeder to push volume harder while accepting minimal bleed.
+VolumeTrader::Config TraderConfFactory::Volume::btcFeederHeavy()
+{
+    VolumeTrader::Config conf;
+    conf.name = "Volume-BtcFeederHeavy";
+    conf.betSize = 450_Dollars;
+    conf.minProfitDelta = 1_Dollars;
+    conf.repriceBand = 20_Dollars;
+    conf.orderTtl = 28_Seconds;
+    conf.marketParams.push_back(MarketConfFactory::preferBitcoinHours());
+    conf.marketParams.push_back(MarketConfFactory::midweekDerisk());
     return conf;
 }
 
@@ -241,11 +259,13 @@ SpreadTrader::Config TraderConfFactory::Spread::breakEven()
     SpreadTrader::Config conf;
     conf.name = "Spread-BreakEven";
     conf.spread = 30_PercentagePoints;
-    conf.bet = 500_Dollars;
-    conf.numPairs = 4;
+    conf.bet = 350_Dollars;
+    conf.numPairs = 2;
     conf.buffer = 25_Percent;
     conf.marketParams.push_back(MarketConfFactory::preferBitcoinHours());
     conf.marketParams.push_back(MarketConfFactory::shieldedStockOpen());
+    conf.marketParams.push_back(MarketConfFactory::weekendDerisk());
+    conf.marketParams.push_back(MarketConfFactory::midweekDerisk());
     return conf;
 }
 
@@ -259,6 +279,8 @@ SpreadTrader::Config TraderConfFactory::Spread::small()
     conf.buffer = 10_Percent;
     conf.marketParams.push_back(MarketConfFactory::preferBitcoinHours());
     conf.marketParams.push_back(MarketConfFactory::shieldedStockOpen());
+    conf.marketParams.push_back(MarketConfFactory::weekendDerisk());
+    conf.marketParams.push_back(MarketConfFactory::midweekDerisk());
     return conf;
 }
 
@@ -293,10 +315,12 @@ SpreadTrader::Config TraderConfFactory::Spread::allHoursProbe()
     SpreadTrader::Config conf;
     conf.name = "Spread-AllHoursProbe";
     conf.spread = 45_PercentagePoints;
-    conf.bet = 200_Dollars;
-    conf.numPairs = 6;
+    conf.bet = 125_Dollars;
+    conf.numPairs = 4;
     conf.buffer = 12_Percent;
     conf.marketParams.push_back(MarketConfFactory::gentleOpenHours());
+    conf.marketParams.push_back(MarketConfFactory::shieldedStockOpen());
+    conf.marketParams.push_back(MarketConfFactory::midweekDerisk());
     return conf;
 }
 
@@ -304,14 +328,16 @@ TimeTrader::Config TraderConfFactory::Time::small()
 {
     TimeTrader::Config conf;
     conf.name = "Time-Small";
-    conf.bet = 300_Dollars;
+    conf.bet = 120_Dollars;
     conf.sampleSize = 30_Minutes;
     conf.minSpread = 4_PercentagePoints;
     conf.paddingSpread = 1_PercentagePoints;
-    conf.numPairs = 6;
+    conf.numPairs = 2;
     conf.marketParams.push_back(MarketConfFactory::preferBitcoinHours());
     conf.marketParams.push_back(MarketConfFactory::gentleOpenHours());
     conf.marketParams.push_back(MarketConfFactory::shieldedStockOpen());
+    conf.marketParams.push_back(MarketConfFactory::weekendDerisk());
+    conf.marketParams.push_back(MarketConfFactory::midweekDerisk());
     return conf;
 }
 
@@ -319,14 +345,15 @@ TimeTrader::Config TraderConfFactory::Time::medium()
 {
     TimeTrader::Config conf;
     conf.name = "Time-Medium";
-    conf.bet = 2000_Dollars;
+    conf.bet = 650_Dollars;
     conf.sampleSize = 2_Hours;
-    conf.minSpread = 5_PercentagePoints;
+    conf.minSpread = 6_PercentagePoints;
     conf.paddingSpread = 2_PercentagePoints;
     conf.numPairs = 2;
     conf.marketParams.push_back(MarketConfFactory::onlyNormalHours());
     conf.marketParams.push_back(MarketConfFactory::gentleOpenHours());
     conf.marketParams.push_back(MarketConfFactory::shieldedStockOpen());
+    conf.marketParams.push_back(MarketConfFactory::midweekDerisk());
     return conf;
 }
 

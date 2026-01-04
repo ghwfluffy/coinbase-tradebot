@@ -46,6 +46,22 @@ Guidance for Codex to extract signal from large log files using standard CLI too
 - Day-of-week: parse `(Mon)` token.
   `rg "STATUS" ... | awk '{print $(3)}' | tr -d '()' | sort | uniq -c`
 - For “big loss” windows, filter deltas below threshold and group by hour/day to spot patterns.
+- Quick view of the single biggest swings (timestamp + delta):
+  ```
+  rg "STATUS" data/log-27.txt > /tmp/log.status
+  python - <<'PY'
+  import re, heapq
+  vals=[]; pat=re.compile(r'^\\[(\\d{4}-\\d{2}-\\d{2}) ([^\\]]+)\\].*Wallet: \\$([\\d.,]+)')
+  for line in open('/tmp/log.status'):
+      m=pat.search(line)
+      if m: vals.append((m.group(1), m.group(2), float(m.group(3).replace(',',''))))
+  swings=[]
+  for (d,t,w),(pd,pt,pw) in zip(vals[1:], vals[:-1]):
+      delta=w-pw; swings.append((abs(delta), delta, d, t, pw, w))
+  for _,delta,d,t,pw,w in sorted(swings, reverse=True)[:5]:
+      print(delta, d, t, pw, '->', w)
+  PY
+  ```
 
 ## Trade Counts, Win Rate, PnL Stats
 - If trade-level logs are enabled (`[ TRADE ]`), count buys/sells:

@@ -32,13 +32,10 @@ void addTraders(
     add.operator()<VolumeTrader>(TraderConfFactory::Volume::allHoursFeeder);
     add.operator()<VolumeTrader>(TraderConfFactory::Volume::btcFeeder);
     add.operator()<SpreadTrader>(TraderConfFactory::Spread::breakEven);
-    add.operator()<SpreadTrader>(TraderConfFactory::Spread::small);
     add.operator()<SpreadTrader>(TraderConfFactory::Spread::medium);
-    add.operator()<SpreadTrader>(TraderConfFactory::Spread::large);
     add.operator()<SpreadTrader>(TraderConfFactory::Spread::allHoursProbe);
     add.operator()<TimeTrader>(TraderConfFactory::Time::small);
     add.operator()<TimeTrader>(TraderConfFactory::Time::medium);
-    add.operator()<TimeTrader>(TraderConfFactory::Time::large);
 }
 
 void initProd(

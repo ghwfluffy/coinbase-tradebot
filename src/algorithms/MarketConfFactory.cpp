@@ -40,6 +40,101 @@ MarketTimeTraderConfig MarketConfFactory::onlyNormalHours()
     };
 }
 
+// Bias toward exiting ahead of the weekend; allow discounts near weekending while staying active otherwise.
+MarketTimeTraderConfig MarketConfFactory::weekendDerisk()
+{
+    return {
+        .market = MarketInfo::Market::StockMarket,
+
+        // Open ----->
+        .openMarket = {
+            .hot = true,
+        },
+        // Open -> Closed
+        .closingMarket = {
+            .hot = true,
+        },
+        // Closed ----->
+        .closedMarket = {
+            .hot = true,
+        },
+        // Closed -> Open
+        .openingMarket = {
+            .hot = true,
+        },
+        // Open -> Weekend
+        .weekendingMarket = {
+            .hot = true,
+            // stop new entries 45m before weekend, accept up to breakeven exits
+            .pausePeriod = 45_Minutes,
+            .pauseAcceptLoss = 120_Percent,
+            .rampPeriod = 60_Minutes,
+            .rampGrade = 120_Percent,
+        },
+        // Weekend ----->
+        .weekendMarket = {
+            .hot = false,
+        },
+        // Weekend -> Open
+        .weekStartingMarket = {
+            .hot = true,
+            .pausePeriod = 30_Minutes,
+            .pauseAcceptLoss = 60_Percent,
+            .rampPeriod = 60_Minutes,
+            .rampGrade = 80_Percent,
+        },
+    };
+}
+
+// Reduce risk around midweek opens (Tue/Wed) where repeated losses are seen.
+MarketTimeTraderConfig MarketConfFactory::midweekDerisk()
+{
+    return {
+        .market = MarketInfo::Market::StockMarket,
+
+        // Open ----->
+        .openMarket = {
+            .hot = true,
+            .pausePeriod = 20_Minutes,
+            .pauseAcceptLoss = 40_PercentagePoints,
+            .rampPeriod = 60_Minutes,
+            .rampGrade = 80_Percent,
+        },
+        // Open -> Closed
+        .closingMarket = {
+            .hot = true,
+            .pausePeriod = 15_Minutes,
+            .pauseAcceptLoss = 60_Percent,
+            .rampPeriod = 30_Minutes,
+            .rampGrade = 60_Percent,
+        },
+        // Closed ----->
+        .closedMarket = {
+            .hot = true,
+        },
+        // Closed -> Open
+        .openingMarket = {
+            .hot = true,
+            .pausePeriod = 15_Minutes,
+            .pauseAcceptLoss = 50_Percent,
+            .rampPeriod = 45_Minutes,
+            .rampGrade = 60_Percent,
+        },
+        // Open -> Weekend
+        .weekendingMarket = {
+            .hot = true,
+        },
+        // Weekend ----->
+        .weekendMarket = {
+            .hot = true,
+        },
+        // Weekend -> Open
+        .weekStartingMarket = {
+            .hot = true,
+        },
+    };
+}
+
 // Only create new order pairs during normal stock market hours
 // Discounts active pairs in lead up to stock market closure so we hold less BTC in off hours
 // Increases spread requirements in early stock market hours so we don't risk early hour negative volatility
