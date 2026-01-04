@@ -17,7 +17,6 @@ namespace MarketConfFactory
     MarketTimeTraderConfig preferBitcoinHours();
     MarketTimeTraderConfig gentleOpenHours();
     MarketTimeTraderConfig volumeStockHours();
-    MarketTimeTraderConfig allHours();
 }
 
 }

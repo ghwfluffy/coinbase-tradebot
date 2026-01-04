@@ -90,7 +90,7 @@ DatabaseResult DatabaseConnection::query(
     {
         sqlite3_finalize(stmt);
         stmt = nullptr;
-        usleep(1);
+        usleep(1'000);
         res = sqlite3_prepare_v2(conn, str.c_str(), -1, &stmt, nullptr);
     }
 
@@ -122,7 +122,7 @@ bool DatabaseConnection::execute(
     int retries = 0;
     while (res == SQLITE_LOCKED && retries++ < 10)
     {
-        usleep(1);
+        usleep(1'000);
         res = sqlite3_exec(conn, str.c_str(), nullptr, nullptr, nullptr);
     }
 

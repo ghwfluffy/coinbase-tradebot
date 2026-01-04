@@ -211,7 +211,6 @@ VolumeTrader::Config TraderConfFactory::Volume::allHoursFeeder()
     conf.minProfitDelta = 3_Dollars;
     conf.repriceBand = 20_Dollars;
     conf.orderTtl = 45_Seconds;
-    conf.marketParams.push_back(MarketConfFactory::allHours());
     conf.marketParams.push_back(MarketConfFactory::gentleOpenHours());
     return conf;
 }

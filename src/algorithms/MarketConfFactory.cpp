@@ -294,29 +294,6 @@ MarketTimeTraderConfig MarketConfFactory::volumeStockHours()
     };
 }
 
-// Trade at all hours (no gating/ramping); useful for coverage during off-hours/weekends.
-MarketTimeTraderConfig MarketConfFactory::allHours()
-{
-    MarketPeriodConfig hotAllHours = {
-        .hot = true,
-        .pausePeriod = 0_Seconds,
-        .pauseAcceptLoss = 0_Percent,
-        .rampPeriod = 0_Seconds,
-        .rampGrade = 0_Percent,
-    };
-
-    return {
-        .market = MarketInfo::Market::None,
-        .openMarket = hotAllHours,
-        .closingMarket = hotAllHours,
-        .closedMarket = hotAllHours,
-        .openingMarket = hotAllHours,
-        .weekendingMarket = hotAllHours,
-        .weekendMarket = hotAllHours,
-        .weekStartingMarket = hotAllHours,
-    };
-}
-
 // Trade only during bitcoin futures hours
 // And heavily discount/caution as we enter/leave those hours
 MarketTimeTraderConfig MarketConfFactory::preferBitcoinHours()
