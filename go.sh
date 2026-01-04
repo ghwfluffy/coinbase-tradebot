@@ -2,13 +2,18 @@
 
 set -eux -o pipefail
 
+LOGFILE="./data/log.txt"
+if [ $# -gt 0 ]; then
+    LOGFILE="${1}"
+fi
+
 make
-rm -f ./data/log.txt
+rm -f "${LOGFILE}"
 
 ARGS=(
     -v 2
     -m
-    --log-file data/log.txt
+    --log-file "${LOGFILE}"
     --debug-logs
     --trade-logs
 )
