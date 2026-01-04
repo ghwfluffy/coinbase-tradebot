@@ -142,6 +142,12 @@ Guidance for Codex to extract signal from large log files using standard CLI too
   `rg "STATUS" data/log-7.txt | tail -n50 | rg "PnL" | awk '{print $4, $(NF-3), $(NF-1)}'`
   (adjust tail size to catch the final block; useful to compare across runs quickly).
 - Swap `/tmp/log6.status` for `/tmp/log8.status` to reuse the same scripts on the latest run.
+- For compressed runs in `data/runs/*.txt.zstd`, stream to a temp file before slicing:
+  ```
+  zstd -d -c data/runs/8.txt.zstd > /tmp/log9.txt
+  rg "STATUS" /tmp/log9.txt > /tmp/log9.status
+  # then reuse the drawdown/snapshot commands above
+  ```
 
 ## Validating Against `data/log.txt`
 - Try: `rg "STATUS" data/log.txt | tail -n1` to get final profit/volume.

@@ -40,6 +40,7 @@ namespace TraderConfFactory
         VolumeTrader::Config drip();
         VolumeTrader::Config pulse();
         VolumeTrader::Config allHoursFeeder();
+        VolumeTrader::Config btcFeeder();
     }
 
     namespace Hodl

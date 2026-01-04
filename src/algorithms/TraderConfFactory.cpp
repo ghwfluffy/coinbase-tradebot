@@ -215,6 +215,19 @@ VolumeTrader::Config TraderConfFactory::Volume::allHoursFeeder()
     return conf;
 }
 
+// Bitcoin-hours feeder to pump volume outside stock gates with minimal delta.
+VolumeTrader::Config TraderConfFactory::Volume::btcFeeder()
+{
+    VolumeTrader::Config conf;
+    conf.name = "Volume-BtcFeeder";
+    conf.betSize = 220_Dollars;
+    conf.minProfitDelta = 2_Dollars;
+    conf.repriceBand = 18_Dollars;
+    conf.orderTtl = 30_Seconds;
+    conf.marketParams.push_back(MarketConfFactory::preferBitcoinHours());
+    return conf;
+}
+
 // Dollar-cost-average buyer: once-daily small purchase at/below prior-day low, never sells.
 HodlTrader::Config TraderConfFactory::Hodl::hodl()
 {
