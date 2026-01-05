@@ -31,11 +31,6 @@ void addTraders(
     add.operator()<VolumeTrader>(TraderConfFactory::Volume::drip);
     add.operator()<VolumeTrader>(TraderConfFactory::Volume::allHoursFeeder);
     add.operator()<VolumeTrader>(TraderConfFactory::Volume::btcFeeder);
-    add.operator()<SpreadTrader>(TraderConfFactory::Spread::breakEven);
-    add.operator()<SpreadTrader>(TraderConfFactory::Spread::medium);
-    add.operator()<SpreadTrader>(TraderConfFactory::Spread::allHoursProbe);
-    add.operator()<TimeTrader>(TraderConfFactory::Time::small);
-    add.operator()<TimeTrader>(TraderConfFactory::Time::medium);
 }
 
 void initProd(
@@ -74,7 +69,7 @@ MockSetup::Config mockConf()
 {
     return {
         .startDate = "2025-02-01",
-        .endDate = "2025-11-25",
+        .endDate = "2025-04-25",
         .initHighVolume = false,
         .startWallet = 50'000_Dollars,
     };
