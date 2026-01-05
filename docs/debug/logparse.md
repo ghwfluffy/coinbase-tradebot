@@ -14,6 +14,17 @@ Guidance for Codex to extract signal from large log files using standard CLI too
 - Trade-level noise: `rg "\\[ TRADE \\]" data/log.txt` (if enabled)
 - Per-trader PnL lines: `rg "PnL" data/log.txt`
 - Trader configs at startup (helps tie behavior to params/gating): `rg "\\[ CONFIG \\] VolumeTrader" data/log.txt`
+- For compressed runs, stream configs and status without writing whole file: `zstd -dc data/runs/codex01/53.txt.zstd | rg "\\[ CONFIG \\] VolumeTrader"` (swap filename as needed).
+- Quick sanity on how many VolumeTrader instances actually started (helps when we expect duplicates): `rg "\\[ CONFIG \\] VolumeTrader" /tmp/log.txt | sort | uniq -c` after streaming the log.
+- If a trader is missing from runtime (e.g., heavy feeders not present), diff the config names against the expected Version2 set to spot skipped instances early.
+- Use the config lines to verify new params actually deployed (minDelta/TTL/bet); if logs still show old values after a change, suspect the build is stale or the algorithm selection is different.
+- If a referenced log file is missing, note it explicitly in the iteration report and proceed with the latest available run; don’t invent metrics.
+- When a log is missing, double-check the build (`make`) completed successfully so the next run will emit logs before moving on.
+- For uncompressed runs (e.g., data/log-60.txt), parse directly without zstd: `rg "STATUS" data/log-60.txt > /tmp/log.status`; the rest of the workflow (sum final block volumes, swing detection) is the same.
+- When STATUS volume is stuck at $0/$49.70, rely on the final block per-trader volume sum to gauge total turnover; record that sum explicitly each iteration.
+- If early STATUS lines show non-zero `Volume:` but later reset to $0, capture the first non-zero reading for context and still use the final per-trader volumes to represent the run; treat the final `Volume: $0` as a reporting bug.
+- When parsing PnL lines in Python, remember `-$123.45` strings: strip `-$` then negate, instead of assuming plain digits.
+- When comparing volumes across iterations, keep a quick tally: BtcFeeder/BtcFeederHeavy/Drip/Feeder/Pulse/StockChurn sums tend to sit ~3.5–3.6M; note any meaningful jumps to spot impact of cadence/delta tweaks.
 
 ## Profit and Volume
 - Total profit over time (from STATUS):
@@ -39,6 +50,40 @@ Guidance for Codex to extract signal from large log files using standard CLI too
               print(line.strip(), "delta", delta)
       prev = cur
   ```
+- Final per-trader PnL/volume snapshot: grab the last STATUS block and strip to trader lines:
+  ```
+  rg "STATUS" data/log-2.txt | tail -n40 | rg "PnL\\[" 
+  # or:
+  python - <<'PY'
+  import re
+  lines=list(open('/tmp/log.status'))  # pre-slice STATUS lines
+  for line in reversed(lines):
+      if 'PnL[' in line:
+          print(line.strip())
+      else:
+          if '] [ STATUS ] BTC:' in line:
+              break  # stop at the preceding header
+  PY
+  ```
+- Sum per-trader volumes to compare against the $5M target even when STATUS volume is frozen:
+  ```
+  rg "PnL\\[" /tmp/log.status | awk -F'vol=\\$' '{print $2}' | awk '{print $1}' \
+    | sed -e 's/K/*1000/' -e 's/M/*1000000/' | bc | awk '{s+=$1} END{print s}'
+  # expects /tmp/log.status to hold STATUS lines; handles K/M suffixes.
+  ```
+- For compressed runs in data/runs/*.txt.zstd, stream then slice:
+  ```
+  zstd -d -c data/runs/codex01/27.txt.zstd > /tmp/log.txt
+  rg "STATUS" /tmp/log.txt > /tmp/log.status
+  ```
+- Sum the final STATUS block’s per-trader volumes quickly:
+  ```
+  rg "2025-11-23" /tmp/log.status | rg "PnL\\[" | awk -F'vol=\\$' '{print $2}' | awk '{print $1}' \
+    | sed -e 's/K/*1000/' | bc | awk '{s+=$1} END{print s}'
+  ```
+- If no big swings are found at a 700 threshold, lower it to 500 to surface mid-size moves:
+  adjust the `if abs(delta)>700` line in the delta script to `>500` as needed.
+- VolumeTrader TTL churn (when debug logging is enabled): `rg "VolumeTrader .*canceled buy|repricing sell" data/log.txt` to count drift-triggered retries.
 
 ## Time-of-Day/Week Impact
 - Extract hour-of-day buckets for large moves (profit deltas as above).
@@ -46,6 +91,33 @@ Guidance for Codex to extract signal from large log files using standard CLI too
 - Day-of-week: parse `(Mon)` token.
   `rg "STATUS" ... | awk '{print $(3)}' | tr -d '()' | sort | uniq -c`
 - For “big loss” windows, filter deltas below threshold and group by hour/day to spot patterns.
+- Quick hour/day bucket with adjustable delta threshold:
+  ```
+  rg "STATUS" data/log-1.txt > /tmp/log.status
+  python - <<'PY'
+  import re, collections
+  vals=[]; pat=re.compile(r'^\\[(\\d{4}-\\d{2}-\\d{2}) ([^\\]]+)\\].*Wallet: \\$([\\d.,]+)')
+  for line in open('/tmp/log.status'):
+      m=pat.search(line)
+      if m: vals.append((m.group(1), m.group(2), float(m.group(3).replace(',',''))))
+  buckets=collections.Counter(); threshold=25  # tweak for sensitivity
+  prev=None
+  for d,t,w in vals:
+      if prev is not None:
+          delta=w-prev
+          if abs(delta)>=threshold:
+              hour=t.split(':')[0]; dow=t.split()[-1].strip('()')
+              buckets[(hour,dow)]+=1
+      prev=w
+  print(buckets)
+  PY
+  ```
+- Quick final-block volume check when STATUS volume is $0: `rg "PnL\\[" /tmp/log.status | tail -n6` to eyeball per-trader volumes before summing.
+  - Sum with `... | awk -F'vol=\\$' '{print $2}' | awk '{print $1}' | sed -e 's/K/*1000/' -e 's/M/*1000000/' | bc` to confirm the ~$5M gap quickly.
+- When testing cadence tweaks (TTL/band), compare per-trader volumes against the prior run’s final block to see if fill rate actually moved before changing sizing.
+- If recurring loss buckets (e.g., Tue 08:30, Thu 15:33) stay the same and volumes barely move, prioritize cadence/delta tweaks over new market times.
+- When BTC feeders are adjusted, re-sum per-trader volumes to check if the lift came mainly from bitcoin hours versus stock-hour feeders.
+- If a delta cut reduces volume, consider tightening the corresponding reprice band before raising bet size.
 - Quick view of the single biggest swings (timestamp + delta):
   ```
   rg "STATUS" data/log-27.txt > /tmp/log.status
@@ -97,6 +169,17 @@ Guidance for Codex to extract signal from large log files using standard CLI too
   print("max_drawdown", dd)
   ```
 - Volatility proxy: standard deviation of profit deltas between successive STATUS lines.
+- Largest single-wallet swing: reuse the STATUS slice and take max/min deltas between consecutive wallet values to spot the worst hit and best pop (e.g., Tue 15:33 losses). This catches resets even when STATUS volume is stuck at $0.
+- Per-trader volume snapshot when STATUS shows `vol=$xxxK`:
+  ```python
+  import re, collections
+  vols = collections.defaultdict(float)
+  for line in open('data/log-143.txt'):
+      m = re.search(r'PnL\\[(.*?)\\]: -\\$(\\d+\\.\\d+) vol=\\$(\\d+\\.\\d+)K', line)
+      if m:
+          vols[m.group(1)] += float(m.group(3)) * 1000
+  print(vols, 'total', sum(vols.values()))
+  ```
 
 ## Errors & Suspicious Behavior
 - Scan once and report unique issues:
@@ -154,6 +237,24 @@ Guidance for Codex to extract signal from large log files using standard CLI too
   print("large_move_buckets", buckets)
   PY
   ```
+- For a fast view of open/close hits, bucket deltas ≥300 by hour/day:
+  ```
+  python - <<'PY'
+  import re, collections
+  vals=[]; pat=re.compile(r'^\\[(\\d{4}-\\d{2}-\\d{2}) ([^\\]]+)\\].*Wallet: \\$([\\d.,]+)')
+  for line in open('/tmp/log.status'):
+      m=pat.search(line)
+      if m: vals.append((m.group(1), m.group(2), float(m.group(3).replace(',',''))))
+  buckets=collections.Counter()
+  for (_,t,w),(pd,pt,pw) in zip(vals[1:], vals[:-1]):
+      delta=w-pw
+      if abs(delta)>=300:
+          hour=t.split(':')[0]; dow=t.split()[-1].strip('()')
+          buckets[(hour,dow)] += 1
+  print(buckets)
+  PY
+  ```
+- If the same buckets recur (e.g., Tue 08:30 and Thu 15:33), note no new market times are needed.
 - Last-status per-trader snapshot (PnL/volume) when STATUS repeats for each trader:
   `rg "STATUS" data/log-7.txt | tail -n50 | rg "PnL" | awk '{print $4, $(NF-3), $(NF-1)}'`
   (adjust tail size to catch the final block; useful to compare across runs quickly).

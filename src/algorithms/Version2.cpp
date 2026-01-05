@@ -27,10 +27,15 @@ void addTraders(
 
     // Add traders
     add.operator()<VolumeTrader>(TraderConfFactory::Volume::stockChurn);
+    add.operator()<VolumeTrader>(TraderConfFactory::Volume::stockChurn);
     add.operator()<VolumeTrader>(TraderConfFactory::Volume::pulse);
     add.operator()<VolumeTrader>(TraderConfFactory::Volume::drip);
     add.operator()<VolumeTrader>(TraderConfFactory::Volume::allHoursFeeder);
+    add.operator()<VolumeTrader>(TraderConfFactory::Volume::allHoursFeeder);
     add.operator()<VolumeTrader>(TraderConfFactory::Volume::btcFeeder);
+    add.operator()<VolumeTrader>(TraderConfFactory::Volume::btcFeederHeavy);
+    add.operator()<VolumeTrader>(TraderConfFactory::Volume::btcFeeder);
+    add.operator()<VolumeTrader>(TraderConfFactory::Volume::btcFeederHeavy);
 }
 
 void initProd(
@@ -69,7 +74,7 @@ MockSetup::Config mockConf()
 {
     return {
         .startDate = "2025-02-01",
-        .endDate = "2025-04-25",
+        .endDate = "2025-11-25",
         .initHighVolume = false,
         .startWallet = 50'000_Dollars,
     };

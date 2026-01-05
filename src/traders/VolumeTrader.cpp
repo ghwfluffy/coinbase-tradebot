@@ -108,7 +108,17 @@ void VolumeTrader::manageBuyCancel(
 
     // Cancel buy and reset state
     if (canCancel(pair.buyOrder) && ctx.coinbase().cancelOrder(pair.buyOrder))
+    {
+        if (log::isDebugLoggingEnabled())
+        {
+            log::debug("VolumeTrader %s canceled buy after ttl=%llus drift=%s (band=%s).",
+                conf.name.c_str(),
+                static_cast<unsigned long long>(conf.orderTtl / 1_Seconds),
+                IntegerUtils::toUsdString(price.getPrice() - pair.buyPrice).c_str(),
+                IntegerUtils::toUsdString(conf.repriceBand).c_str());
+        }
         resetState();
+    }
 }
 
 void VolumeTrader::manageSellReprice(
@@ -138,6 +148,14 @@ void VolumeTrader::manageSellReprice(
     // Move back to holding so the state machine posts a fresh sell
     if (canCancel(pair.sellOrder) && ctx.coinbase().cancelOrder(pair.sellOrder))
     {
+        if (log::isDebugLoggingEnabled())
+        {
+            log::debug("VolumeTrader %s repricing sell after ttl=%llus drift=%s (band=%s).",
+                conf.name.c_str(),
+                static_cast<unsigned long long>(conf.orderTtl / 1_Seconds),
+                IntegerUtils::toUsdString(sellOrder.price - price.getPrice()).c_str(),
+                IntegerUtils::toUsdString(conf.repriceBand).c_str());
+        }
         pair.state = OrderPair::State::Holding;
         pair.sellOrder.clear();
         orderCreated = SteadyClock::TimePoint();

@@ -167,10 +167,10 @@ VolumeTrader::Config TraderConfFactory::Volume::stockChurn()
 {
     VolumeTrader::Config conf;
     conf.name = "Volume-StockChurn";
-    conf.betSize = 30_Dollars;
-    conf.minProfitDelta = 8_Dollars;
-    conf.repriceBand = 60_Dollars;
-    conf.orderTtl = 90_Seconds;
+    conf.betSize = 200_Dollars;
+    conf.minProfitDelta = 5_Cents;
+    conf.repriceBand = 3_Dollars;
+    conf.orderTtl = 4_Seconds;
     conf.marketParams.push_back(MarketConfFactory::volumeStockHours());
     return conf;
 }
@@ -180,10 +180,10 @@ VolumeTrader::Config TraderConfFactory::Volume::drip()
 {
     VolumeTrader::Config conf;
     conf.name = "Volume-Drip";
-    conf.betSize = 150_Dollars;
-    conf.minProfitDelta = 8_Dollars;
-    conf.repriceBand = 50_Dollars;
-    conf.orderTtl = 120_Seconds;
+    conf.betSize = 400_Dollars;
+    conf.minProfitDelta = 8_Cents;
+    conf.repriceBand = 5_Dollars;
+    conf.orderTtl = 8_Seconds;
     conf.marketParams.push_back(MarketConfFactory::preferBitcoinHours());
     return conf;
 }
@@ -193,13 +193,12 @@ VolumeTrader::Config TraderConfFactory::Volume::pulse()
 {
     VolumeTrader::Config conf;
     conf.name = "Volume-Pulse";
-    conf.betSize = 170_Dollars;
-    conf.minProfitDelta = 6_Dollars;
-    conf.repriceBand = 35_Dollars;
-    conf.orderTtl = 45_Seconds;
+    conf.betSize = 350_Dollars;
+    conf.minProfitDelta = 12_Cents;
+    conf.repriceBand = 15_Cents;
+    conf.orderTtl = 3_Seconds;
     conf.marketParams.push_back(MarketConfFactory::volumeStockHours());
     conf.marketParams.push_back(MarketConfFactory::preferBitcoinHours());
-    conf.marketParams.push_back(MarketConfFactory::midweekDerisk());
     return conf;
 }
 
@@ -208,10 +207,10 @@ VolumeTrader::Config TraderConfFactory::Volume::allHoursFeeder()
 {
     VolumeTrader::Config conf;
     conf.name = "Volume-Feeder";
-    conf.betSize = 170_Dollars;
-    conf.minProfitDelta = 1_Dollars;
-    conf.repriceBand = 18_Dollars;
-    conf.orderTtl = 40_Seconds;
+    conf.betSize = 450_Dollars;
+    conf.minProfitDelta = 5_Cents;
+    conf.repriceBand = 80_Cents;
+    conf.orderTtl = 4_Seconds;
     conf.marketParams.push_back(MarketConfFactory::gentleOpenHours());
     conf.marketParams.push_back(MarketConfFactory::shieldedStockOpen());
     conf.marketParams.push_back(MarketConfFactory::midweekDerisk());
@@ -223,12 +222,11 @@ VolumeTrader::Config TraderConfFactory::Volume::btcFeeder()
 {
     VolumeTrader::Config conf;
     conf.name = "Volume-BtcFeeder";
-    conf.betSize = 160_Dollars;
-    conf.minProfitDelta = 1_Dollars;
-    conf.repriceBand = 22_Dollars;
-    conf.orderTtl = 30_Seconds;
+    conf.betSize = 400_Dollars;
+    conf.minProfitDelta = 5_Cents;
+    conf.repriceBand = 1_Dollars;
+    conf.orderTtl = 3_Seconds;
     conf.marketParams.push_back(MarketConfFactory::preferBitcoinHours());
-    conf.marketParams.push_back(MarketConfFactory::midweekDerisk());
     return conf;
 }
 
@@ -238,11 +236,10 @@ VolumeTrader::Config TraderConfFactory::Volume::btcFeederHeavy()
     VolumeTrader::Config conf;
     conf.name = "Volume-BtcFeederHeavy";
     conf.betSize = 450_Dollars;
-    conf.minProfitDelta = 1_Dollars;
-    conf.repriceBand = 20_Dollars;
-    conf.orderTtl = 28_Seconds;
+    conf.minProfitDelta = 50_Cents;
+    conf.repriceBand = 75_Cents;
+    conf.orderTtl = 5_Seconds;
     conf.marketParams.push_back(MarketConfFactory::preferBitcoinHours());
-    conf.marketParams.push_back(MarketConfFactory::midweekDerisk());
     return conf;
 }
 
