@@ -31,11 +31,11 @@ MarketTimeTraderConfig MarketConfFactory::onlyNormalHours()
         },
         // Weekend ---->
         .weekendMarket = {
-            .hot = true,
+            .hot = false,
         },
         // Weekend -> Open
         .weekStartingMarket = {
-            .hot = true,
+            .hot = false,
         },
     };
 }

@@ -54,6 +54,7 @@ class VolumeTrader
 
         BotContext &ctx;
         Config conf;
+        BaseTraderConfig baseConf;
         OrderPair pair;
         OrderPairStateMachine stateMachine;
         SteadyClock::TimePoint orderCreated;

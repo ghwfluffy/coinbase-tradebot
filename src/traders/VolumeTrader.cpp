@@ -1,11 +1,16 @@
 #include <gtb/VolumeTrader.h>
-#include <gtb/BtcPrice.h>
-#include <gtb/CoinbaseOrderBook.h>
+
 #include <gtb/CoinbaseInit.h>
-#include <gtb/Time.h>
+#include <gtb/CoinbaseOrderBook.h>
+
 #include <gtb/Log.h>
-#include <gtb/IntegerUtils.h>
 #include <gtb/Uuid.h>
+
+#include <gtb/Time.h>
+#include <gtb/BtcPrice.h>
+
+#include <gtb/IntegerUtils.h>
+#include <gtb/OrderPairMarketEngine.h>
 
 using namespace gtb;
 
@@ -32,7 +37,8 @@ VolumeTrader::VolumeTrader(
     Config config)
         : ctx(ctx)
         , conf(config)
-        , stateMachine(ctx, toBaseConf(config))
+        , baseConf(toBaseConf(config))
+        , stateMachine(ctx, baseConf)
 {
     log::info("[ CONFIG ] VolumeTrader %s bet=%s minDelta=%s reprice=%s ttl=%llus markets=%zu",
         conf.name.c_str(),
@@ -54,6 +60,8 @@ void VolumeTrader::process(
         return;
 
     ensurePair(price.getPrice());
+    if (!pair)
+        return;
 
     // Progress pair via state machine
     OrderPair::State beforeState = pair.state;
@@ -69,22 +77,24 @@ void VolumeTrader::process(
 void VolumeTrader::ensurePair(
     usd_t price)
 {
-    if (pair.state == OrderPair::State::None ||
+    if (!pair ||
+        pair.state == OrderPair::State::None ||
         pair.state == OrderPair::State::Pending ||
         pair.state == OrderPair::State::Complete ||
         pair.state == OrderPair::State::Canceled ||
         pair.state == OrderPair::State::Error)
     {
-        pair = OrderPair();
-        pair.uuid = Uuid::generate();
-        pair.algo = conf.name;
-        pair.bet = conf.betSize;
-        pair.buyPrice = price;
-        pair.sellPrice = price + conf.minProfitDelta;
-        pair.state = OrderPair::State::Pending;
-        pair.created = ctx.data.get<Time>().getTime();
-        pair.nextTry = SteadyClock::now();
-        orderCreated = SteadyClock::TimePoint();
+        pair = OrderPairMarketEngine::newSpread(baseConf, price, ctx.data.get<Time>().getTime(), 1_PercentagePoints);
+        if (!pair)
+            pair = OrderPair();
+        else
+        {
+            pair.buyPrice = price;
+            pair.sellPrice = price + conf.minProfitDelta;
+            pair.created = ctx.data.get<Time>().getTime();
+            pair.nextTry = SteadyClock::now();
+            orderCreated = SteadyClock::TimePoint();
+        }
     }
 }
 
@@ -178,6 +188,7 @@ void VolumeTrader::manageHoldingDecay(
     }
 
     pair.sellPrice = price.getPrice() + conf.minProfitDelta;
+    pair.origSellPrice = price.getPrice() + conf.minProfitDelta;
     orderCreated = SteadyClock::now();
 }
 
