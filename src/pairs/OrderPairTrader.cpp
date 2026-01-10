@@ -1,5 +1,6 @@
 #include <gtb/OrderPairTrader.h>
 #include <gtb/CoinbaseInit.h>
+#include <gtb/MockMode.h>
 #include <gtb/Log.h>
 
 using namespace gtb;
@@ -9,6 +10,7 @@ OrderPairTrader::OrderPairTrader(
     const BaseTraderConfig &conf)
         : ctx(ctx)
         , conf(conf)
+        , orderPairs(!ctx.data.get<MockMode>())
         , stateMachine(ctx, conf)
 {
     loadDatabase();

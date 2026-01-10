@@ -5,14 +5,23 @@
 
 using namespace gtb;
 
+// save=Load/Save order pair state to database
+TrackedOrderPairs::TrackedOrderPairs(
+    bool save)
+        : save(save)
+{}
+
 void TrackedOrderPairs::init(
     const std::string &algorithm)
 {
     this->algorithm = algorithm;
-    OrderPairDb::initDb(db);
-    std::vector<OrderPair> pairs = OrderPairDb::select(db, algorithm);
-    for (OrderPair &pair : pairs)
-        orderPairs[pair.uuid] = pair;
+    if (save)
+    {
+        OrderPairDb::initDb(db);
+        std::vector<OrderPair> pairs = OrderPairDb::select(db, algorithm);
+        for (OrderPair &pair : pairs)
+            orderPairs[pair.uuid] = pair;
+    }
 }
 
 size_t TrackedOrderPairs::size() const
@@ -26,8 +35,9 @@ bool TrackedOrderPairs::insert(
     if (pair.uuid.empty())
         pair.uuid = Uuid::generate();
 
-    if (!OrderPairDb::insert(db, pair))
+    if (save && !OrderPairDb::insert(db, pair))
         return false;
+
     orderPairs[pair.uuid] = std::move(pair);
     return true;
 }
@@ -35,8 +45,9 @@ bool TrackedOrderPairs::insert(
 bool TrackedOrderPairs::update(
     OrderPair pair)
 {
-    if (!OrderPairDb::update(db, pair))
+    if (save && !OrderPairDb::update(db, pair))
         return false;
+
     orderPairs[pair.uuid] = std::move(pair);
     return true;
 }
@@ -77,7 +88,8 @@ bool TrackedOrderPairs::cancelPair(
     // Set to canceled
     OrderPair clone(pair);
     clone.state = OrderPair::State::Canceled;
-    if (!OrderPairDb::update(db, clone))
+
+    if (save && !OrderPairDb::update(db, clone))
     {
         log::error("Failed to remove order pair '%s' for '%s' from database.",
             uuid.c_str(),

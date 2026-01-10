@@ -15,7 +15,7 @@ namespace gtb
 class TrackedOrderPairs
 {
     public:
-        TrackedOrderPairs() = default;
+        TrackedOrderPairs(bool save);
         TrackedOrderPairs(TrackedOrderPairs &&) = delete;
         TrackedOrderPairs(const TrackedOrderPairs &) = delete;
         TrackedOrderPairs &operator=(TrackedOrderPairs &&) = delete;
@@ -50,6 +50,7 @@ class TrackedOrderPairs
         const std::unordered_map<std::string, OrderPair> &getPairs() const;
 
     private:
+        bool save;
         Database db;
         std::string algorithm;
         std::unordered_map<std::string, OrderPair> orderPairs;

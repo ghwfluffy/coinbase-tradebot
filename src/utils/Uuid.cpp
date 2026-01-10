@@ -9,6 +9,19 @@
 
 using namespace gtb;
 
+namespace
+{
+
+uint16_t getRand16()
+{
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+    static std::uniform_int_distribution<uint16_t> dist(0, UINT16_MAX);
+    return dist(gen);
+}
+
+}
+
 // b17c0112-dead-4e5d-abff-90865d1e13b1
 std::string Uuid::generate()
 {
@@ -20,10 +33,7 @@ std::string Uuid::generate()
     const uint16_t current = counter++;
 
     // Random data
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_int_distribution<uint16_t> dist(0, UINT16_MAX);
-    const uint16_t random = dist(gen);
+    const uint16_t random = getRand16();
 
     // Current time
     auto now = std::chrono::system_clock::now();
