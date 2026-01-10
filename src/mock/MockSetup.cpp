@@ -4,6 +4,7 @@
 #include <gtb/MockMarket.h>
 #include <gtb/MockCoinbase.h>
 #include <gtb/MockUserTrades.h>
+#include <gtb/MockResultsWriter.h>
 
 #include <gtb/CoinbaseInit.h>
 #include <gtb/CoinbaseFeeTier.h>
@@ -49,4 +50,7 @@ void MockSetup::init(
 
     // Processor: Print periodic status updates
     bot.addProcessor(std::make_unique<PeriodicPrinter>(ctx));
+
+    // Processor: Write periodic results in easily parseable format
+    bot.addProcessor(std::make_unique<MockResultsWriter>(ctx, "data/mockresults.jsonl"));
 }

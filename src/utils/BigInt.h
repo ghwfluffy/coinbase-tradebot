@@ -18,7 +18,9 @@ class BigInt
         operator bool() const;
         uint64_t toUint64() const;
         int64_t toInt64() const;
+
         bool isNegative() const;
+        void setNegative(bool negative);
 
         bool tryToUint64(uint64_t &out) const;
         bool tryToInt64(int64_t &out) const;

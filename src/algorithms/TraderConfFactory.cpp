@@ -149,6 +149,30 @@ MomentumTrader::Config TraderConfFactory::Momentum::swing()
     return conf;
 }
 
+VolumeTrader::Config TraderConfFactory::Volume::large()
+{
+    VolumeTrader::Config conf;
+    conf.name = "Volume-Large";
+    conf.betSize = 200_Dollars;
+    conf.minProfitDelta = 2_Dollars;
+    conf.repriceBand = 20_Dollars;
+    conf.orderTtl = 10_Seconds;
+    return conf;
+}
+
+VolumeTrader::Config TraderConfFactory::Volume::largeDaytime()
+{
+    VolumeTrader::Config conf;
+    conf.name = "Volume-Large-Daytime";
+    conf.betSize = 200_Dollars;
+    conf.minProfitDelta = 2_Dollars;
+    conf.repriceBand = 20_Dollars;
+    conf.orderTtl = 10_Seconds;
+    conf.marketParams.push_back(MarketConfFactory::onlyNormalHours());
+    return conf;
+}
+
+
 // High-turnover volume churner: big bets, tight profit delta, fast TTL to drive fee-tier volume.
 VolumeTrader::Config TraderConfFactory::Volume::churn()
 {
@@ -316,8 +340,10 @@ SpreadTrader::Config TraderConfFactory::Spread::allHoursProbe()
     conf.numPairs = 4;
     conf.buffer = 12_Percent;
     conf.marketParams.push_back(MarketConfFactory::gentleOpenHours());
+#if 0
     conf.marketParams.push_back(MarketConfFactory::shieldedStockOpen());
     conf.marketParams.push_back(MarketConfFactory::midweekDerisk());
+#endif
     return conf;
 }
 
@@ -330,10 +356,12 @@ TimeTrader::Config TraderConfFactory::Time::small()
     conf.minSpread = 4_PercentagePoints;
     conf.paddingSpread = 1_PercentagePoints;
     conf.numPairs = 2;
+#if 0
     conf.marketParams.push_back(MarketConfFactory::preferBitcoinHours());
     conf.marketParams.push_back(MarketConfFactory::gentleOpenHours());
     conf.marketParams.push_back(MarketConfFactory::shieldedStockOpen());
     conf.marketParams.push_back(MarketConfFactory::weekendDerisk());
+#endif
     conf.marketParams.push_back(MarketConfFactory::midweekDerisk());
     return conf;
 }
@@ -348,9 +376,11 @@ TimeTrader::Config TraderConfFactory::Time::medium()
     conf.paddingSpread = 2_PercentagePoints;
     conf.numPairs = 2;
     conf.marketParams.push_back(MarketConfFactory::onlyNormalHours());
+#if 0
     conf.marketParams.push_back(MarketConfFactory::gentleOpenHours());
     conf.marketParams.push_back(MarketConfFactory::shieldedStockOpen());
     conf.marketParams.push_back(MarketConfFactory::midweekDerisk());
+#endif
     return conf;
 }
 

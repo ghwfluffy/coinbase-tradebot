@@ -149,6 +149,12 @@ bool BigInt::isNegative() const
     return bn && BN_is_negative(bn);
 }
 
+void BigInt::setNegative(bool negative)
+{
+    if (bn)
+        BN_set_negative(bn, negative);
+}
+
 BigInt &BigInt::operator+=(const BigInt &rhs)
 {
     if (BN_add(bn, bn, rhs.bn) != 1)

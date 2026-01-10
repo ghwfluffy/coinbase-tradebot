@@ -87,6 +87,12 @@ namespace IntegerUtils
     std::string toUsdCompact(
         big_usd_t amount);
 
+    int64_t toDollars(
+        big_usd_t amount);
+
+    int64_t toDollars(
+        usd_t amount);
+
     // Maker-friendly price adjustments to avoid taking.
     usd_t makerBuyPrice(
         usd_t mid,

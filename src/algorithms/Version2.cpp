@@ -26,16 +26,8 @@ void addTraders(
     };
 
     // Add traders
-    add.operator()<VolumeTrader>(TraderConfFactory::Volume::stockChurn);
-    add.operator()<VolumeTrader>(TraderConfFactory::Volume::stockChurn);
-    add.operator()<VolumeTrader>(TraderConfFactory::Volume::pulse);
-    add.operator()<VolumeTrader>(TraderConfFactory::Volume::drip);
-    add.operator()<VolumeTrader>(TraderConfFactory::Volume::allHoursFeeder);
-    add.operator()<VolumeTrader>(TraderConfFactory::Volume::allHoursFeeder);
-    add.operator()<VolumeTrader>(TraderConfFactory::Volume::btcFeeder);
-    add.operator()<VolumeTrader>(TraderConfFactory::Volume::btcFeederHeavy);
-    add.operator()<VolumeTrader>(TraderConfFactory::Volume::btcFeeder);
-    add.operator()<VolumeTrader>(TraderConfFactory::Volume::btcFeederHeavy);
+    add.operator()<VolumeTrader>(TraderConfFactory::Volume::large);
+    add.operator()<VolumeTrader>(TraderConfFactory::Volume::largeDaytime);
 }
 
 void initProd(

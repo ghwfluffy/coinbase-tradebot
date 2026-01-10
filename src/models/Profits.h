@@ -33,6 +33,8 @@ class Profits : public DataModel
             big_usd_t sellUsd;
             big_usd_t buyFees;
             big_usd_t sellFees;
+            uint64_t buys = {};
+            uint64_t sells = {};
 
             btc_t getPending() const;
             big_usd_t getVolume() const;
@@ -41,11 +43,6 @@ class Profits : public DataModel
 
         big_usd_t getVolume() const;
         big_usd_t getProfit(usd_t curPrice) const;
-
-        // TODO: Remove?
-        // Per-trader view; returns zeroed data if no such trader exists.
-        TraderData getTraderData(
-            const std::string &trader) const;
 
         // Full per-trader breakdown.
         std::map<std::string, TraderData> getAllTraderData() const;

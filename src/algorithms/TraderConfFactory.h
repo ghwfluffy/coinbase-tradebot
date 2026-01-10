@@ -35,6 +35,8 @@ namespace TraderConfFactory
 
     namespace Volume
     {
+        VolumeTrader::Config large();
+        VolumeTrader::Config largeDaytime();
         VolumeTrader::Config churn();
         VolumeTrader::Config stockChurn();
         VolumeTrader::Config drip();

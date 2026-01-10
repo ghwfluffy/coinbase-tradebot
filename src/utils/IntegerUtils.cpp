@@ -317,6 +317,23 @@ std::string IntegerUtils::toUsdCompact(
     return std::string(usd);
 }
 
+int64_t IntegerUtils::toDollars(
+    big_usd_t amount)
+{
+    bool negative = amount.isNegative();
+    if (negative)
+        amount.setNegative(false);
+    BigInt dollars = amount.value() / BigInt(usd_t(1_Dollars).value());
+    int64_t iDollars = dollars.toInt64() * (negative ? -1 : 1);
+    return iDollars;
+}
+
+int64_t IntegerUtils::toDollars(
+    usd_t amount)
+{
+    return toDollars(big_usd_t(amount.value()));
+}
+
 usd_t IntegerUtils::makerBuyPrice(
     usd_t mid,
     usd_t offset)

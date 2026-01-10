@@ -30,16 +30,6 @@ big_usd_t Profits::getVolume() const
     return ret;
 }
 
-Profits::TraderData Profits::getTraderData(
-    const std::string &trader) const
-{
-    std::lock_guard<std::mutex> lock(const_cast<std::mutex &>(mtx));
-    auto it = traders.find(trader);
-    if (it == traders.end())
-        return {};
-    return it->second;
-}
-
 std::map<std::string, Profits::TraderData> Profits::getAllTraderData() const
 {
     std::lock_guard<std::mutex> lock(const_cast<std::mutex &>(mtx));
@@ -93,6 +83,7 @@ void Profits::recordBuyFill(
         d.buyBtc += quantity;
         d.buyUsd += beforeFees;
         d.buyFees += fees;
+        d.buys++;
     }
 
     updated();
@@ -113,6 +104,7 @@ void Profits::recordSellFill(
         d.sellBtc += quantity;
         d.sellUsd += beforeFees;
         d.sellFees += fees;
+        d.sells++;
     }
 
     updated();

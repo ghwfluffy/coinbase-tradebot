@@ -29,7 +29,9 @@ struct StrongTypedBigInt
 
     BigInt &value() { return v; }
     const BigInt &value() const { return v; }
+
     bool isNegative() const { return v.isNegative(); }
+    void setNegative(bool negative) { v.setNegative(negative); }
 
     explicit operator bool() const { return static_cast<bool>(v); }
 
